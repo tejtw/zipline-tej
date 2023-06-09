@@ -21,8 +21,6 @@ $ conda env create -f zipline-tej.yml
 # activate virtual env
 $ conda activate zipline-tej
 
-# install required packages
-$ pip install zipline-tej
 
 ```
 

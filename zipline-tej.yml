@@ -78,6 +78,7 @@ dependencies:
   - cryptography=36.0.2
   - cssselect=1.1.0
   - curl=7.83.0
+  - cvxopt=1.3.1
   - cycler=0.11.0
   - cymem=2.0.6
   - cython=0.29.28

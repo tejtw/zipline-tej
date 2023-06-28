@@ -503,7 +503,6 @@ dependencies:
   - yfinance=0.1.63
   - zeromq=4.3.4
   - zfp=0.5.5
-  - zipline-reloaded=2.2.0
   - zipp=3.8.0
   - zlib=1.2.11
   - zope.interface=5.4.0

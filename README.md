@@ -15,12 +15,15 @@
 (We **strongly** recommand using virtual environment to keep every project independent.) [(reason)](https://csguide.cs.princeton.edu/software/virtualenv#definition)
 
 ```
+
+# change directionary to the folder exists zipline-tej.yml
+$ cd <C:\Users\username\Downloads>
+
 # create virtual env
 $ conda env create -f zipline-tej.yml
 
 # activate virtual env
 $ conda activate zipline-tej
-
 
 ```
 
@@ -35,6 +38,9 @@ $ conda activate <env_name>
 
 # download dependency packages
 $ conda install -c conda-forge -y ta-lib
+$ conda install -y notebook=6.4.11
+$ conda install -y xlrd=2.0.1
+$ conda install -y openpyxl=3.0.9
 $ pip install zipline-tej
 
 ```

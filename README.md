@@ -2,7 +2,7 @@
 
 ## Used packages and environment
 * Main package: Zipline-reloaded 2.2.0
-* Python 3.8 or above
+* Python 3.8 or Python 3.9
 * Microsoft Windows OS
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars
 
@@ -38,6 +38,7 @@ $ conda activate <env_name>
 
 # download dependency packages
 $ conda install -c conda-forge -y ta-lib
+$ conda install -c conda-forge nb_conda_kernels
 $ conda install -y notebook=6.4.11
 $ conda install -y xlrd=2.0.1
 $ conda install -y openpyxl=3.0.9

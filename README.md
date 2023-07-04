@@ -15,7 +15,6 @@
 (We **strongly** recommand using virtual environment to keep every project independent.) [(reason)](https://csguide.cs.princeton.edu/software/virtualenv#definition)
 
 ```
-
 # change directionary to the folder exists zipline-tej.yml
 $ cd <C:\Users\username\Downloads>
 
@@ -117,6 +116,26 @@ $ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle 
 Then, the resulting performance DataFrame is saved as bah.pickle, which you can load and analyze from Python.
 
 ## Jupyter Notebook 
+
+### Change Anaconda kernel
+
+* Since we've downloaded package "nb_conda_kernels", we should be able to change kernel in jupyter notebook.
+
+#### How to new a notebook using specific kernel 
+
+(1) Open anaconda prompt
+
+(2) Enter the command as follow :
+```
+# First one can be ignore if already in environment of zipline-tej
+$ conda activate zipline-tej 
+# start a jupyter notebook
+$ jupyter notebook 
+```
+(3) Start a notebook and select Python[conda env:zipline-tej]
+
+(4)(Optional) If you have already written a notebook, you can open it and  change kernel by clicking the "Kernel" in menu and "Change kernel" to select the specfic kernel.
+
 
 ### Set environment variables TEJAPI_KEY, ticker and mdate
 

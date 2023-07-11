@@ -4979,7 +4979,6 @@ _close_dates = pd.to_datetime([
     "2023-02-19",
 ])
 def get_dynamic_close_days(static_close_dates):
-    tejapi.ApiConfig.api_base = 'http://10.10.10.66'
     try :
         tejapi.ApiConfig.api_key = os.environ['TEJAPI_KEY']
     except :

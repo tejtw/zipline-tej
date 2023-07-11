@@ -4979,6 +4979,7 @@ _close_dates = pd.to_datetime([
     "2023-02-19",
 ])
 def get_dynamic_close_days(static_close_dates):
+    tejapi.ApiConfig.api_base = 'http://10.10.10.66'
     try :
         tejapi.ApiConfig.api_key = os.environ['TEJAPI_KEY']
     except :
@@ -5006,9 +5007,13 @@ class TEJ_XTAIExchangeCalendar(ExchangeCalendar):
     
     weekmask = "1111111"
     
-    start_date = pd.to_datetime('19700101').tz_localize('utc')
+    start_date = pd.to_datetime('19710101').tz_localize('utc')
     
     end_date = pd.to_datetime(datetime.now().strftime('%Y%m%d')).tz_localize('utc')
+    
+    @property
+    def default_start(self,) :
+        return self.start_date
     
     @property
     def bound_start(self,) :

@@ -1,8 +1,8 @@
 name: zipline-tej
 channels:
-  - defaults
   - ml4t
   - conda-forge
+  - defaults
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=5.1
@@ -237,7 +237,7 @@ dependencies:
     - multipledispatch==1.0.0
     - networkx==3.1
     - numexpr==2.8.4
-    - openpyxl==3.1.2
+    - openpyxl==3.0.9
     - py-cpuinfo==9.0.0
     - pyfolio-reloaded==0.9.4
     - python-interface==1.6.1

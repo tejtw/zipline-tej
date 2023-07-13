@@ -9,8 +9,11 @@
 ## How to install Zipline Reloaded modified by TEJ
 * We're going to illustrate under anaconda environment, so we suggest using [Anaconda](https://www.anaconda.com/data-science-platform) as development environment.
 
-* Download dependency packages. [(zipline-tej.yml)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej.yml)
-For mac users. [(zipline-tej_mac)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej_mac.yml)
+* Download dependency packages.
+
+1. Windows [(zipline-tej.yml)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej.yml)
+
+2. Mac [(zipline-tej_mac.yml)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-ej/blob/main/zipline-tej_mac.yml)
 
 * Start an Anaconda (base) prompt, create an virtual environment and install the appropriate versions of packages:
 (We **strongly** recommand using virtual environment to keep every project independent.) [(reason)](https://csguide.cs.princeton.edu/software/virtualenv#definition)
@@ -71,10 +74,14 @@ After downloaded the calendar file above, overwrite **calendar_utils.py** in exc
 **C:\Users\username\Anaconda3\envs\zipline-tej\Lib\site-packages\exchange_calendars**
 
 Mac may located at
+
 **C:\Users\username\Anaconda3\envs\zipline-tej\Lib\python3.8\site-packages\exchange_calendars**
 
 
-But some Windows users may located at **C:\Users\username\\AppData\Roaming\Python\Python38\Scripts**
+But some Windows users may located at 
+
+**C:\Users\username\\AppData\Roaming\Python\Python38\Scripts**
+
 which we aren't pleased to see. So if this happened, we suggest to put **exchange-calendars** folder to former path we mentioned above.
 
 

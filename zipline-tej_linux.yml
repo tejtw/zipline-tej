@@ -161,6 +161,7 @@ dependencies:
   - ptyprocess=0.7.0
   - pure_eval=0.2.2
   - pycparser=2.21
+  - pyfolio-reloaded=0.9.4
   - pygments=2.15.1
   - pyluach=2.2.0
   - pyopenssl=23.0.0

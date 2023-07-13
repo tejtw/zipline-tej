@@ -2,24 +2,35 @@
 
 ## Used packages and environment
 * Main package: Zipline-reloaded 2.2.0
-* Python 3.8 or Python 3.9
-* Microsoft Windows OS
+* Python 3.8
+* Microsoft Windows OS or macOS
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars
 
 ## How to install Zipline Reloaded modified by TEJ
 * We're going to illustrate under anaconda environment, so we suggest using [Anaconda](https://www.anaconda.com/data-science-platform) as development environment.
 
 * Download dependency packages. [(zipline-tej.yml)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej.yml)
+For mac users. [(zipline-tej_mac)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej_mac.yml)
 
 * Start an Anaconda (base) prompt, create an virtual environment and install the appropriate versions of packages:
 (We **strongly** recommand using virtual environment to keep every project independent.) [(reason)](https://csguide.cs.princeton.edu/software/virtualenv#definition)
 
 ```
+Windows Users
 # change directionary to the folder exists zipline-tej.yml
 $ cd <C:\Users\username\Downloads>
 
 # create virtual env
 $ conda env create -f zipline-tej.yml
+
+# activate virtual env
+$ conda activate zipline-tej
+Mac Users
+# change directionary to the folder exists zipline-tej_mac.yml
+$ cd <C:\Users\username\Downloads>
+
+# create virtual env
+$ conda env create -f zipline-tej_mac.yml
 
 # activate virtual env
 $ conda activate zipline-tej
@@ -55,9 +66,15 @@ We're now developing specfic on Taiwan securities backtesting strategy, so we're
 
 After downloaded the calendar file above, overwrite **calendar_utils.py** in exchange_calendars folder and add **exchange_calendar_tejxtai.py**.
 
-\* Navigate to the exchange_calendars folder within site packages. This is typically located at C:\Users\username\Anaconda3\envs\zipline-tej\Lib\site-packages\exchange_calendars
+\* Navigate to the exchange_calendars folder within site packages. This is typically located at 
 
-But some users may located at C:\Users\username\\AppData\Roaming\Python\Python38\Scripts
+**C:\Users\username\Anaconda3\envs\zipline-tej\Lib\site-packages\exchange_calendars**
+
+Mac may located at
+**C:\Users\username\Anaconda3\envs\zipline-tej\Lib\python3.8\site-packages\exchange_calendars**
+
+
+But some Windows users may located at **C:\Users\username\\AppData\Roaming\Python\Python38\Scripts**
 which we aren't pleased to see. So if this happened, we suggest to put **exchange-calendars** folder to former path we mentioned above.
 
 

@@ -519,5 +519,5 @@ dependencies:
     - tej-tool-api==1.0.1
     - tejapi==0.1.24
     - tej-exchange-calendars=0.0.1
-    - zipline-tej==1.0.0
+    - zipline-tej==0.0.42
 

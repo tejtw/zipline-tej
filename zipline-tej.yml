@@ -93,7 +93,6 @@ dependencies:
   - empyrical-reloaded=0.5.8
   - entrypoints=0.4
   - et_xmlfile=1.0.1
-  - exchange-calendars=3.3
   - executing=0.8.3
   - expat=2.4.8
   - fastprogress=1.0.2
@@ -519,5 +518,6 @@ dependencies:
     - scs==3.2.0
     - tej-tool-api==1.0.1
     - tejapi==0.1.24
+    - tej-exchange-calendars=0.0.1
     - zipline-tej==1.0.0
 

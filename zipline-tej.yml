@@ -518,6 +518,6 @@ dependencies:
     - scs==3.2.0
     - tej-tool-api==1.0.6
     - tejapi==0.1.24
-    - tej-exchange-calendars=0.0.2
+    - tej-exchange-calendars=0.0.3
     - zipline-tej==0.0.42
 

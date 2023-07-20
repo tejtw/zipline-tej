@@ -201,7 +201,7 @@ dependencies:
       - sqlalchemy==1.4.49
       - statsmodels==0.14.0
       - tables==3.8.0
-      - tej-exchange-calendars==0.0.2
+      - tej-exchange-calendars==0.0.3
       - tej-tool-api==1.0.6
       - tejapi==0.1.24
       - threadpoolctl==3.1.0

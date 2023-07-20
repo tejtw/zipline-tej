@@ -51,8 +51,8 @@ $ conda activate <env_name>
 
 # download dependency packages
 $ conda install -c conda-forge -y ta-lib
-$ conda install -c conda-forge nb_conda_kernels
 $ conda install -y notebook=6.4.11
+$ conda install -c conda-forge nb_conda_kernels
 $ conda install -y xlrd=2.0.1
 $ conda install -y openpyxl=3.0.9
 $ pip install zipline-tej

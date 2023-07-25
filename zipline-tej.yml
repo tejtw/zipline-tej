@@ -517,7 +517,7 @@ dependencies:
     - qdldl==0.1.5.post2
     - scs==3.2.0
     - tej-tool-api==1.0.6
-    - tejapi==0.1.24
+    - tejapi==0.1.25
     - tej-exchange-calendars==0.0.5
     - zipline-tej==0.0.43
 

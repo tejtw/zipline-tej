@@ -63,28 +63,6 @@ $ pip install zipline-tej
 * Notice that we need to download TA-lib at first, so that we can download zipline-tej successfully.
 
 
-## Exchange Calendar Issues
-
-We're now developing specfic on Taiwan securities backtesting strategy, so we're using the unique trading calendar created by ourselves.  [download](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/tree/main/exchange_calendars)
-
-After downloaded the calendar file above, overwrite **calendar_utils.py** in exchange_calendars folder and add **exchange_calendar_tejxtai.py**.
-
-\* Navigate to the exchange_calendars folder within site packages. This is typically located at 
-
-**C:\Users\username\Anaconda3\envs\zipline-tej\Lib\site-packages\exchange_calendars**
-
-Mac may located at
-
-**C:\Users\username\Anaconda3\envs\zipline-tej\Lib\python3.8\site-packages\exchange_calendars**
-
-
-But some Windows users may located at 
-
-**C:\Users\username\\AppData\Roaming\Python\Python38\Scripts**
-
-which we aren't pleased to see. So if this happened, we suggest to put **exchange-calendars** folder to former path we mentioned above.
-
-
 # Quick start
 
 ## CLI Interface
@@ -123,6 +101,7 @@ You can then run this algorithm using the Zipline CLI. But first, you need to do
 ```
 # setting TEJAPI_KEY to get permissions loading data
 $ set TEJAPI_KEY=<your_key>
+$ set TEJAPI_BASE="https://api.tej.com.tw"
 
 # setting download ticker
 $ set ticker=2330 2317
@@ -138,6 +117,50 @@ $ zipline ingest -b tquant
 $ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle --no-benchmark --trading-calendar TEJ_XTAI
 ```
 Then, the resulting performance DataFrame is saved as bah.pickle, which you can load and analyze from Python.
+
+### More useful zipline commands
+
+Before calling **zipline** in CLI, be sure that TEJAPI_KEY and TEJAPI_BASE were set.
+Use **zipline --help** to get more information.
+
+#### New add tickers
+
+```
+$ zipline add -t "<ticker_wants_to_add>"
+```
+If tickers are more than 1 ticker, split them apart by " " or ","  or ";".
+
+For more detail use **zipline add --help** .
+
+#### Display bundle-info
+```
+$ zipline bundle-info
+```
+To show what the tickers are there in newest bundle.
+
+For more detail use **zipline bundle-info --help** .
+
+#### Switch bundle
+
+Before using switch, use **zipline bundles** to get the timestamp of each folder.
+
+```
+$ zipline switch -t "<The_timestamp_of_the_folder_want_to_use>"
+```
+
+Due to zipline only using the newest foler, switch can make previous folder become newest.
+
+For more detail use **zipline switch --help** .
+
+#### Update bundle
+
+```
+$ zipline update
+```
+
+To update the bundle information to newest date.
+
+For more detail use **zipline update --help** .
 
 ## Jupyter Notebook 
 

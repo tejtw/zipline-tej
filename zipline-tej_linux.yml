@@ -250,5 +250,5 @@ dependencies:
     - tejapi==0.1.25
     - threadpoolctl==3.1.0
     - xlrd==2.0.1
-    - zipline-tej==0.0.46
+    - zipline-tej==0.0.47
 prefix: /root/anaconda3/envs/zipline-tej

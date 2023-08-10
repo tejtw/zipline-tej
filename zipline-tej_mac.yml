@@ -209,6 +209,6 @@ dependencies:
       - urllib3==2.0.3
       - webencodings==0.5.1
       - yfinance==0.1.87
-      - zipline-tej==0.0.46
+      - zipline-tej==0.0.47
       - zipp==3.16.1
 prefix: /Users/tej/anaconda3/envs/zipline-tej

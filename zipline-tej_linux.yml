@@ -246,7 +246,7 @@ dependencies:
     - sqlalchemy==1.4.49
     - tables==3.8.0
     - tej-tool-api==1.0.8
-    - tej-exchange-calendars==0.0.5
+    - tej-exchange-calendars==0.0.6
     - tejapi==0.1.27
     - threadpoolctl==3.1.0
     - xlrd==2.0.1

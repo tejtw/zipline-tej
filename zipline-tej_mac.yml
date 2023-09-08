@@ -202,7 +202,7 @@ dependencies:
       - statsmodels==0.14.0
       - tables==3.8.0
       - tej-exchange-calendars==0.0.6
-      - tej-tool-api==1.0.8
+      - tej-tool-api==1.0.11
       - tejapi==0.1.27
       - threadpoolctl==3.1.0
       - tzdata==2023.3

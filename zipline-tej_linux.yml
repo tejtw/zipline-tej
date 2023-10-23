@@ -247,7 +247,7 @@ dependencies:
     - tables==3.8.0
     - tej-tool-api==1.0.12
     - tej-exchange-calendars==0.0.7
-    - tejapi==0.1.27
+    - tejapi==0.1.28
     - threadpoolctl==3.1.0
     - xlrd==2.0.1
     - zipline-tej==0.0.48

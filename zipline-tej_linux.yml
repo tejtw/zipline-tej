@@ -6,7 +6,6 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=5.1
-  - alphalens-reloaded=0.4.2
   - anyio=3.5.0
   - appdirs=1.4.4
   - argon2-cffi=21.3.0
@@ -218,6 +217,7 @@ dependencies:
   - zlib=1.2.13
   - zstd=1.5.5
   - pip:
+    - alphalens-tej==0.0.1
     - alembic==1.11.1
     - blosc2==2.0.0
     - click==8.1.4
@@ -239,7 +239,7 @@ dependencies:
     - numexpr==2.8.4
     - openpyxl==3.0.9
     - py-cpuinfo==9.0.0
-    - pyfolio-reloaded==0.9.4
+    - pyfolio-tej==0.0.1
     - python-interface==1.6.1
     - scikit-learn==1.0.2
     - sortedcontainers==2.4.0

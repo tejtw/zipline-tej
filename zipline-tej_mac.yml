@@ -148,7 +148,7 @@ dependencies:
   - zlib=1.2.13
   - pip:
       - alembic==1.11.1
-      - alphalens-reloaded==0.4.2
+      - alphalens-tej==0.0.1
       - appdirs==1.4.4
       - bcolz-zipline==1.2.4
       - blosc2==2.0.0
@@ -188,7 +188,7 @@ dependencies:
       - patsy==0.5.3
       - pillow==10.0.0
       - py-cpuinfo==9.0.0
-      - pyfolio-reloaded==0.9.4
+      - pyfolio-tej==0.0.1
       - pyluach==2.2.0
       - pyparsing==3.0.9
       - python-interface==1.6.1

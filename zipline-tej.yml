@@ -516,7 +516,7 @@ dependencies:
     - pyportfolioopt==1.5.2
     - qdldl==0.1.5.post2
     - scs==3.2.0
-    - tej-tool-api==1.0.12
+    - tej-tool-api==1.0.13
     - tejapi==0.1.28
     - tej-exchange-calendars==0.0.7
     - zipline-tej==0.0.48

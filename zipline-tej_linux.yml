@@ -217,7 +217,7 @@ dependencies:
   - zlib=1.2.13
   - zstd=1.5.5
   - pip:
-    - alphalens-tej==0.0.1
+    - alphalens-tej==0.0.2
     - alembic==1.11.1
     - blosc2==2.0.0
     - click==8.1.4
@@ -239,7 +239,7 @@ dependencies:
     - numexpr==2.8.4
     - openpyxl==3.0.9
     - py-cpuinfo==9.0.0
-    - pyfolio-tej==0.0.1
+    - pyfolio-tej==0.0.2
     - python-interface==1.6.1
     - scikit-learn==1.0.2
     - sortedcontainers==2.4.0

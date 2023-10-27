@@ -1,7 +1,7 @@
 # Installation
 
 ## Used packages and environment
-* Main package: Zipline-reloaded 2.2.0
+* Main package: Zipline
 * Python 3.8
 * Microsoft Windows OS or macOS
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars

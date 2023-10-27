@@ -519,5 +519,5 @@ dependencies:
     - tejapi==0.1.28
     - tej-exchange-calendars==0.0.7
     - pyfolio-tej==0.0.2
-    - zipline-tej==0.0.49
+    - zipline-tej==0.0.50
 

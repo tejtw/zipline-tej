@@ -3,10 +3,11 @@
 ## Used packages and environment
 * Main package: Zipline
 * Python 3.8
-* Microsoft Windows OS or macOS
+* Microsoft Windows OS or macOS or Ubuntu
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars
 
 ## How to install Zipline Reloaded modified by TEJ
+
 * We're going to illustrate under anaconda environment, so we suggest using [Anaconda](https://www.anaconda.com/data-science-platform) as development environment.
 
 * Download dependency packages.
@@ -62,12 +63,11 @@ $ pip install zipline-tej
 
 * Notice that we need to download TA-lib at first, so that we can download zipline-tej successfully.
 
-
 # Quick start
 
 ## CLI Interface
 
-The following code implements a simple buy_and_hold trading algorithm.
+The following code implements a simple buy-and-hold trading algorithm.
 
 ```python
 from zipline.api import order, record, symbol
@@ -101,7 +101,7 @@ You can then run this algorithm using the Zipline CLI. But first, you need to do
 ```
 # setting TEJAPI_KEY to get permissions loading data
 $ set TEJAPI_KEY=<your_key>
-$ set TEJAPI_BASE="https://api.tej.com.tw"
+$ set TEJAPI_BASE=https://api.tej.com.tw
 
 # setting download ticker
 $ set ticker=2330 2317
@@ -114,7 +114,7 @@ $ set mdate=20200101 20220101
 
 ```
 $ zipline ingest -b tquant
-$ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle --no-benchmark --trading-calendar TEJ_XTAI
+$ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle --no-benchmark --no-treasury --trading-calendar TEJ_XTAI
 ```
 Then, the resulting performance DataFrame is saved as bah.pickle, which you can load and analyze from Python.
 

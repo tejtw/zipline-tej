@@ -1,0 +1,24 @@
+from python:3.8
+
+WORKDIR /home
+
+RUN   curl https://nchc.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz --output ta-lib.tar.gz  \
+      && tar -xzf ta-lib.tar.gz  \
+      && rm -rf ta-lib.tar.gz 
+      
+WORKDIR /home/ta-lib
+
+RUN   ./configure --prefix=/usr \
+      && make  && make install 
+      
+WORKDIR /home
+
+RUN   rm -rf ta-lib
+
+WORKDIR /app
+
+RUN pip install jupyter && pip install zipline-tej && pip cache purge
+
+EXPOSE 8888
+
+CMD ["jupyter" , "notebook" , "--ip=0.0.0.0", "--allow-root"]

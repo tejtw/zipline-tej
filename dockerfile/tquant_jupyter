@@ -17,7 +17,7 @@ RUN   rm -rf ta-lib
 
 WORKDIR /app
 
-RUN pip install jupyter && pip install seaborn &&pip install zipline-tej && pip cache purge
+RUN pip install jupyter && pip install seaborn && pip install tqdm && pip install zipline-tej && pip cache purge
 
 EXPOSE 8888
 

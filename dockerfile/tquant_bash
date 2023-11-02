@@ -17,5 +17,5 @@ RUN   rm -rf ta-lib
 
 WORKDIR /app
 
-RUN  pip install zipline-tej && pip install seaborn && pip cache purge
+RUN  pip install zipline-tej && pip install seaborn && pip install tqdm && pip cache purge
 

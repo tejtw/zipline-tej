@@ -19,6 +19,8 @@ WORKDIR /app
 
 RUN pip install jupyter && pip install seaborn && pip install tqdm && pip install zipline-tej && pip cache purge
 
+RUN !curl https://github.com/a7532ariel/ms-web/raw/master/Microsoft-JhengHei.ttf --output /usr/local/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/Microsoft-JhengHei.ttf
+
 EXPOSE 8888
 
 CMD ["jupyter" , "notebook" , "--ip=0.0.0.0", "--allow-root"]

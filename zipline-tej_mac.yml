@@ -148,7 +148,7 @@ dependencies:
   - zlib=1.2.13
   - pip:
       - alembic==1.11.1
-      - alphalens-tej==0.0.2
+      - alphalens-tej>=0.0.3
       - appdirs==1.4.4
       - bcolz-zipline==1.2.4
       - blosc2==2.0.0
@@ -188,7 +188,7 @@ dependencies:
       - patsy==0.5.3
       - pillow==10.0.0
       - py-cpuinfo==9.0.0
-      - pyfolio-tej==0.0.2
+      - pyfolio-tej>=0.0.3
       - pyluach==2.2.0
       - pyparsing==3.0.9
       - python-interface==1.6.1
@@ -202,13 +202,13 @@ dependencies:
       - statsmodels==0.14.0
       - tables==3.8.0
       - tej-exchange-calendars==0.0.7
-      - tej-tool-api==1.0.14
-      - tejapi==0.1.28
+      - tej-tool-api>=1.0.15
+      - tejapi>=0.1.28
       - threadpoolctl==3.1.0
       - tzdata==2023.3
       - urllib3==2.0.3
       - webencodings==0.5.1
       - yfinance==0.1.87
-      - zipline-tej==0.0.50
+      - zipline-tej>=0.0.51
       - zipp==3.16.1
 prefix: /Users/tej/anaconda3/envs/zipline-tej

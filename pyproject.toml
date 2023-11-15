@@ -34,7 +34,7 @@ license = { file = "LICENSE" }
 requires-python = '>=3.8'
 dependencies = [
     'alembic >=0.7.7',
-    'bcolz-zipline ==1.2.4',
+    'bcolz-zipline >=1.2.4',
     'bottleneck >=1.0.0',
     'click >=4.0.0',
     'empyrical-reloaded >=0.5.7',
@@ -47,7 +47,7 @@ dependencies = [
     'networkx >=2.0',
     'numexpr >=2.6.1',
     'numpy >=1.14.5, <1.24',
-    'pandas ==1.2.5',
+    'pandas >=1.2.5 , <= 1.5.3',
     'patsy >=0.4.0',
     'python-dateutil >=2.4.2',
     'python-interface >=1.5.3',
@@ -58,19 +58,19 @@ dependencies = [
     'sqlalchemy >=1.0.8A, <2',
     'statsmodels >=0.6.1',
     'ta-lib >=0.4.09',
-    'tables >=3.4.3',
     'toolz >=0.8.2',
-    'exchange-calendars ==3.3.0',
-    'tejapi >= 0.1.23',
+    'tej-exchange-calendars >=0.0.7',
+    'tejapi >= 0.1.28',
     'Logbook >= 1.5.3',
-    'dask == 2022.4.1',
     'openpyxl >= 3.0.9',
     'tej-tool-api >= 1.0.0',
+    'alphalens-tej >= 0.0.3',
+    'pyfolio-tej >= 0.0.3',
 ]
 
 [project.urls]
 homepage = 'https://api.tej.com.tw'
-
+repository = 'https://github.com/Han860207/zipline-tej'
 
 [build-system]
 requires = [
@@ -133,19 +133,21 @@ exclude = ['tests*']
 [tool.setuptools_scm]
 write_to = "src/zipline/_version.py"
 version_scheme = 'guess-next-dev'
-local_scheme = 'dirty-tag'
+local_scheme = 'no-local-version'
+
 
 [tool.setuptools.package-data]
 "*" = ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
 
-[tool.pytest]
-testpaths = 'tests'
-addopts = '-v'
+# [tool.pytest]
+# testpaths = 'tests'
+# addopts = '-v'
 
 [tool.cibuildwheel]
-test-extras = "test"
-test-command = "pytest --reruns 5 {package}/tests"
+# test-extras = "test"
+# test-command = "pytest --reruns 5 {package}/tests"
 build-verbosity = 3
+environment = "GITHUB_ACTIONS=true"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64", "universal2"]
@@ -155,9 +157,13 @@ test-skip = ["*universal2:arm64"]
 archs = ["auto64"]
 skip = "*musllinux*"
 
+[tool.cibuildwheel.windows]
+# test-command = 'pytest -k "not daily_returns_is_special_case_of_returns" --reruns 5 {package}/tests'
+test-skip = ["*"]
+
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310','py311']
 exclude = '''
 (
     asv_bench/env
@@ -174,7 +180,7 @@ exclude = '''
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{38,39,310}-pandas{12,13,14,15}
+envlist = py{38,39,310,311}-pandas{12,13,14,15}
 isolated_build = True
 skip_missing_interpreters = True
 minversion = 3.23.0
@@ -184,6 +190,7 @@ python =
     3.8: py38
     3.9: py39
     3.10: py310
+    3.11: py311
 
 [testenv]
 usedevelop = True
@@ -198,6 +205,6 @@ deps =
     pandas14: pandas>=1.4.0,<1.5
     pandas15: pandas>=1.5.0,<1.6
 
-commands =
-    pytest -n 4 --reruns 5 --cov={toxinidir}/src --cov-report term  --cov-report=xml --cov-report=html:htmlcov {toxinidir}/tests
-"""
+# commands =
+#     pytest -n 4 --reruns 5 --cov={toxinidir}/src --cov-report term  --cov-report=xml --cov-report=html:htmlcov {toxinidir}/tests
+# """

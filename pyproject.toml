@@ -70,7 +70,7 @@ dependencies = [
 
 [project.urls]
 homepage = 'https://api.tej.com.tw'
-repository = 'https://github.com/Han860207/zipline-tej'
+repository = 'https://github.com/tejtw/zipline-tej'
 
 [build-system]
 requires = [

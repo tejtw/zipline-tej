@@ -2,9 +2,9 @@
 
 ## Used packages and environment
 * Main package: Zipline
-* Python 3.8
+* Python 3.8 or above (currently support up to 3.11)
 * Microsoft Windows OS or macOS or Ubuntu
-* Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars
+* Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars, etc.
 
 ## How to install Zipline Reloaded modified by TEJ
 
@@ -45,23 +45,51 @@ Also, if you are familiar with Python enough, you can create a virtual environme
 
 ```
 # create virtual env
-$ conda create -n <env_name> python=3.8
+$ conda create -n <env_name> python=3.10
 
 # activate virtual env
 $ conda activate <env_name>
 
 # download dependency packages
-$ conda install -c conda-forge -y ta-lib
-$ conda install -y notebook=6.4.11
-$ conda install -c conda-forge nb_conda_kernels
-$ conda install -y xlrd=2.0.1
-$ conda install -y openpyxl=3.0.9
 $ pip install zipline-tej
 
 ```
 
+While encountering environment problems, we provided a consistent and stable environment on [Docker hub](https://hub.docker.com/).
 
-* Notice that we need to download TA-lib at first, so that we can download zipline-tej successfully.
+For users that using docker, we briefly introduce how to download and use it.
+
+First of all, please download and install [docker-desktop](https://www.docker.com/products/docker-desktop/).
+
+```
+
+1. Start docker-desktop. (Registration is not must.)
+
+2. Select the "images" on the leftside and search "tej87681088/tquant" and click "Pull".
+
+3. After the image was downloaded, click the "run" icon the enter the optional settings.
+
+3-1. Contaner-name: whatever you want.
+
+3-2. Ports: the port to connect, "8888" is recommended.
+
+3-3. Volumes: the place to store files. (You can create volume first on the left side.)
+
+e.g. created a volume named "data", host path enter "data", container path "/app" is recommended.
+
+4. Select the "Containers" leftside, the click the one which its image name is tej87681088/tquant
+
+5. In its "Logs" would show an url like 
+http://127.0.0.1:8888/tree?token=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+6. Go to your browser and enter "http://127.0.0.1:<port_you_set_in_step_3-2>/tree?token=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+6-1. If your port is 8888, you can just click the hyperlink.
+
+7. Start develop your strategy!
+
+NOTICE: Next time, we just need to reproduce step4 to step6.
+```
 
 # Quick start
 
@@ -114,7 +142,7 @@ $ set mdate=20200101 20220101
 
 ```
 $ zipline ingest -b tquant
-$ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle --no-benchmark --no-treasury --trading-calendar TEJ_XTAI
+$ zipline run -f buy_and_hold.py  --start 20200101 --end 20220101 -o bah.pickle --no-benchmark --no-treasury 
 ```
 Then, the resulting performance DataFrame is saved as bah.pickle, which you can load and analyze from Python.
 
@@ -123,6 +151,68 @@ Then, the resulting performance DataFrame is saved as bah.pickle, which you can 
 Before calling **zipline** in CLI, be sure that TEJAPI_KEY and TEJAPI_BASE were set.
 Use **zipline --help** to get more information.
 
+For example :
+We want to know how to use **zipline run**, we can run as follow:
+
+```
+zipline run --help
+```
+
+```
+
+Usage: zipline run [OPTIONS]
+  Run a backtest for the given algorithm.
+
+Options:
+  -f, --algofile FILENAME         The file that contains the algorithm to run.
+  -t, --algotext TEXT             The algorithm script to run.
+  -D, --define TEXT               Define a name to be bound in the namespace
+                                  before executing the algotext. For example
+                                  '-Dname=value'. The value may be any python
+                                  expression. These are evaluated in order so
+                                  they may refer to previously defined names.
+  --data-frequency [daily|minute]
+                                  The data frequency of the simulation.
+                                  [default: daily]
+  --capital-base FLOAT            The starting capital for the simulation.
+                                  [default: 10000000.0]
+  -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
+                                  [default: tquant]
+  --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
+                                  [default: <current-time>]
+  -bf, --benchmark-file FILE      The csv file that contains the benchmark
+                                  returns
+  --benchmark-symbol TEXT         The symbol of the instrument to be used as a
+                                  benchmark (should exist in the ingested
+                                  bundle)
+  --benchmark-sid INTEGER         The sid of the instrument to be used as a
+                                  benchmark (should exist in the ingested
+                                  bundle)
+  --no-benchmark                  If passed, use a benchmark of zero returns.
+  -bf, --treasury-file FILE       The csv file that contains the treasury
+                                  returns
+  --treasury-symbol TEXT          The symbol of the instrument to be used as a
+                                  treasury (should exist in the ingested
+                                  bundle)
+  --treasury-sid INTEGER          The sid of the instrument to be used as a
+                                  treasury (should exist in the ingested
+                                  bundle)
+  --no-treasury                   If passed, use a treasury of zero returns.
+  -s, --start DATE                The start date of the simulation.
+  -e, --end DATE                  The end date of the simulation.
+  -o, --output FILENAME           The location to write the perf data. If this
+                                  is '-' the perf will be written to stdout.
+                                  [default: -]
+  --trading-calendar TRADING-CALENDAR
+                                  The calendar you want to use e.g. TEJ_XTAI.
+                                  TEJ_XTAI is the default.
+  --print-algo / --no-print-algo  Print the algorithm to stdout.
+  --metrics-set TEXT              The metrics set to use. New metrics sets may
+                                  be registered in your extension.py.
+  --blotter TEXT                  The blotter to use.  [default: default]
+  --help                          Show this message and exit.
+
+``` 
 #### New add tickers
 
 ```
@@ -567,13 +657,7 @@ result
 <p>488 rows × 38 columns</p>
 </div>
 
-
-## Common errors 
-
-* NotSessionError : The date of algorithm start date or end date is not available in trading algorithm.
-    * Solution : Adjust start date or end date to align trading calendar.
-* DateOutOfBounds : The trading calendar would update every day, but it would be fixed on the **FIRST TIME** executed date in Jupyter Notebook.
-    * Solution : Restart Jupyter Notebook kernel.
+---
 
 # More Zipline Tutorials
 

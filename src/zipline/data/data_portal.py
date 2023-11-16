@@ -18,14 +18,20 @@ from logbook import Logger
 
 import numpy as np
 from numpy import float64, int64, nan
+
 import pandas as pd
 from pandas import isnull
-from datetime import datetime                          #20230104 (by MRC) TEJ_Api_data_source 
-import os                                              #20230104 (by MRC) TEJ_Api_data_source 
-from zipline.utils.calendar_utils import get_calendar  #20230514 (by MRC) get_bundle_price
-from zipline.data import bundles                       #20230514 (by MRC) get_bundle_price
 
+from toolz import curry, complement, take
+import errno
+import os
+import sqlite3
 from functools import reduce
+from collections import Counter
+
+from zipline.protocol import BarData
+
+from zipline.finance.asset_restrictions import NoRestrictions
 
 from zipline.assets import (
     Asset,
@@ -35,6 +41,7 @@ from zipline.assets import (
     PricingDataAssociable,
 )
 from zipline.assets.continuous_futures import ContinuousFuture
+
 from zipline.data.continuous_future_reader import (
     ContinuousFutureSessionBarReader,
     ContinuousFutureMinuteBarReader,
@@ -57,9 +64,15 @@ from zipline.data.history_loader import (
     MinuteHistoryLoader,
 )
 from zipline.data.bar_reader import NoDataOnDate
+from zipline.data import bundles
+from zipline.data.bundles.core import UnknownBundle, from_bundle_ingest_dirname
 
 from zipline.utils.memoize import remember_last
 from zipline.utils.pandas_utils import normalize_date
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.input_validation import expect_element
+import zipline.utils.paths as pth
+
 from zipline.errors import HistoryWindowStartsBeforeData
 
 
@@ -76,10 +89,15 @@ BASE_FIELDS = frozenset(
         "contract",
         "sid",
         "last_traded",
+        "annotation",# 20230914 add annotation
     ]
 )
 
 OHLCV_FIELDS = frozenset(["open", "high", "low", "close", "volume"])
+OHLCV_FIELDS_LIST = ["open", "high", "low", "close", "volume"]
+
+OHLCV_ADJ_FIELDS = frozenset(["open_adj", "high_adj", "low_adj", "close_adj", "volume_adj"])
+OHLCV_ADJ_FIELDS_LIST = ["open_adj", "high_adj", "low_adj", "close_adj", "volume_adj"]
 
 OHLCVP_FIELDS = frozenset(["open", "high", "low", "close", "volume", "price"])
 
@@ -382,31 +400,11 @@ class DataPortal(object):
             # Append to extra_source_df the reindexed dataframe for the single
             # sid
             extra_source_df = extra_source_df.append(df)
-
-            
-        #--------------------------------------------------------------------
-        #20230104 (by MRC) TEJ_Api_data_source #start
-        '''    
-        extra_source_df1=extra_source_df.copy()           
-        extra_source_df1.index.rename('dt',inplace=True)
-        
-        path = "./output_TEJ_api_data"
-        now = (datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f'))
-        
-        if not os.path.isdir(path):
-            os.makedirs(path)  
-        else:
-            pass
-            
-        extra_source_df1.reset_index().to_csv(path + '/'+str(now)+'.csv')                  
-        '''           
-        #20230104 (by MRC) TEJ_Api_data_source #end
-        #--------------------------------------------------------------------
             
         self._extra_source_df = extra_source_df
 
 
-  
+ 
     def _get_pricing_reader(self, data_frequency):
         return self._pricing_readers[data_frequency]
 
@@ -752,7 +750,7 @@ class DataPortal(object):
                 return pd.NaT
             else:
                 return last_traded_dt
-        elif column in OHLCV_FIELDS:
+        elif column in OHLCV_FIELDS or column == "annotation" : # 20230914 add annotation
             # don't forward fill
             try:
                 return reader.get_value(asset, dt, column)
@@ -1275,156 +1273,199 @@ class DataPortal(object):
         return self._adjustment_reader
 
 
-#--------------------------------------------------------------------    
-#20230516 轉出bundle資料 (by MRC) #start#   
-def get_bundle_price(bundle_name,
-                     calendar_name,
-                     start_dt,
+##############
+# get_bundle #
+##############
+def get_bundle_price(start_dt,
                      end_dt,
-                     frequency='1d',
-                     data_frequency='daily',
-                     assets = None):
-                     
-    """轉出bundle的價格資料(調整前+調整後)
+                     fields = '*',
+                     bundle_name = 'tquant',
+                     calendar_name = 'TEJ_XTAI',
+                     frequency = '1d',
+                     data_frequency = 'daily',
+                     assets = None,
+                     transform = False):
+
+    """
+    Export the bundle's price and volume data (pre-adjustment + post-adjustment)
+    into a DataFrame.
+    (20230516、20231103)
 
     Parameters
     ----------
-	bundle_name : str
-	    The name of the bundle.
+    bundle_name : str, optional
+        The name of the bundle.
     calendar_name : str, optional
         The name of a calendar used to align bundle data.
+    fields: string or list[string], optional
+        The specific field to return. If you want to retrieve all fields, then enter '*'.
+        See `OHLCV_ADJ_FIELDS` and `OHLCV_FIELDS`.
     start_dt: pandas.Timestamp
         The start of the desired window of data.
     end_dt: pandas.Timestamp
-        The end session of the desired window of data.		
+        The end session of the desired window of data.
     frequency: string, optional
         "1d"
     data_frequency: string, optional
         The frequency of the data to query; i.e. 'daily'
-    assets : list of zipline.data.Asset objects, optional
-        The assets whose data is desired.    
+    assets : list of `zipline.data.Asset objects`, optional
+        The assets whose data is desired.
+    transform : bool, optional
+        For alphalens. If True then transform data format into a DataFrame with MultiIndex
+        columns, where level 0 is `fields` and level 1 is `Asset` objects, and the
+        index is a 'DatetimeIndex'.
 
     Returns
     -------
-    df_bundle : pd.DataFrame
-        bundle的價格資料(調整前+調整後)
-
-    Modification history
-    -------
-    20230516:新增 (by MRC)  
-     	
-    See Also
-    --------
-    https://github.com/quantopian/zipline/issues/2651
-    
-    
-    Existing Problems
-    --------    
-    若get_calendar(calendar_name).schedule中的最小日期晚於bundle.equity_daily_bar_reader.first_trading_day
-    get_bundle_data()會報錯:
-    
-    NotSessionError: Parameter `session_label` takes a session label although received input that parsed 
-    to '2003-04-30 00:00:00+00:00' which is earlier than the first session of calendar 'XTAI' 
-    ('2003-05-02 00:00:00+00:00').
-
-    解法:
-    1. Kernal restart，並重新ingest。
-    2. 將first_trading_day改為get_calendar(calendar_name).schedule.index.min()。  
+    df : pd.DataFrame
     """
-    
     bundle = bundles.load(bundle_name)
-    
+
     if assets is None:
         sids = bundle.asset_finder.equities_sids
         assets = bundle.asset_finder.retrieve_all(sids)
-    
-#     調整後
-    DataPortal_adj = DataPortal(asset_finder=bundle.asset_finder,
-                                  trading_calendar=get_calendar(calendar_name),
-                                  first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
-                #                   equity_minute_reader=bundle.equity_minute_bar_reader,
-                                  equity_daily_reader=bundle.equity_daily_bar_reader,
-                                  adjustment_reader=bundle.adjustment_reader
-                                 )
-#     未調整
-    DataPortal_non_adj = DataPortal(asset_finder=bundle.asset_finder,
-                                      trading_calendar=get_calendar(calendar_name),
-                                      first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
-                    #                   equity_minute_reader=bundle.equity_minute_bar_reader,
-                                      equity_daily_reader=bundle.equity_daily_bar_reader,
-                    #                   adjustment_reader=bundle.adjustment_reader
-                                     )
-    
-#     算交易日個數
+
+    # fields
+    if isinstance(fields, str):
+        fields = [fields]
+
+    # The reason for using `OHLCV_FIELDS_LIST`` instead of `OHLCV_FIELDS``
+    # is to ensure the consistency of the field order.
+    if '*' in fields:
+        fields = OHLCV_FIELDS_LIST + OHLCV_ADJ_FIELDS_LIST
+
+    # chk
+    expect_element(fields = list(OHLCV_ADJ_FIELDS) + list(OHLCV_FIELDS))
+
+    # Split the fields into two lists according to whether they are adjusted 
+    # or not.
+    non_adj_field = [i for i in fields if not i.endswith('_adj')]
+    # Removes the last 4 characters '_adj'
+    adj_field = [i[:-4] for i in fields if i.endswith('_adj')]
+
+    def get_history(adj, fields, transform=False):
+
+        if adj:
+            adjustment_reader=bundle.adjustment_reader
+        else:
+            adjustment_reader=None
+
+        Portal = DataPortal(asset_finder=bundle.asset_finder,
+                            trading_calendar=get_calendar(calendar_name),
+                            first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
+                            # equity_minute_reader=bundle.equity_minute_bar_reader,
+                            equity_daily_reader=bundle.equity_daily_bar_reader,
+                            adjustment_reader=adjustment_reader
+                            )
+        if not transform:
+            Bar = BarData(data_portal=Portal,
+                         simulation_dt_func=lambda: end_dt,
+                         data_frequency=data_frequency,
+                         trading_calendar=get_calendar(calendar_name),
+                         restrictions=NoRestrictions()
+                         )
+
+            df = Bar.history(assets=assets,
+                             fields=fields,
+                             bar_count=N_tradate,
+                             frequency=frequency)
+
+            # add：symbol and sid
+            df.index.set_names(['date','asset'],inplace=True)
+            df = df.reset_index()
+
+            df.insert(1,'symbol',df['asset'].apply(lambda x: x.symbol))
+            df.insert(1,'sid',df['asset'].apply(lambda x: x.sid))
+
+            df.columns.name = None
+            # Add the suffix '_adj' to the column names in adj_field.
+            df.columns = [f'{col}_adj' if (col not in ['date','sid','symbol','asset']) \
+                          & (adj==True)
+                          else col for col in df.columns]
+            return df
+
+        else:
+            dict = {}
+            for i in fields:
+                df = Portal.get_history_window(assets = assets,
+                                               end_dt = end_dt,
+                                               bar_count = N_tradate,
+                                               frequency =frequency,
+                                               field = i,
+                                               data_frequency =data_frequency)
+                if not adj:
+                    dict[i] = df
+                else:
+                    # Add the suffix '_adj' to the column names.
+                    dict[i+'_adj'] = df
+
+            return dict
+
+    # N_tradate： number of trading days
     dt = get_calendar(calendar_name).sessions_in_range(start_dt,end_dt)
     N_tradate = len(dt)
-        
-    def get_data(DataPortal, adj):
-        col = ['open', 'high', 'low', 'close', 'volume']
-        df_bundle_data = pd.DataFrame()
-        for i in col:    
-            df = DataPortal.get_history_window(assets,end_dt,N_tradate,frequency,i,data_frequency)
 
-            df = df.stack().to_frame(name=i)
-            df = df.sort_index()
-            df_bundle_data = pd.concat([df_bundle_data, df],axis=1) 
+    # post-adjustment
+    if adj_field:
+        bundle_price_adj = get_history(True, adj_field, transform)
+    else:
+        bundle_price_adj = None
+
+    # pre-adjustment
+    if non_adj_field:
+        bundle_price = get_history(False, non_adj_field, transform)
+    else:
+        bundle_price = None
+
+    # merge
+    if not transform:
+        # only OHLCV_FIELDS
+        if bundle_price_adj is None:
+            return bundle_price
+        # only OHLCV_ADJ_FIELDS
+        elif bundle_price is None:
+            return bundle_price_adj
+        # both OHLCV_FIELDS and OHLCV_ADJ_FIELDS
+        else:
+            df = pd.merge(bundle_price,
+                          bundle_price_adj.drop(columns=['asset','symbol']),
+                          on=['date','sid'],
+                          suffixes=[None,'_adj'])
+    else:
+        # Initialize merged_dict as an empty dictionary
+        merged_dict = {}
+
+        # Add to merged_dict only if the dictionary is not None
+        if bundle_price is not None:
+            merged_dict.update(bundle_price)
+
+        if bundle_price_adj is not None:
+            merged_dict.update(bundle_price_adj)
+
+        # Concatenate the DataFrames with multi-level columns from dict
+        df = pd.concat(merged_dict.values(), axis=1, keys=merged_dict.keys())
+
+    return df
 
 
-#         adj_
-        if adj is True:
-            for i in col:
-                df_bundle_data.rename(columns={i:'adj_'+i},
-                                      inplace=True)
-#         symbol及sid
-        df_bundle_data.index.set_names(['date','asset'],inplace=True)
-        df_bundle_data = df_bundle_data.reset_index()
+def get_bundle_adj(bundle_name = 'tquant'):
 
-        df_bundle_data.insert(1,'symbol',df_bundle_data['asset'].apply(lambda x: x.symbol))
-        df_bundle_data.insert(1,'sid',df_bundle_data['asset'].apply(lambda x: x.sid)) 
-        
-        return df_bundle_data
-    
-
-#     調整後
-    df_bundle_data_adj = get_data(DataPortal_adj,True)
-#     調整前
-    df_bundle_data = get_data(DataPortal_non_adj,False)
-#     合併
-    df_bundle = pd.merge(df_bundle_data,
-                       df_bundle_data_adj.drop(columns=['asset','symbol']),
-                       on=['date','sid'])
-    
-    return df_bundle
-    
-def get_bundle_adj(bundle_name):
-
-    """轉出bundle的調整資料
+    """
+    Loads the adjustments from a SQLite database into a DataFrame.(20230516)。
 
     Parameters
     ----------
-	bundle_name : str
-	    The name of the bundle.
+    bundle_name : str, optional
+        The name of the bundle.
 
     Returns
     -------
     df_adj : pd.DataFrame
-        bundle的調整資料
-
-    Modification history
-    -------
-    20230516:新增 (by MRC)  
-    20230525:刪除cash_back欄位，新增div_percent(配合bundle)
-    
-	See Also
-    --------
-       
-    Existing Problems
-    --------    
-
+        adjustments
     """
-	
+
     bundle = bundles.load(bundle_name) 
-    
+
     # 取得所有的adjustment
     df_adjustment = bundle.adjustment_reader.unpack_db_to_component_dfs(convert_dates=True)
 
@@ -1455,96 +1496,398 @@ def get_bundle_adj(bundle_name):
     df_dividends = df_adjustment['dividends'].rename(columns={'ratio':'dividends.ratio'}).\
                                               set_index(['effective_date','sid'])
 
-    # df_adj=pd.concat([df_dividend_payouts,
-    #                   df_dividends,
-    #                   #df_stock_dividend_payouts,
-    #                  df_splits,
-    #                  df_mergers
-    #                  ],axis=1)
 
-    df_adj1 = df_dividend_payouts.merge(df_dividends,how='outer',left_index=True, right_index=True)
-    df_adj2 = df_adj1.merge(df_splits,how='outer',left_index=True, right_index=True)
-    df_adj3 = df_adj2.merge(df_mergers,how='outer',left_index=True, right_index=True)
+    df_adj = df_dividend_payouts.merge(df_dividends,how='outer',left_index=True, right_index=True)
+    df_adj = df_adj.merge(df_splits,how='outer',left_index=True, right_index=True)
+    df_adj = df_adj.merge(df_mergers,how='outer',left_index=True, right_index=True)
 
-    df_adj = df_adj3.copy()
     df_adj.index.set_names(['date','sid'],inplace=True)
     df_adj.reset_index(inplace=True)
 
     df_adj.insert(2,'asset',df_adj['sid'].apply(lambda x: bundle.asset_finder.retrieve_asset(x)))
     df_adj.insert(2,'symbol',df_adj['asset'].apply(lambda x: x.symbol))
-    
+
     return df_adj
 
-def get_bundle(bundle_name,
-               calendar_name,
-               start_dt,
+def get_bundle(start_dt,
                end_dt,
-               frequency='1d',
-               data_frequency='daily',
-               assets=None):    
-
-    """轉出bundle的價格資料(調整前+調整後)及調整資料
+               bundle_name = 'tquant',
+               calendar_name = 'TEJ_XTAI',
+               frequency = '1d',
+               data_frequency = 'daily',
+               assets = None):
+    """
+    Loads the price and volume data (both pre-adjustment and post-adjustment),
+    as well as adjustments, and transforms them into a DataFrame.
+    (20230516、20231103)
 
     Parameters
     ----------
-	bundle_name : str
-	    The name of the bundle.
+    bundle_name : str
+        The name of the bundle.
     calendar_name : str, optional
         The name of a calendar used to align bundle data.
     start_dt: pandas.Timestamp
         The start of the desired window of data.
     end_dt: pandas.Timestamp
-        The end session of the desired window of data.		
+        The end session of the desired window of data.
     frequency: string, optional
         "1d"
     data_frequency: string, optional
         The frequency of the data to query; i.e. 'daily'
     assets : list of zipline.data.Asset objects, optional
-        The assets whose data is desired.    
+        The assets whose data is desired.
 
     Returns
     -------
     df : pd.DataFrame
         bundle的價格資料(調整前+調整後)及調整資料
-
-    Modification history
-    -------
-    20230516:新增 (by MRC)  
-     	
-    See Also
-    --------
-    https://github.com/quantopian/zipline/issues/2651
-    
-    
-    Existing Problems
-    --------    
-    若get_calendar(calendar_name).schedule中的最小日期晚於bundle.equity_daily_bar_reader.first_trading_day
-    get_bundle_data()會報錯:
-    
-    NotSessionError: Parameter `session_label` takes a session label although received input that parsed 
-    to '2003-04-30 00:00:00+00:00' which is earlier than the first session of calendar 'XTAI' 
-    ('2003-05-02 00:00:00+00:00').
-
-    解法:
-    1. Kernal restart，並重新ingest。
-    2. 將first_trading_day改為get_calendar(calendar_name).schedule.index.min()。  
-    """     
-	
+    """
     df_bundle_price = get_bundle_price(bundle_name=bundle_name,
                                        calendar_name=calendar_name,
                                        start_dt=start_dt,
                                        end_dt=end_dt,
+                                       fields='*',
                                        assets=assets,
                                        frequency=frequency,
                                        data_frequency=data_frequency)
                                  
     df_bundle_adj = get_bundle_adj(bundle_name)
-    
+
     df = df_bundle_price.merge(df_bundle_adj.drop(columns=['asset','symbol']),
                                                   on=['date','sid'],
                                                   how='left')
 
     return df
 
-#20230516 轉出bundle資料 (by MRC) #end#
-#--------------------------------------------------------------------
+
+####################
+# get_annotation   #
+####################
+def get_annotation(start_dt,
+                   end_dt,
+                   bundle_name='tquant',
+                   calendar_name='TEJ_XTAI',
+                   assets=None,
+                   transform=False):
+    """
+    Export the bundle's annotation data(20231106)
+
+    Parameters
+    ----------
+    start_dt: pandas.Timestamp
+        The start of the desired window of data.
+    end_dt: pandas.Timestamp
+        The end session of the desired window of data.
+    bundle_name : str, optional
+        The name of the bundle.
+    calendar_name : str, optional
+        The name of a calendar used to align bundle data.
+    fields: string or list[string], optional
+        field : {'open', 'high', 'low', 'close', 'volume',
+        'price', 'last_traded','annotation'}
+        The desired field of the asset.
+    assets : Asset or iterable of same, optional
+        The asset or assets whose data is desired.
+    transform : bool, optional
+        If set to True, the DataFrame will be structured with
+        'Asset' objects as columns and 'DatetimeIndex' as the index.
+
+    Returns
+    -------
+    df : pd.DataFrame
+
+    See Also
+    --------
+    :Zipline.data.bcolz_daily_bars(20230914)
+    :Zipline.data.bundles.tquant(20230914)
+    """
+    bundle = bundles.load(bundle_name)
+
+    if assets is None:
+        sids = bundle.asset_finder.equities_sids
+        assets = bundle.asset_finder.retrieve_all(sids)
+
+    dt = get_calendar(calendar_name).sessions_in_range(start_dt, end_dt)
+
+    portal = DataPortal(asset_finder=bundle.asset_finder,
+                        trading_calendar=get_calendar(calendar_name),
+                        first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
+                        equity_daily_reader=bundle.equity_daily_bar_reader,
+                        adjustment_reader=bundle.adjustment_reader)
+
+    data = []
+    for i in dt:
+        _data = portal.get_spot_value(assets=assets,
+                                      field='annotation',
+                                      dt=i,
+                                      data_frequency ='daily')
+        data.append(_data)
+
+    if type(assets)==str:
+        assets = [assets]
+
+    df = pd.DataFrame(columns=assets,  # [i.symbol for i in assets]
+                      data=data,
+                      index=[dt])
+
+    if transform:
+        return df
+
+    else:
+
+        df = df.stack().reset_index().rename(columns={'level_1':'asset',
+                                                      'level_0':'date',
+                                                      0:'annotation'})
+
+        df['atten_fg'] = np.where(df['annotation'].str.contains("注意股票"), 'Y', '')
+        df['disp_fg'] = np.where(df['annotation'].str.contains("處置股票"), 'Y', '')
+        df['full_fg'] = np.where(df['annotation'].str.contains("全額交割股票"), 'Y', '')
+        df['sbadt_fg'] = np.where(df['annotation'].str.contains("暫停當沖先賣後買"), 'Y', '')
+        df['limo_fg'] = np.where(df['annotation'].str.contains("開盤即鎖死"), 'Y', '')
+
+        df['limit_fg'] = ''
+        df.loc[df['annotation'].str.contains("漲停股票",na=False), 'limit_fg'] = '+'
+        df.loc[df['annotation'].str.contains("跌停股票",na=False), 'limit_fg'] = '-'
+
+        df['mch_prd'] = 0.0
+        df.loc[df['annotation'].str.contains("五分分盤處置",na=False), 'mch_prd'] = 5.0
+        df.loc[df['annotation'].str.contains("二十分分盤處置",na=False), 'mch_prd'] = 20.0
+
+        df.insert(1,'symbol',df['asset'].apply(lambda x: x.symbol))
+        df.insert(1,'sid',df['asset'].apply(lambda x: x.sid))
+
+        return df
+
+
+####################
+# get_fundamentals #
+####################
+
+registered_bundle = bundles.bundles.keys()  # the registered bundles
+# Expose _bundles through a proxy so that users cannot mutate this
+# accidentally. Users may go through `register` to update this which will
+# warn when trampling another bundle.
+
+
+def most_recent_data(bundle_name, timestamp, environ=None):
+    """Get the path to the most recent data after ``date``for the
+    given bundle.
+
+    Parameters
+    ----------
+    bundle_name : str
+        The name of the bundle to lookup.
+    timestamp : datetime
+        The timestamp to begin searching on or before.
+    environ : dict, optional
+        An environment dict to forward to zipline_root.
+    """
+    if bundle_name not in registered_bundle:
+        raise UnknownBundle(bundle_name)
+
+    try:
+        candidates = os.listdir(
+            pth.data_path([bundle_name], environ=environ),
+        )
+        return pth.data_path(
+            [
+                bundle_name,
+                max(
+                    filter(complement(pth.hidden), candidates),
+                    key=from_bundle_ingest_dirname,
+                ),
+            ],
+            environ=environ,
+        )
+    except (ValueError, OSError) as e:
+        if getattr(e, "errno", errno.ENOENT) != errno.ENOENT:
+            raise
+        raise ValueError(
+            "no data for bundle {bundle!r} on or before {timestamp}\n"
+            "maybe you need to run: $ zipline ingest -b {bundle}".format(
+                bundle=bundle_name,
+                timestamp=timestamp,
+            ),
+        )
+
+
+class TQFDataLoader:
+
+    def __init__(self, 
+                 frequency = 'Daily', 
+                 **kwargs
+                 ) -> None:
+        
+        self.frequency = frequency
+        
+    def process_fields(self, fields):
+        if fields == '*':
+            # 选择所有列，但排除 'symbol' 和 'date'
+            return 'a.*'
+        
+        specific_fields = ['symbol', 'date']
+        processed_fields = []
+
+        for field in fields:
+            if field not in specific_fields:
+                processed_fields.append(f'a.{field}')
+
+        processed_fields = ['a.symbol', 'a.date'] + processed_fields
+
+        return ', '.join(processed_fields)
+
+    def get_sqlite_script(self):
+        if self.frequency == 'Daily':
+            scripts = f'''SELECT {self.fields} FROM factor_table a
+                where date >= "{self.start_dt}" and strftime('%Y-%m-%d',date) <= "{self.end_dt}"
+            '''
+
+        elif self.frequency == 'MRA':
+            scripts = f'''with cte as (
+                        SELECT symbol, 
+                        fin_date, 
+                        date,
+                        ROW_NUMBER() OVER (PARTITION BY symbol, fin_date ORDER BY date) AS annd_date
+                        FROM
+                            factor_table
+                        where fin_date is not null and strftime('%m', fin_date)='12' 
+                        and date >= '{self.start_dt}' and strftime('%Y-%m-%d',date) <= '{self.end_dt}'
+                        )
+
+                        select {self.fields} from factor_table a
+                        inner join cte b on a.symbol=b.symbol and a.date = b.date
+                        where b.annd_date = 1
+            '''
+            
+
+        else: 
+            scripts = f'''with cte as (
+                        SELECT symbol, 
+                        fin_date, 
+                        date,
+                        ROW_NUMBER() OVER (PARTITION BY symbol, fin_date ORDER BY date) AS annd_date
+                        FROM
+                            factor_table
+                        where fin_date is not null and date >= '{self.start_dt}' and strftime('%Y-%m-%d',date) <= '{self.end_dt}'
+                        )
+
+                        select {self.fields} from factor_table a
+                        inner join cte b on a.symbol=b.symbol and a.date = b.date
+                        where b.annd_date = 1
+            '''
+
+        return scripts
+
+
+    def create_index(self, connection, table_name = 'factor_table'):
+        check_index = f'''
+        SELECT name, sql
+        FROM sqlite_master
+        WHERE type = 'index'
+        AND tbl_name = '{table_name}';
+        '''
+        # Use a context manager for the database connection
+        # with sqlite3.connect(fundamentals_path) as conn:
+        index_data = pd.read_sql(check_index, connection)
+        # 建立 cursor
+        cursor = connection.cursor()
+        if len(index_data) == 0:
+            c_index_scripts = f'''
+                CREATE INDEX fin_index ON {table_name} (symbol, date);
+            '''
+            cursor.execute(c_index_scripts)
+            # conn.close()
+
+
+    def retrieve_data(self, 
+                      fields:list = '*',
+                    start_dt = '2013-01-01', 
+                    end_dt = pd.Timestamp.utcnow(),
+                    dataframeloaders = False):
+        # transfer list to string
+        self.fields = self.process_fields(fields=fields)
+        # Adjust datetime format
+        self.start_dt =  pd.to_datetime(start_dt).strftime('%Y-%m-%d')
+        self.end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d')
+        self.dataframeloaders = dataframeloaders
+        
+        scripts = self.get_sqlite_script()
+        timestamp = pd.Timestamp.utcnow()
+        bundle_path = most_recent_data('fundamentals', timestamp)
+        fundamentals_path = f'{bundle_path}/factor_table.db'
+
+        # Use a context manager for the database connection
+        with sqlite3.connect(fundamentals_path) as conn:
+            # Create index for the table
+            self.create_index(conn)
+            data = pd.read_sql(scripts, conn)
+            
+
+        if self.dataframeloaders:
+            bundle_name = 'tquant'
+            tquant = bundles.load(bundle_name)
+            sids = tquant.asset_finder.equities_sids
+            assets = tquant.asset_finder.retrieve_all(sids)
+            symbol_mapping_sid = {i.symbol:i.sid for i in assets}
+            data.date = pd.to_datetime(data.date, utc =True)
+            data = data.set_index(['symbol', 'date']).unstack('symbol')
+            data = data.rename(columns = symbol_mapping_sid)
+
+        return data
+
+
+def get_fundamentals(bundle_name = 'fundamentals',
+                     fields:list = '*',
+                     start_dt = '2013-01-01' ,
+                     end_dt = pd.Timestamp.utcnow(),
+                     assets=None,
+                     dataframeloaders = False,
+                     frequency:str = 'Daily'):
+    
+    if 'tquant' not in registered_bundle:
+        raise ValueError('tquant尚未註冊，請先執行 !zipline ingest -b tquant')
+    
+    # Specify the full path to the database file
+    # timestamp = pd.Timestamp.utcnow()
+    # bundle_path = most_recent_data(bundle_name, timestamp)
+    # db_path = f'{bundle_path}/factor_table.db'
+
+    engine = TQFDataLoader(frequency=frequency)
+    data = engine.retrieve_data(
+        fields=fields,    
+        start_dt = start_dt,
+        end_dt = end_dt,
+        dataframeloaders = dataframeloaders
+    )
+    return data
+    # # Connect to the SQLite database
+    # conn = sqlite3.connect(db_path)
+
+    # # # transfer list to string
+    # # fields_to_str = ', '.join(fields)
+
+    # # # Adjust datetime format
+    # # start_dt = pd.to_datetime(start_dt).strftime('%Y-%m-%d')
+    # # end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d') 
+
+    # # Query to fetch data
+    # # query = f'''SELECT {fields_to_str} FROM factor_table
+    # #             where date >= '{start_dt}' and strftime('%Y-%m-%d',date) <= '{end_dt}'
+    # # '''
+
+    # # Use pd.read_sql to read data into a DataFrame
+    # data = pd.read_sql(query, conn)
+    # conn.close()
+
+    # if dataframeloaders:
+    #     bundle_name = 'tquant'
+    #     tquant = bundles.load(bundle_name)
+    #     sids = tquant.asset_finder.equities_sids
+    #     assets = tquant.asset_finder.retrieve_all(sids)
+    #     symbol_mapping_sid = {i.symbol:i.sid for i in assets}
+    #     data.date = pd.to_datetime(data.date, utc =True)
+    #     data = data.set_index(['symbol', 'date']).unstack('symbol')
+    #     data = data.rename(columns = symbol_mapping_sid)
+
+    # return data

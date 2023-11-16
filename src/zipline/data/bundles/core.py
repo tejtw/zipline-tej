@@ -152,9 +152,8 @@ BundleData = namedtuple(
 
 BundleCore = namedtuple(
     "BundleCore",
-    "bundles register unregister ingest load clean",
+    "bundles register unregister ingest load clean update switch bundle_info add download_bundle_info",
 )
-
 
 class UnknownBundle(click.ClickException, LookupError):
     """Raised if no bundle with the given name was registered."""
@@ -221,6 +220,8 @@ def _make_bundle_core():
         The function which loads the ingested bundles back into memory.
     clean : callable
         The function which cleans up data written with ``ingest``.
+    update: callable
+        The function which update data written with ``ingest``.
     """
     _bundles = {}  # the registered bundles
     # Expose _bundles through a proxy so that users cannot mutate this
@@ -349,7 +350,7 @@ def _make_bundle_core():
         environ=os.environ,
         timestamp=None,
         assets_versions=(),
-        show_progress=False,
+        show_progress=True,
     ):
         """Ingest data for a given bundle.
 
@@ -385,6 +386,7 @@ def _make_bundle_core():
 
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
+        
         timestamp = timestamp.tz_convert("utc").tz_localize(None)
 
         timestr = to_bundle_ingest_dirname(timestamp)
@@ -455,7 +457,6 @@ def _make_bundle_core():
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
             )
-
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(
                     *asset_db_relative(
@@ -626,8 +627,146 @@ def _make_bundle_core():
                 cleaned.add(path)
 
         return cleaned
+    
+    def update(name,  environ=os.environ):
+        """Update data that was created with ``ingest`` or
+        ``$ python -m zipline ingest``
+        
+        Parameters
+        ----------
+        name : str
+            The name of the bundle to update data for.
+        environ : mapping, optional
+            The environment variables. Defaults of os.environ.
+        """
+        
+        timestamp = pd.Timestamp.utcnow()
+        timestr = most_recent_data(name, timestamp, environ=environ)
+        os.environ['raw_source'] = timestr
+        bundle_data = load(name)
+        equities = (bundle_data.asset_finder.retrieve_all(bundle_data.asset_finder.sids))
+        tickers = [equity.symbol for equity in equities]
+        os.environ['ticker'] = ','.join(tickers)
+        min_start = min([equity.end_date for equity in equities]) + pd.Timedelta(days = 1)
+        min_start_str = min_start.strftime('%Y%m%d')
+        os.environ['mdate'] = min_start_str
+        try :
+            ingest(name,os.environ,timestamp=timestamp,assets_versions=(),show_progress= True)
+        except Exception as e :
+            log.info(f"Can not update due to {e}.")
+            no_tz_timestamp = timestamp.tz_convert("utc").tz_localize(None)
+            rm_path = pth.data_path([name,to_bundle_ingest_dirname(no_tz_timestamp)])
+            shutil.rmtree(rm_path)
+        
+    
+    def switch( name , time = None , environ = os.environ ) :
+        timestamp = pd.Timestamp.utcnow()
+        timestamp = timestamp.tz_convert("utc").tz_localize(None)
+        time = pd.Timestamp(time)
+        time = to_bundle_ingest_dirname(time)
+        old_path = pth.data_path([name,time])
+        timestr = to_bundle_ingest_dirname(timestamp)
+        new_path = pth.data_path([name,timestr])
+        os.rename(old_path , new_path)
+        
+    def bundle_info(name , time = None , environ = os.environ  ):
+        if time is None :
+            time = pd.Timestamp.utcnow()
+            timestr = most_recent_data(name, time, environ=environ)
+        else :
+            time = pd.Timestamp(time)            
+            timestr = to_bundle_ingest_dirname(time)
+        
+        bundle_data =  BundleData(
+           asset_finder=AssetFinder(
+               asset_db_path(name, timestr, environ=environ),
+           ),
+           equity_minute_bar_reader=BcolzMinuteBarReader(
+               minute_equity_path(name, timestr, environ=environ),
+           ),
+           equity_daily_bar_reader=BcolzDailyBarReader(
+               daily_equity_path(name, timestr, environ=environ),
+           ),
+           adjustment_reader=SQLiteAdjustmentReader(
+               adjustment_db_path(name, timestr, environ=environ),
+           ),
+       )
+        equities = (bundle_data.asset_finder.retrieve_all(bundle_data.asset_finder.sids))
+        
+        tickers = [equity.symbol for equity in equities]
+        
+        min_start = min([equity.start_date for equity in equities])
+        min_start_str = min_start.strftime('%Y%m%d')
+        
+        max_end = max([equity.end_date for equity in equities])
+        max_end_str = max_end.strftime('%Y%m%d')
+        click.echo("tickers :")
+        cnt = 1
+        for ticker in tickers :
+            if cnt == 10 :
+                click.echo("%s"%ticker)
+                cnt = 1
+                continue
+            click.echo("%s "%ticker,nl = False)
+            cnt +=1
+        click.echo("")
+        click.echo("start_date : %s."%min_start_str)
+        click.echo("end_date : %s."%max_end_str)
+        
+    def add(name , company , environ = os.environ  ):
+        
+        timestamp = pd.Timestamp.utcnow()
+        timestr = most_recent_data(name, timestamp, environ=environ)
+        os.environ['raw_source'] = timestr
+        bundle_data = load(name)
+        equities = (bundle_data.asset_finder.retrieve_all(bundle_data.asset_finder.sids))
+        os.environ['ticker'] = company
+        
+        min_start = min([equity.start_date for equity in equities])
+        min_start_str = min_start.strftime('%Y%m%d')
+        
+        max_end = max([equity.end_date for equity in equities])
+        max_end_str = max_end.strftime('%Y%m%d')
+        
+        os.environ['mdate'] = min_start_str + ',' + max_end_str
+        try :
+            ingest(name,os.environ,timestamp=timestamp,assets_versions=(),show_progress= True)
+        except Exception as e :
+            log.info(f"Can not update due to {e}.")
+            no_tz_timestamp = timestamp.tz_convert("utc").tz_localize(None)
+            rm_path = pth.data_path([name,to_bundle_ingest_dirname(no_tz_timestamp)])
+            shutil.rmtree(rm_path)
+    
+    def download_bundle_info(name , time = None , environ = os.environ  ):
+        time = pd.Timestamp(time)            
+        timestr = to_bundle_ingest_dirname(time)
+        
+        bundle_data =  BundleData(
+           asset_finder=AssetFinder(
+               asset_db_path(name, timestr, environ=environ),
+           ),
+           equity_minute_bar_reader=BcolzMinuteBarReader(
+               minute_equity_path(name, timestr, environ=environ),
+           ),
+           equity_daily_bar_reader=BcolzDailyBarReader(
+               daily_equity_path(name, timestr, environ=environ),
+           ),
+           adjustment_reader=SQLiteAdjustmentReader(
+               adjustment_db_path(name, timestr, environ=environ),
+           ),
+       )
+        equities = (bundle_data.asset_finder.retrieve_all(bundle_data.asset_finder.sids))
+        
+        tickers = [equity.symbol for equity in equities]
+        
+        min_start = min([equity.start_date for equity in equities])
+        min_start_str = min_start.strftime('%Y%m%d')
+        
+        max_end = max([equity.end_date for equity in equities])
+        max_end_str = max_end.strftime('%Y%m%d')
+        dic = dict({'name':[name],'timestr':[timestr],'timestamp':[time],'tickers': [tickers] , 'start_date': [min_start_str] , 'end_date' : [max_end_str]})
+        return pd.DataFrame.from_dict(dic,orient = 'columns')
+    return BundleCore(bundles, register, unregister, ingest, load, clean, update , switch , bundle_info , add ,download_bundle_info)
 
-    return BundleCore(bundles, register, unregister, ingest, load, clean)
 
-
-bundles, register, unregister, ingest, load, clean = _make_bundle_core()
+bundles, register, unregister, ingest, load, clean , update , switch , bundle_info , add ,download_bundle_info = _make_bundle_core()

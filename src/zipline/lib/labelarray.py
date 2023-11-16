@@ -332,6 +332,17 @@ class LabelArray(ndarray):
         if len(self.shape) > 1:
             raise ValueError("Can't convert a 2D array to a categorical.")
 
+
+        #20230717 (by MRC) 以下(337~354)修正pipeline遇到文字類型欄位時會出現ValueError
+        cat = self.categories.copy()
+        cat[pd.isnull(cat)] = 'N/A'   # 'N/A'
+        
+        return pd.Categorical.from_codes(
+            self.as_int_array(),
+            cat,
+            ordered=False)
+
+        '''
         with ignore_pandas_nan_categorical_warning():
             return pd.Categorical.from_codes(
                 self.as_int_array(),
@@ -340,6 +351,7 @@ class LabelArray(ndarray):
                 self.categories.copy(),
                 ordered=False,
             )
+        '''
 
     def as_categorical_frame(self, index, columns, name=None):
         """

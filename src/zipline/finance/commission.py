@@ -27,7 +27,10 @@ DEFAULT_PER_CONTRACT_COST = 0.85  # $0.85 per future contract
 DEFAULT_PER_DOLLAR_COST = 0.0015  # 0.15 cents per dollar
 DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 0.0  # $0 per trade
 DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 0.0  # $0 per trade
-
+# new add @ 20231103 (Han)
+CUSTOM_MINIMUM_COST_PER_TRADE = 20.0 #  $20 per trade
+CUSTOM_DEFAULT_COMMISSION = 0.001425 # TW tade commission
+CUSTOM_DEFAULT_TAX = 0.003 # TW TAX
 
 class CommissionModel(metaclass=FinancialModelMeta):
     """Abstract base class for commission models.
@@ -385,3 +388,46 @@ class PerDollar(EquityCommissionModel):
         """
         cost_per_share = transaction.price * self.cost_per_dollar
         return abs(transaction.amount) * cost_per_share
+#new add @ 20231103 (Han)
+
+class Custom_TW_Commission(EquityCommissionModel):
+    """
+    Model commissions by applying a minimun fixed cost or percentage of total transaction amount.
+
+    Parameters
+    ----------
+    min_trade_cost : float, optional
+        The flat amount of commissions paid per dollar of equities
+        traded. Default is a commission of $20.
+    discount : float, optional
+        The discount that broker offered. Default is no discount.
+    """
+    
+    def __init__(self, min_trade_cost=CUSTOM_MINIMUM_COST_PER_TRADE , discount = 1.0 , tax = CUSTOM_DEFAULT_TAX):
+        """
+        Cost parameter is the minimum cost of a trade $20.
+        The discount that broker offered. Default is 1.
+        """
+        self.minimun_cost = float(min_trade_cost)
+        self.discount = float(discount)
+        self.tax = float(CUSTOM_DEFAULT_TAX)
+    def __repr__(self):
+        return "{class_name}(min_trade_cost={min_trade_cost})".format(
+            class_name=self.__class__.__name__, min_trade_cost=self.minimun_cost
+        )
+    
+    def calculate(self, order, transaction):
+        from math import ceil
+        """
+        Pay commission based on dollar value of shares.
+        """
+        total_commission =  transaction.price * abs(transaction.amount) * CUSTOM_DEFAULT_COMMISSION * self.discount
+        if transaction.amount > 0 :
+            if total_commission >= self.minimun_cost :
+                return ceil(total_commission)
+            return  self.minimun_cost
+        tax = transaction.price * abs(transaction.amount) * self.tax
+        total_cost = ceil(total_commission) + ceil(tax)
+        if total_commission <= self.minimun_cost :
+            return self.minimun_cost + ceil(tax)
+        return total_cost

@@ -158,7 +158,7 @@ class PositionTracker(object):
                 cash_dividend,
             )            
             
-            if len(div_owed)!= 0:
+            if len(div_owed)!= 0 and pd.isnull(cash_dividend.pay_date)==False:
                 log.info(str(cash_dividend.asset) + \
                         ", cash_dividend amount: " + str(cash_dividend.amount) + \
                         ", pay_date: " + str(cash_dividend.pay_date.strftime('%Y-%m-%d')) + \

@@ -45,7 +45,7 @@ from zipline.data.bar_reader import (
 )
 from zipline.utils.functional import apply
 from zipline.utils.input_validation import expect_element
-from zipline.utils.numpy_utils import iNaT, float64_dtype, uint32_dtype
+from zipline.utils.numpy_utils import iNaT, float64_dtype, uint32_dtype, uint64_dtype   #20230706 (by MRC) 成交量溢位問題，新增uint64_dtype
 from zipline.utils.memoize import lazyval
 from zipline.utils.cli import maybe_show_progress
 from ._equities import _compute_row_slices, _read_bcolz_data
@@ -61,6 +61,7 @@ US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     "volume",
     "day",
     "id",
+    "annotation"
 )
 
 UINT32_MAX = iinfo(np.uint32).max
@@ -151,6 +152,7 @@ class BcolzDailyBarWriter(object):
         "low": float64_dtype,
         "close": float64_dtype,
         "volume": float64_dtype,
+        "annotation" : uint32_dtype ,
     }
 
     def __init__(self, filename, calendar, start_session, end_session):
@@ -198,6 +200,8 @@ class BcolzDailyBarWriter(object):
         table : bcolz.ctable
             The newly-written table.
         """
+        
+        
         ctx = maybe_show_progress(
             ((sid, self.to_ctable(df, invalid_data_behavior)) for sid, df in data),
             show_progress=show_progress,
@@ -248,15 +252,16 @@ class BcolzDailyBarWriter(object):
 
         # Maps column name -> output carray.
         columns = {
-            k: carray(array([], dtype=uint32_dtype))
+			k: carray(array([], dtype=uint64_dtype))  #20230706 (by MRC) 成交量溢位問題，uint32->uint64
             for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
         }
-
+        
+        
         earliest_date = None
         sessions = self._calendar.sessions_in_range(
             self._start_session, self._end_session
         )
-
+        
         if assets is not None:
 
             @apply
@@ -265,7 +270,7 @@ class BcolzDailyBarWriter(object):
                     if asset_id not in assets:
                         raise ValueError("unknown asset id %r" % asset_id)
                     yield asset_id, table
-
+        
         for asset_id, table in iterator:
             nrows = len(table)
             for column_name in columns:
@@ -273,10 +278,11 @@ class BcolzDailyBarWriter(object):
                     # We know what the content of this column is, so don't
                     # bother reading it.
                     columns["id"].append(
-                        full((nrows,), asset_id, dtype="uint32"),
+                        full((nrows,), asset_id, dtype="uint64"), #20230706 (by MRC) 成交量溢位問題，uint32->uint64
                     )
                     continue
-
+                
+                    
                 columns[column_name].append(table[column_name])
 
             if earliest_date is None:
@@ -363,12 +369,15 @@ class BcolzDailyBarWriter(object):
             # we already have a ctable so do nothing
             return raw_data
 
-        winsorise_uint32(raw_data, invalid_data_behavior, "volume", *OHLC)
-        processed = (raw_data[list(OHLC)] * 1000).round().astype("uint32")
+        #winsorise_uint32(raw_data, invalid_data_behavior, "volume", *OHLC)  #20230706 (by MRC) 成交量溢位問題，uint32->uint64
+        processed = (raw_data[list(OHLC)] * 1000).round().astype("uint64")   #20230706 (by MRC) 成交量溢位問題，uint32->uint64
         dates = raw_data.index.values.astype("datetime64[s]")
-        check_uint32_safe(dates.max().view(np.int64), "day")
-        processed["day"] = dates.astype("uint32")
-        processed["volume"] = raw_data.volume.astype("uint32")
+        #check_uint32_safe(dates.max().view(np.int64), "day")                #20230706 (by MRC) 成交量溢位問題，uint32->uint64
+        processed["day"] = dates.astype("uint64")                            #20230706 (by MRC) 成交量溢位問題，uint32->uint64
+        processed["volume"] = raw_data.volume.astype("uint64")               #20230706 (by MRC) 成交量溢位問題，uint32->uint64
+        if "annotation" in raw_data.columns :                                #20230920 ，(Han) in case no ingest with no annotation
+            processed["annotation"] = raw_data.annotation.astype("uint32")   
+        
         return ctable.fromdataframe(processed)
 
 
@@ -675,7 +684,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         day : datetime64-like
             Midnight of the day for which data is requested.
         colname : string
-            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
+            The price field. e.g. ('open', 'high', 'low', 'close', 'volume','annotation') # 20230914 add annotation
 
         Returns
         -------
@@ -688,7 +697,25 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         """
         ix = self.sid_day_index(sid, dt)
         price = self._spot_col(field)[ix]
-        if field != "volume":
+        # 20230914 add for annotation
+        
+        annotation = ''
+        annotation_chinese = ['注意股票(Attention Securities)','處置股票(Disposition Securities)',
+        '五分分盤處置(Matching-Every-5-Minute)','二十分分盤處置(Matching-Every-20-Minute)','全額交割股票(Full-Cash Delivery Securities)',
+        '漲停股票(Limit Up)','跌停股票(Limit Down)','開盤即鎖死(Limited Whole Day)','暫停當沖先賣後買(Suspend Intra-Day Trading Short First)'
+        ]
+        if field == 'annotation' :
+            import re
+            str_price = list(enumerate(str(int(price))[1:]))
+            for idx , value in str_price :
+                if value == '1' :
+                    annotation+= " "+annotation_chinese[idx]+" "
+            annotation = annotation.strip()
+            annotation = re.sub('\s+','、',annotation)
+            return annotation
+        
+        # 20230914 add for annotation
+        if field != "volume"  : 
             if price == 0:
                 return nan
             else:

@@ -19,8 +19,9 @@ from zipline.finance.cancel_policy import NeverCancel
 
 @extensible
 class Blotter(metaclass=ABCMeta):
-    def __init__(self, cancel_policy=None):
+    def __init__(self, cancel_policy=None, trading_policy=None):              # 20230802 (by MRC) 新增trading_policy功能
         self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
+        self.trading_policy = trading_policy                                  # 20230802 (by MRC) 新增trading_policy功能
         self.current_dt = None
 
     def set_date(self, dt):

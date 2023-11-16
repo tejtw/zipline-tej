@@ -164,6 +164,15 @@ You attempted to set an account control outside of `initialize`. \
 Account controls may only be set in your initialize method.
 """.strip()
 
+# 20230804 (by MRC) see also：func`zipline.algorithm.register_trading_control`
+class RegisterTradingPolicyPostInit(ZiplineError):
+    # Raised if a user's script register's a trading policy after initialize
+    # has been run.
+    msg = """
+You attempted to set an trading policy outside of `initialize`. \
+Trading policy may only be set in your initialize method.
+""".strip()
+
 
 class UnsupportedCommissionModel(ZiplineError):
     """

@@ -2,20 +2,20 @@
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
 from io import BytesIO
-
+import os
 from click import progressbar
 import logging
 import pandas as pd
 import requests
 from zipline.utils.calendar_utils import register_calendar_alias
 from datetime import datetime
-# from . import core as bundles
 import numpy as np
-
 import re
 import tejapi
 from .core import register
 from time import sleep , mktime
+import warnings 
+warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
 
 tejapi.ApiConfig.page_limit = 10000
@@ -40,6 +40,8 @@ def load_data_table(file, index_col, show_progress=False):
           'news_d',
           'lastreg',
           'div_percent',
+          'annotation',
+          'stk_name',
          ]
         ]
     data_table.rename(
@@ -51,17 +53,35 @@ def load_data_table(file, index_col, show_progress=False):
         copy=False,
     )
     return data_table
-
+def parse_annotation(data) :
+    data['mch_prd'].fillna(0,inplace=  True)
+    data['annotation'] = '1'
+    data['annotation'] +=data.apply(lambda x : '1' if x['atten_fg'] == "Y" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if x['disp_fg'] == "Y" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if int(x['mch_prd']) == 5 else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if int(x['mch_prd']) == 20 else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if x['full_fg'] == "Y" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if x['limit_fg'] == "+" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : '1' if x['limit_fg'] == "-" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : "1" if x['limo_fg'] == "Y" else "0",axis=1)
+    data['annotation'] +=data.apply(lambda x : "1" if x['sbadt_fg'] == "Y" else "0",axis=1)
+    
+    
+    # data['annotation'] = data['annotation'].str.replace('\s+',' ',regex = True).str.strip().str.replace(' ','、',regex = True)
+    
+    return data[['coid','mdate','annotation']]
 def fetch_data_table(api_key, show_progress,  coid, mdate):
     """Fetch Prices data table from TEJ"""
     tejapi.ApiConfig.api_key = api_key
     if show_progress:
         log.info("Downloading TEJ metadata.")
     try :
-        metadata = tejapi.get('TWN/APIPRCD', coid =coid ,mdate = mdate,opts = {'columns': ['mdate','coid', 'open_d', 'low_d', 'high_d', 'close_d', 'vol', 'adjfac_a']}, paginate=True)
+        metadata = tejapi.fastget('TWN/APIPRCD', coid =coid ,mdate = mdate,opts = {'columns': ['mdate','coid', 'open_d', 'low_d', 'high_d', 'close_d', 'vol', 'adjfac_a']}, paginate=True)
+        if metadata.size == 0 :
+            raise ValueError("Did not fetch any metadata. Please check the correctness of your ticker and mdate.")
         metadata['vol'] = metadata['vol'] * 1000
-        cash_dividend = tejapi.get('TWN/ADIV', coid = coid ,mdate= mdate,opts = {'columns':['coid','div','mdate','out_pay','news_d','lastreg']},paginate=True)
-        cash_back = tejapi.get('TWN/ASTK1',coid = coid,mdate = mdate , opts = {'columns':['coid','mdate','x_cap_date','x_lastreg', 'cc_pay_date', 'ashback']},paginate=True)
+        cash_dividend = tejapi.fastget('TWN/ADIV', coid = coid ,mdate= mdate,opts = {'columns':['coid','div','mdate','out_pay','news_d','lastreg']},paginate=True)
+        cash_back = tejapi.fastget('TWN/ASTK1',coid = coid,mdate = mdate , opts = {'columns':['coid','mdate','x_cap_date','x_lastreg', 'cc_pay_date', 'ashback']},paginate=True)
         cash_back = cash_back.loc[cash_back.ashback != 0,['coid','ashback','mdate','x_cap_date','x_lastreg','cc_pay_date']].rename({'x_cap_date':'news_d','x_lastreg':'lastreg','cc_pay_date':'out_pay','ashback':'div'},axis=1)
         
         cash_back['cash_back'] = True
@@ -84,7 +104,7 @@ def fetch_data_table(api_key, show_progress,  coid, mdate):
             
             del adjusted_cash_dividends['div_correct'] , adjusted_cash_dividends['div_percent_ignore']
             
-            adjusted_cash_dividends = adjusted_cash_dividends[adjusted_cash_dividends['cash_back'] != True]
+            adjusted_cash_dividends = adjusted_cash_dividends.loc[(adjusted_cash_dividends['cash_back'] != True) | (adjusted_cash_dividends['div_percent'] == 0 ) ]
             
             adjusted_cash_dividends = adjusted_cash_dividends[~adjusted_cash_dividends.index.duplicated()]
             
@@ -108,6 +128,12 @@ def fetch_data_table(api_key, show_progress,  coid, mdate):
         
         del metadata['adjfac_a'],metadata['adjfac_a2']
         
+        anno = tejapi.fastget("TWN/APISTKATTR",coid =coid ,mdate = mdate,opts ={"columns":["coid","mdate","atten_fg","disp_fg","mch_prd","full_fg","limit_fg","limo_fg","sbadt_fg"]},paginate=True)
+        
+        anno = parse_annotation(anno)
+        
+        metadata = metadata.merge(anno,on = ['coid','mdate'],how = 'left')
+        
         metadata = metadata.rename({'coid':'ticker','open_d':'open','low_d':'low','high_d':'high','close_d':'close','vol':'volume','div':'ex-dividend'},axis =1)
         
         metadata["ex-dividend"].fillna(0,inplace= True)
@@ -117,12 +143,21 @@ def fetch_data_table(api_key, show_progress,  coid, mdate):
         metadata['date'] = metadata['mdate'].apply(lambda x : pd.Timestamp(x.strftime('%Y%m%d')) if not pd.isna(x) else pd.NaT)
         
         metadata['out_pay'] = pd.to_datetime(metadata['out_pay'])
+        # if out_pay is NaT then set default out_pay day = T+21
+        metadata.loc[(metadata['ex-dividend'] != 0)&(metadata['out_pay'].isna()),'out_pay'] = metadata.loc[(metadata['ex-dividend'] != 0)&(metadata['out_pay'].isna())].apply(lambda x : (x['mdate'] + pd.Timedelta(days = 21))  ,axis= 1)
         
         metadata['news_d'] = pd.to_datetime(metadata['news_d'])
         
         metadata['lastreg'] = pd.to_datetime(metadata['lastreg'])
         
+        attr_df = tejapi.fastget('TWN/APISTOCK',coid = coid, opts = {'columns':['coid','stk_name']},paginate=True)
+        
+        attr_df = attr_df.rename({'coid':'ticker'},axis =1)
+        
+        metadata = metadata.merge(attr_df,on = 'ticker',how = 'left')
+        
         del metadata['mdate'], metadata['cash_back']
+        
     except Exception as e  :
         raise ValueError(f'Error occurs while downloading metadata due to {e} .')
     return load_data_table(
@@ -137,8 +172,9 @@ def gen_asset_metadata(data, show_progress):
     if show_progress:
         log.info("Generating asset metadata.")
 
-    data = data.groupby(by="symbol").agg({"date": [np.min, np.max]})
+    data = data.groupby(by=["symbol","stk_name"]).agg({"date": [np.min, np.max]})
     data.reset_index(inplace=True)
+    data["asset_name"] = data["stk_name"]
     data["start_date"] = data.date.amin
     data["end_date"] = data.date.amax
     del data["date"]
@@ -193,11 +229,11 @@ def parse_dividends(data, show_progress):
 
 
 def parse_pricing_and_vol(data, sessions, symbol_map):
+    
     for asset_id, symbol in symbol_map.items():
         asset_data = (
             data.xs(symbol, level=1).reindex(sessions.tz_localize(None)).fillna(0.0)
         )
-        
         yield asset_id, asset_data
 
 
@@ -223,7 +259,16 @@ def tej_bundle(
     
     api_key = environ.get('TEJAPI_KEY')
     coid = environ.get('ticker')
-    if coid :
+    if coid.lower() == "all" :
+        coid = None
+        #confirm = input("Warning, you are trying to download all company, it may spend lots of time and api flow.\nPlease enter y to continue[Y/n].")
+        #if confirm.lower() == "y" :
+        #    coid = None
+        #else :
+        #    raise ValueError(
+        #        "Please reset company id in your environment variable and retry."
+        #    )
+    elif coid :
         coid = re.split('[,; ]',coid)
     else :
         raise ValueError(
@@ -244,11 +289,25 @@ def tej_bundle(
         raise ValueError(
             "Please set your TEJAPI_KEY environment variable and retry."
         )
-        
+    source_csv = os.environ.get('raw_source')
+    csv_output_path = os.path.join(output_dir,'raw.csv')
     raw_data = fetch_data_table(
         api_key, show_progress , coid , mdate
     )
-    asset_metadata = gen_asset_metadata(raw_data[["symbol", "date"]], show_progress)
+    if source_csv :
+        source_csv = os.path.join(source_csv,'raw.csv')
+        origin_raw = pd.read_csv(source_csv,dtype = {'symbol':str,})
+        origin_raw['out_pay'] = origin_raw['out_pay'].fillna(pd.NaT)
+        origin_raw['news_d'] = origin_raw['news_d'].fillna(pd.NaT)
+        origin_raw['lastreg'] = origin_raw['lastreg'].fillna(pd.NaT)
+        raw_data = pd.concat([raw_data,origin_raw])
+        raw_data['date'] = raw_data['date'].apply(pd.to_datetime)
+        raw_data = raw_data.drop_duplicates(subset = ['symbol','date'])
+        raw_data = raw_data.reset_index(drop = True)
+
+    raw_data.to_csv(csv_output_path,index = False)
+    
+    asset_metadata = gen_asset_metadata(raw_data[["symbol","stk_name", "date"]], show_progress)
     
     exchanges = pd.DataFrame(
         data=[["TEJ_XTAI", "TEJ_XTAI", "TW"]],
@@ -262,7 +321,7 @@ def tej_bundle(
     
     
     raw_data.set_index(["date", "symbol"], inplace=True)
-    clean_raw_data = raw_data[['open','high','low','close','volume','split_ratio','ex_dividend']].copy()
+    clean_raw_data = raw_data[['open','high','low','close','volume','split_ratio','ex_dividend','annotation']].copy()
     daily_bar_writer.write(
         parse_pricing_and_vol(clean_raw_data, sessions, symbol_map),
         show_progress=show_progress,

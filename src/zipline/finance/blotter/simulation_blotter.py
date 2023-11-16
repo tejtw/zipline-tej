@@ -46,8 +46,10 @@ class SimulationBlotter(Blotter):
         equity_commission=None,
         future_commission=None,
         cancel_policy=None,
+        trading_policy=None,                                    # 20230804 (by MRC) 新增trading_policy功能
     ):
-        super().__init__(cancel_policy=cancel_policy)
+        super().__init__(cancel_policy=cancel_policy,
+                         trading_policy=trading_policy)         # 20230804 (by MRC) 新增trading_policy功能
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
@@ -396,7 +398,7 @@ class SimulationBlotter(Blotter):
                 slippage = self.slippage_models[type(asset)]
 
                 for order, txn in slippage.simulate(
-                    bar_data, asset, asset_orders
+                    bar_data, asset, asset_orders, self.trading_policy      #20230804 (by MRC) 新增trading_policy功能
                 ):
                     commission = self.commission_models[type(asset)]
                     additional_commission = commission.calculate(order, txn)

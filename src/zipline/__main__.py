@@ -10,7 +10,7 @@ from zipline.data import bundles as bundles_module
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
-from zipline.utils.run_algo import _run, BenchmarkSpec, load_extensions
+from zipline.utils.run_algo import _run, BenchmarkSpec, TreasurySpec, load_extensions
 from zipline.extensions import create_args
 
 try:
@@ -110,7 +110,7 @@ def ipython_only(option):
     return d
 
 
-DEFAULT_BUNDLE = "quandl"
+DEFAULT_BUNDLE = "tquant"
 
 
 @main.command()
@@ -191,6 +191,39 @@ DEFAULT_BUNDLE = "quandl"
     default=False,
     help="If passed, use a benchmark of zero returns.",
 )
+
+# "--treasury-file"、"--treasury-symbol"、"--treasury-sid"、"--no-treasury"：
+# This code block introduces new command-line options to the click command
+# interface, aiming to support the addition of the treasury_spec parameter 
+# to the utils.run_algo function.
+# (20231031)
+@click.option(
+    "-bf",
+    "--treasury-file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=str),
+    help="The csv file that contains the treasury returns",
+)
+@click.option(
+    "--treasury-symbol",
+    default=None,
+    type=click.STRING,
+    help="The symbol of the instrument to be used as a treasury "
+    "(should exist in the ingested bundle)",
+)
+@click.option(
+    "--treasury-sid",
+    default=None,
+    type=int,
+    help="The sid of the instrument to be used as a treasury "
+    "(should exist in the ingested bundle)",
+)
+@click.option(
+    "--no-treasury",
+    is_flag=True,
+    default=False,
+    help="If passed, use a treasury of zero returns.",
+)
 @click.option(
     "-s",
     "--start",
@@ -215,8 +248,8 @@ DEFAULT_BUNDLE = "quandl"
 @click.option(
     "--trading-calendar",
     metavar="TRADING-CALENDAR",
-    default="XNYS",
-    help="The calendar you want to use e.g. XLON. XNYS is the default.",
+    default="TEJ_XTAI",
+    help="The calendar you want to use e.g. TEJ_XTAI. TEJ_XTAI is the default.",
 )
 @click.option(
     "--print-algo/--no-print-algo",
@@ -258,6 +291,10 @@ def run(
     benchmark_symbol,
     benchmark_sid,
     no_benchmark,
+    treasury_file,
+    treasury_symbol,
+    treasury_sid,
+    no_treasury,
     start,
     end,
     output,
@@ -297,6 +334,16 @@ def run(
         benchmark_file=benchmark_file,
     )
 
+    # The code introduces the creation and handling of the `treasury_spec`
+    # parameter in preparation for its use in the `utils.run_algo._run` function.
+    # (20231031)
+    treasury_spec = TreasurySpec.from_cli_params(
+        no_treasury=no_treasury,
+        treasury_sid=treasury_sid,
+        treasury_symbol=treasury_symbol,
+        treasury_file=treasury_file,
+    )
+
     return _run(
         initialize=None,
         handle_data=None,
@@ -319,6 +366,7 @@ def run(
         environ=os.environ,
         blotter=blotter,
         benchmark_spec=benchmark_spec,
+        treasury_spec=treasury_spec,
         custom_loader=None,
     )
 
@@ -445,6 +493,7 @@ def bundles():
             continue
         try:
             ingestions = list(map(str, bundles_module.ingestions_for_bundle(bundle)))
+            ingestions.reverse()
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
@@ -455,7 +504,121 @@ def bundles():
         # no ingestions have yet been made.
         for timestamp in ingestions or ["<no ingestions>"]:
             click.echo("%s %s" % (bundle, timestamp))
+            
+@main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="Update specfic bundle data to newest.",
+)
+def update( bundle , ):
+    "Update specfic bundle data to newest."
+    bundles_module.update( bundle , )
+    
+@main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="Select specfic bundle data.",
+)
+@click.option(
+    "-t",
+    "--time",
+    type=Timestamp(),
+    default=None,
+    help="Select specfic folder in bundle. Use \"zipline bundles\" to display folder's timestamp. ",
+)
+def switch( bundle , time ) :
+    "Select specfic bundle data and change dirname to newest."
+    ingestions = list(map(str, bundles_module.ingestions_for_bundle(bundle)))
+    if str(time) not in ingestions :
+        raise ValueError("Please check if bundle name and timestamp exists.\n \
+                         Use --help to get more information.")
+    bundles_module.switch( bundle ,
+                            time ,
+                          )
+                          
+@main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="Select specfic bundle data.",
+)
+@click.option(
+    "-t",
+    "--time",
+    type=Timestamp(),
+    default=None,
+    help="Select specfic folder in bundle. Use \"zipline bundles\" to display folder's timestamp. ",
+)
+def bundle_info( bundle ,time ) :
+    "Display companies and start date and end date in specfic data bundle."
+    bundles_module.bundle_info( bundle ,
+                                time ,
+                              )
+                              
+@main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="Select specfic bundle data.",
+)
+@click.option(
+    "-t",
+    "--ticker",
+    type = str ,
+    help="The company id wanted to add.",
+)
+def add( bundle , ticker ) :
+    "Add new ticker into bundle data, start and end align the minimize start date and maximize end date."
+    bundles_module.add( bundle ,
+                        ticker , 
+                        )
+                        
+@main.command()
+@click.option(
+    "-b",
+    "--bundle",
+    default=DEFAULT_BUNDLE,
+    metavar="BUNDLE-NAME",
+    show_default=True,
+    help="Select specfic bundle data.",
+)
+def download_bundle_info(bundle) :
+    "Download all bundle info."
+    try:
+        ingestions = list(map(str, bundles_module.ingestions_for_bundle(bundle)))
+        ingestions.reverse()
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
+        ingestions = []
 
-
+    # If we got no ingestions, either because the directory didn't exist or
+    # because there were no entries, print a single message indicating that
+    # no ingestions have yet been made.
+    result =  None
+    for timestamp in ingestions or ["<no ingestions>"]:
+        if timestamp == "<no ingestions>" :
+            break
+        try :
+            info_df = bundles_module.download_bundle_info(bundle,timestamp)
+        except :
+            continue
+        result = pd.concat([result,info_df],axis = 0 )
+    if isinstance( result , pd.DataFrame) :
+        result.to_csv("all_bundle_info.csv",index = False)
 if __name__ == "__main__":
     main()

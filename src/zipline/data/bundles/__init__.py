@@ -2,6 +2,8 @@
 from . import quandl  # noqa
 from . import csvdir  # noqa
 from . import tquant  #20230303 
+from . import fundamentals # 20230823
+from . import morning_txf #20230921
 
 from .core import (
     UnknownBundle,
@@ -14,6 +16,12 @@ from .core import (
     register,
     to_bundle_ingest_dirname,
     unregister,
+    update,
+    switch,
+    bundle_info,
+    add,
+    download_bundle_info,
+
 )
 
 
@@ -28,4 +36,10 @@ __all__ = [
     "register",
     "to_bundle_ingest_dirname",
     "unregister",
+    "update",
+    "switch",
+    "bundle_info",
+    "add",
+    "download_bundle_info",
+
 ]

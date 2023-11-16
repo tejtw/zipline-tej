@@ -48,6 +48,8 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     ZeroCapitalError,
+    IllegalValueException,
+    RegisterTradingPolicyPostInit,
 )
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.controls import (
@@ -58,6 +60,7 @@ from zipline.finance.controls import (
     MaxLeverage,
     MinLeverage,
     RestrictedListOrder,
+    ExcludeIlliquidAsset
 )
 from zipline.finance.execution import (
     LimitOrder,
@@ -122,18 +125,18 @@ from zipline.utils.security_list import SecurityList
 
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
-from zipline.sources.TEJ_Api_Data import PandasRequestsTEJ_API #20221321 (by MRC)
+from zipline.sources.TEJ_Api_Data import PandasRequestsTEJ_API, LIQUIDITY_RISK_COLUMNS
 
 from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.sources.treasury_source import TreasurySource  #20230210 (by MRC)
+from zipline.sources.treasury_source import TreasurySource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-from pytz import timezone #20230213 (by MRC) for timezone in perf [test] 
+from pytz import timezone
 
 log = logbook.Logger("ZiplineLog")
 
-tz=timezone('Asia/Taipei') #20230213 (by MRC) for timezone in perf [test]
+tz = timezone('Asia/Taipei')
 
 
 
@@ -146,20 +149,16 @@ class NoBenchmark(ValueError):
         super(NoBenchmark, self).__init__(
             "Must specify either benchmark_sid or benchmark_returns.",
         )
-        
-#--------------------------------------------------------------------
-#20230210 (by MRC) for treasury return column in perf  #start#
 
+
+# for treasury return column in perf(20230211)
 class NoTreasury(ValueError):
     def __init__(self):
         super(NoTreasury, self).__init__(
             "Must specify treasury_returns.",
         )
-        
-#20230210 (by MRC) for treasury return column in perf  #end#
-#--------------------------------------------------------------------
 
-        
+
 class TradingAlgorithm(object):
     """A class that represents a trading strategy and parameters to execute
     the strategy.
@@ -249,8 +248,8 @@ class TradingAlgorithm(object):
         cancel_policy=None,
         benchmark_sid=None,
         benchmark_returns=None,
-        treasury_sid=None,         #20230209 (by MRC) for treasury return column in perf
-        treasury_returns=None,     #20230209 (by MRC) for treasury return column in perf
+        treasury_sid=None,         # for treasury return column in perf (20230209)
+        treasury_returns=None,     # for treasury return column in perf (20230209)
         platform="zipline",
         capital_changes=None,
         get_pipeline_loader=None,
@@ -262,6 +261,12 @@ class TradingAlgorithm(object):
 
         # List of account controls to be checked on each bar.
         self.account_controls = []
+
+        # for annotation(20230807)
+        self.trading_policy = []
+
+        # new added @20230926 (by Han)
+        self.account_revise = None
 
         self._recorded_vars = {}
         self.namespace = namespace or {}
@@ -293,8 +298,9 @@ class TradingAlgorithm(object):
             self.asset_finder = data_portal.asset_finder
 
         self.benchmark_returns = benchmark_returns
-        self.treasury_returns = treasury_returns  #20230209 (by MRC) for treasury return column in perf
-        
+        # for treasury return column in perf(20230209)
+        self.treasury_returns = treasury_returns
+
         # XXX: This is also a mess. We should remove all of this and only allow
         #      one way to pass a calendar.
         #
@@ -416,7 +422,8 @@ class TradingAlgorithm(object):
         self.initialize_kwargs = initialize_kwargs or {}
 
         self.benchmark_sid = benchmark_sid
-        self.treasury_sid = treasury_sid      #20230209 (by MRC) for treasury return column in perf
+        # for treasury return column in perf(20230209)
+        self.treasury_sid = treasury_sid
 
         # A dictionary of capital changes, keyed by timestamp, indicating the
         # target/delta of the capital changes, along with values
@@ -426,6 +433,7 @@ class TradingAlgorithm(object):
         self.capital_change_deltas = {}
 
         self.restrictions = NoRestrictions()
+
 
     def init_engine(self, get_loader):
         """
@@ -538,16 +546,14 @@ class TradingAlgorithm(object):
             execution_opens = execution_closes
 
         # FIXME generalize these values
+
+        # Seems like the before_trading_start-function is hardcoded with "US/Eastern"-timezone. 
+        # Changed this to local timezone("US/Eastern"->"Asia/Taipei").
+        # Otherwise, PIPELINE cannot operate correctly.(20230217)
         before_trading_start_minutes = days_at_time(
             self.sim_params.sessions, time(8, 45), "Asia/Taipei"
-        )                                                         #20230217 (by MRC) for pipeline
-        
-        '''
-        before_trading_start_minutes = days_at_time(
-            self.sim_params.sessions, time(8, 45), "US/Eastern"
-        )                                                         #20230217 (by MRC) for pipeline
-        '''
-        
+        )
+
         return MinuteSimulationClock(
             self.sim_params.sessions,
             execution_opens,
@@ -572,15 +578,14 @@ class TradingAlgorithm(object):
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
         )
-        
-    #--------------------------------------------------------------------        
-    #20230209 (by MRC) for treasury return column in perf  #start#
+
+
+    # for treasury return column in perf (20230209)
     def _create_treasury_source(self):
         if self.treasury_sid is not None:
             treasury_asset = self.asset_finder.retrieve_asset(self.treasury_sid)
             treasury_returns = None
         else:
-
             treasury_asset = None
             treasury_returns = self.treasury_returns
         return TreasurySource(
@@ -591,10 +596,8 @@ class TradingAlgorithm(object):
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
         )
-    #20230209 (by MRC) for treasury return column in perf  #end#
-    #--------------------------------------------------------------------
 
-    
+
     def _create_metrics_tracker(self):
         return MetricsTracker(
             trading_calendar=self.trading_calendar,
@@ -621,7 +624,8 @@ class TradingAlgorithm(object):
             self.initialized = True
 
         benchmark_source = self._create_benchmark_source()
-        treasury_source = self._create_treasury_source()      #20230209 (by MRC) for treasury return column in perf
+        # for treasury return column in perf (20230209)
+        treasury_source = self._create_treasury_source()
         
         self.trading_client = AlgorithmSimulator(
             self,
@@ -629,12 +633,12 @@ class TradingAlgorithm(object):
             self.data_portal,
             self._create_clock(),
             benchmark_source,
-            treasury_source,        #20230209 (by MRC) for treasury return column in perf
+            treasury_source,        # for treasury return column in perf 20230209
             self.restrictions,
         )
         
         metrics_tracker.handle_start_of_simulation(benchmark_source=benchmark_source,
-                                                    treasury_source=treasury_source)     #20230209 (by MRC) for treasury return column in perf
+                                                   treasury_source=treasury_source)   # for treasury return column in perf 20230209
 
         return self.trading_client.transform()
 
@@ -707,42 +711,38 @@ class TradingAlgorithm(object):
                 self.risk_report = perf
 
         daily_dts = pd.DatetimeIndex([p["period_close"] for p in daily_perfs])
-        
-        #daily_dts = make_utc_aware(daily_dts)  #20230213 (by MRC) for timezone in perf  [test]     
-        daily_dts = daily_dts.tz_convert(tz=tz) #20230213 (by MRC) for timezone in perf  [test]
 
-               
+        # Since the timezone displayed on perf(zipline.TradingAlgorithm.run()) is 'UTC'.
+        # In the following code, we convert the timezone of DatetimeIndex from UTC to
+        # local timezone('Asia/Taipei'), in order to prevent the trading times from 
+        # appearing unusual.
+
+        # TODO This code should be modified in future release. Because this can cause 
+        # complications when using pyfolio.(20230213)
+        daily_dts = daily_dts.tz_convert(tz=tz)
+        # daily_dts = make_utc_aware(daily_dts)
+
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
+        # Since the timezone displayed on perf(zipline.TradingAlgorithm.run()) is 'UTC'.
+        # In the following code, we convert UTC to local timezone('Asia/Taipei').
+        # This adjustment only modifies the 'dt' and 'created' of orders and the 'dt' of transactions,
+        # to prevent the trading times from appearing unusual.
 
-        #--------------------------------------------------------------------
-        #20230213 (by MRC) for timezone in perf [test] #start#        
+        # TODO This code should be modified in future release.Because this can cause complications
+        # when using pyfolio.(20230213)
+        daily_stats['period_open']=daily_stats['period_open'].array.tz_convert(tz=tz)
+        daily_stats['period_close']=daily_stats['period_close'].array.tz_convert(tz=tz)
 
-        '''
-        Convert time from UTC to local timezone('Asia/Taipei').
-        
-        note
-        ----
-        Since the timezone displayed on perf(zipline.TradingAlgorithm.run()) is 'UTC', 
-        here we simply change the period to the Taiwan time zone, 
-        and the code should be modified in future release.
-        '''
-        
-        daily_stats['period_open']=daily_stats['period_open'].array.tz_convert(tz=tz) 
-        daily_stats['period_close']=daily_stats['period_close'].array.tz_convert(tz=tz)        
-        
         for row in daily_stats['orders']:
           for item in row:
            item['dt'] = item['dt'].astimezone(tz)
-           item['created'] = item['created'].astimezone(tz)  
-        
+           item['created'] = item['created'].astimezone(tz)
+
         for row in daily_stats['transactions']:
           for item in row:
-           item['dt'] = item['dt'].astimezone(tz)          
-           
-        #20230213 (by MRC) for timezone in perf [test] #end#  
-        #--------------------------------------------------------------------
-                     
+           item['dt'] = item['dt'].astimezone(tz)
+
         return daily_stats
 
     def calculate_capital_changes(
@@ -857,17 +857,16 @@ class TradingAlgorithm(object):
                     "%r is not a valid field for get_environment" % field,
                 )
 
-
-    #-----------------------------------------------------------------------------
-    #20221231 (by MRC) TEJ_Api_data_source #start#  
     @api_method
     def fetch_tej_api(
         self,
-        columns=None,
+        columns,
         symbols=None,
         #data_frequency,
         start=None,
         end=None,
+        fin_type=None,
+        include_self_acc=None,
         import_data=None,
         symbol_column='coid',
         date_column='mdate',
@@ -878,46 +877,82 @@ class TradingAlgorithm(object):
         post_func=None,
         **kwargs,
     ):
-    
+        """Fetch data from TEJ TOOL API and register the data so that it is
+        queryable from the ``data`` object using ``data.current``.(20230211)
+
+        Parameters
+        ----------
+        columns : list, optional
+            欄位代碼，see :func:`TejToolAPI.get_history_data`.
+        symbol : list, optional
+            股票代碼，see :func:`TejToolAPI.get_history_data`.
+        start : date/str, optional
+            起始日，see :func:`TejToolAPI.get_history_data`.
+        end : date/str, optional
+            結束日，see :func:`TejToolAPI.get_history_data`.
+        fin_type : list, optional
+            會計科目類型 -> 單季:Q、累計:A、移動四季:TTM，ex: 撈取單季和累積，fin_type=['Q','A']。(預設為 ['Q','A','TTM'])，see :func:`TejToolAPI.get_history_data`.
+        include_self_acc : string, optional
+            財務是否包含公司自結損益，include_self_acc='Y'，表示財務資料包含自結損益，否則僅有財簽資料 (預設為 'N')，see :func:`TejToolAPI.get_history_data`.
+        import_data : DataFrame, optional
+            自行匯入的資料
+        date_column : str, optional
+            The name of the column in the preprocessed dataframe containing
+            datetime information to map the data.
+        country_code : str, optional
+            Country code to use to disambiguate symbol lookups.
+        date_format : str, optional
+            The format of the dates in the ``date_column``. If not provided
+            ``fetch_tej_api`` will attempt to infer the format. For information
+            about the format of this string, see :func:`pandas.read_csv`.
+        timezone : tzinfo or str, optional
+            The timezone for the datetime in the ``date_column``.
+        pre_func : callable[pd.DataFrame -> pd.DataFrame], optional
+            A callback to allow preprocessing the raw data returned from
+            fetch_tej_api before dates are paresed or symbols are mapped.
+        post_func : callable[pd.DataFrame -> pd.DataFrame], optional
+            A callback to allow postprocessing of the data after dates and
+            symbols have been mapped.
+        **kwargs
+            no use now.
+        Returns
+        -------
+        TEJ_Api_data_source : zipline.sources.TEJ_Api_Data.PandasRequestsTEJ_API
+            A requests source that will pull data from TEJ TOOL API.
+        """    
     
         if country_code is None:
             country_code = self.default_fetch_csv_country_code(
                 self.trading_calendar,)
                 
                 
-        TEJ_Api_data_source=PandasRequestsTEJ_API(
-                            symbol_column,
-                            date_column,
-                            date_format,
-                            self.trading_calendar.day,
-                            self.asset_finder,
-                            columns,
-                            symbols,
-                            timezone,
-                            start,
-                            end, 
-                            import_data, 
-                            country_code,
-                            pre_func,
-                            post_func,
-                            data_frequency=self.data_frequency,                            
-                            **kwargs,)
-        
-        df=TEJ_Api_data_source.load_df()
-        
-        # not necessary?
-        df_filter=df.loc[(df.index>=self.sim_params.start_session) & \
-                        (df.index<=self.sim_params.end_session)]
+        TEJ_Api_data_source = PandasRequestsTEJ_API(
+                                                    symbol_column,
+                                                    date_column,
+                                                    date_format,
+                                                    self.trading_calendar.day,
+                                                    self.asset_finder,
+                                                    columns,
+                                                    symbols,
+                                                    timezone,
+                                                    start,
+                                                    end, 
+                                                    fin_type,
+                                                    include_self_acc,
+                                                    import_data, 
+                                                    country_code,
+                                                    pre_func,
+                                                    post_func,
+                                                    data_frequency=self.data_frequency,
+                                                    **kwargs,)
+
+        df = TEJ_Api_data_source.load_df()
 
         # ingest this into dataportal
-        self.data_portal.handle_extra_source(df_filter, self.sim_params)
+        self.data_portal.handle_extra_source(df, self.sim_params)
 
-        
         return TEJ_Api_data_source
-        #20221231 (by MRC) TEJ_Api_data_source #end#
-        #--------------------------------------------------------------------
-    
-    
+
     @api_method
     def fetch_csv(
         self,
@@ -1321,8 +1356,7 @@ class TradingAlgorithm(object):
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
                     msg="Cannot order {0} on {1} as there is no last "
-                    "price for the security.".format(asset.symbol, self.datetime)                  #20230420 (by MRC) 改為台灣時區 
-                    #"price for the security.".format(asset.symbol, self.datetime.astimezone(tz))	#20230420 (by MRC) 改為台灣時區 				
+                    "price for the security.".format(asset.symbol, self.datetime)
                 )
 
         if tolerant_equals(last_price, 0):
@@ -1361,6 +1395,7 @@ class TradingAlgorithm(object):
 
         return True
 
+		
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order(self, asset, amount, limit_price=None, stop_price=None, style=None):
@@ -1568,7 +1603,34 @@ class TradingAlgorithm(object):
                 self.data_portal,
             )
             self._last_sync_time = dt
+    # new add for modify account info @20230926 (by Han)
+    def _sync_account(self,dt = None) :
+        """Sync the last sale prices and account on the metrics tracker to a given
+        datetime.
 
+        Parameters
+        ----------
+        dt : datetime
+            The time to sync the prices to.
+
+        Notes
+        -----
+        This call is cached by the datetime. Repeated calls in the same bar
+        are cheap.
+        """
+        if dt is None:
+            dt = self.datetime
+            
+        if dt != self._last_sync_time:
+            self.metrics_tracker.sync_last_sale_prices(
+                dt,
+                self.data_portal,
+            )
+            self._last_sync_time = dt
+        if self.account_revise is not None :
+            self.metrics_tracker.override_account_fields(
+            ** self.account_revise
+            )
     @property
     def portfolio(self):
         self._sync_last_sale_prices()
@@ -1576,7 +1638,9 @@ class TradingAlgorithm(object):
 
     @property
     def account(self):
-        self._sync_last_sale_prices()
+        # modified @ 20230926 (by Han)
+        #self._sync_last_sale_prices()
+        self._sync_account()
         return self.metrics_tracker.account
 
     def set_logger(self, logger):
@@ -2017,6 +2081,30 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    def calculate_order_target_percent_amount(self, asset, target):
+        """Calculate order target percent amount (20230831)
+        Parameters
+        ----------
+        asset : Asset
+            The asset that this order is for.
+        target : float
+            The desired percentage of the portfolio value to allocate to
+            ``asset``. This is specified as a decimal, for example:
+            0.50 means 50%.
+
+        Returns
+        -------
+        amount : float
+            The amount will order.
+
+        See Also
+        --------
+        :func:`zipline.api.order_target_percent`
+        """
+        return self._calculate_order_target_percent_amount(asset, target)
+
+    @api_method
     @expect_types(share_counts=pd.Series)
     @expect_dtypes(share_counts=int64_dtype)
     def batch_market_order(self, share_counts):
@@ -2299,6 +2387,57 @@ class TradingAlgorithm(object):
         positions.
         """
         self.register_trading_control(LongOnly(on_error))
+
+
+    ##################
+    # Trading Policy #
+    ##################
+    # 20230804 (by MRC) 新增Trading Policy功能
+    def register_trading_policy(self, trading_policy):
+        """
+        Register a new TradingPolicy to be checked prior to transcation and order calls.
+        """
+        if self.initialized:
+            raise RegisterTradingPolicyPostInit()
+        self.trading_policy.append(trading_policy)
+        self.blotter.trading_policy = self.trading_policy
+        
+    @api_method
+    @expect_types(rules=list)
+    def set_liquidity_risk_management_rule(self, rules, log=False):
+        """Set a rule specifying that this algorithm cannot take illiquid positions.
+        see also：zipline.sources.TEJ_Api_Data.LIQUIDITY_RISK_COLUMNS
+
+        Parameters
+        ----------
+        rules : list
+            see：zipline.sources.TEJ_Api_Data.LIQUIDITY_RISK_COLUMNS
+        log : bool
+            log：whether the logging is active or inactive.
+
+        For example, *rules=Full_Delivery limits an algorithm to trading on Full Delivery assets.
+        """
+
+        for rule in rules:
+            if rule not in LIQUIDITY_RISK_COLUMNS.keys():
+                raise IllegalValueException(parameter = '"rules"',
+                                            value = str([x for x in LIQUIDITY_RISK_COLUMNS.keys()])) 
+        
+        sids = self.asset_finder.equities_sids
+        assets = self.asset_finder.retrieve_all(sids)
+        symbols = [i.symbol for i in assets]
+
+        self.fetch_tej_api(
+                            symbol_column='coid',
+                            date_column='mdate',
+                            columns=[LIQUIDITY_RISK_COLUMNS.get(x) for x in rules],
+                            symbols=symbols,
+                            timezone=pytz.utc.zone,
+                            start=self.sim_params.start_session,
+                            end=self.sim_params.end_session,
+                            country_code=self.default_fetch_csv_country_code(self.trading_calendar,))
+
+        self.register_trading_policy(ExcludeIlliquidAsset(rules, log))
 
     ##############
     # Pipeline API

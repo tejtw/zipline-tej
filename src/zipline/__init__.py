@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from packaging.version import Version
+from distutils.version import StrictVersion
 import os
 import numpy as np
 
@@ -27,7 +27,7 @@ from . import utils
 from .utils.numpy_utils import numpy_version
 from .utils.pandas_utils import new_pandas
 from .utils.run_algo import run_algorithm
-
+						 
 # These need to happen after the other imports.
 from .algorithm import TradingAlgorithm
 from . import api
@@ -49,15 +49,15 @@ if global_calendar_dispatcher._calendars:
     del warnings
 del global_calendar_dispatcher
 
-try:
-    from ._version import version as __version__
-    from ._version import version_tuple
-except ImportError:
-    __version__ = "unknown version"
-    version_tuple = (0, 0, "unknown version")
+try :
+    from ._version import get_versions  # noqa 402
 
-extension_args = ext.Namespace()
+    __version__ = get_versions()["version"]
+    del get_versions
 
+    extension_args = ext.Namespace()
+except :
+    __version__ = '2.2.0'
 
 def load_ipython_extension(ipython):
     from .__main__ import zipline_magic
@@ -93,20 +93,19 @@ __all__ = [
     "gens",
     "run_algorithm",
     "utils",
-    "extension_args",
+    "extension_args"
 ]
-
 
 def setup(
     self,
     np=np,
     numpy_version=numpy_version,
-    Version=Version,
+    StrictVersion=StrictVersion,
     new_pandas=new_pandas,
 ):
     """Lives in zipline.__init__ for doctests."""
 
-    if numpy_version >= Version("1.14"):
+    if numpy_version >= StrictVersion("1.14"):
         self.old_opts = np.get_printoptions()
         np.set_printoptions(legacy="1.13")
     else:
@@ -133,5 +132,5 @@ def teardown(self, np=np):
 del os
 del np
 del numpy_version
-del Version
+del StrictVersion
 del new_pandas

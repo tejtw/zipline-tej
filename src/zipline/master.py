@@ -35,7 +35,12 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
     
     bundle = bundles.load(bundles_name) 
     trading_calendar =  get_calendar('TEJ_XTAI')     
-    
+
+    for i in range(15):
+        if start_date in trading_calendar.all_sessions:
+            break        
+        start_date = start_date+pd.Timedelta(str(i)+'d')
+       
     if assets!=None:
         
         if set(assets).issubset(set(['risk-free-rate'])):
@@ -53,7 +58,7 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
             
         if set(assets).issubset(set(['benchmark'])):
             
-            df_bm = (tejapi.get('TWN/APRCD', coid = 'Y9997', 
+            df_bm = (tejapi.get('TWN/APIPRCD', coid = 'IR0001', 
                              opts={'columns':['mdate', 'close_d']},
                              mdate={'gte':start_date,'lte':end_date},
                              paginate=True).rename(columns={'close_d':'benchmark'})
@@ -66,17 +71,67 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
         
         if set(assets).issubset(set(['sector'])):
             
-            a=tejapi.get('TWN/APRCD',opts={'columns':['coid']},mdate=end_date)
-            s = set((a[a['coid'].str[0] == 'M']).coid) | set((a[a['coid'].str[0] == 'O']).coid)
-            
-            df_sector = (tejapi.get('TWN/APRCD', coid = list(s)+['Y9999'], 
-                             opts={'columns':['mdate','coid', 'close_d']},
-                             mdate={'gte':start_date,'lte':end_date},
-                             paginate=True)
-                             .set_index(['mdate','coid'])
-                             .unstack()
-                             .tz_localize('utc')
+            sector_code = { 'IR0001': '報酬指數',
+                'IR0010': '水泥類報酬指數',
+                'IR0011': '食品類報酬指數',
+                'IR0012': '塑膠類報酬指數',
+                'IR0016': '紡織纖維報酬指數',
+                'IR0017': '電機機械類報酬指數',
+                'IR0018': '電器電纜類報酬指數',
+                'IR0020': '化學工業類報酬指數',
+                'IR0021': '生技醫療類報酬指數',
+                'IR0019': '化學生技醫療類報酬指數',
+                'IR0022': '玻璃陶瓷類報酬指數',
+                'IR0023': '造紙類報酬指數',
+                'IR0024': '鋼鐵類報酬指數',
+                'IR0025': '橡膠類報酬指數',
+                'IR0027': '電子報酬',
+                'IR0026': '汽車類報酬指數',
+                'IR0028': '半導體報酬指數',
+                'IR0029': '電腦及週邊設備業TR',
+                'IR0030': '光電類TR',
+                'IR0031': '通信網路類TR',
+                'IR0032': '電子零組TR',
+                'IR0033': '電子通路業TR',
+                'IR0034': '資訊服務業TR',
+                'IR0035': '其他電子業TR',
+                'IR0036': '營造建材類報酬指數',
+                'IR0037': '航運類報酬指數',
+                'IR0038': '觀光類報酬指數',
+                'IR0039': '金融報酬',
+                'IR0040': '百貨貿易類報酬指數',
+                'IR0041': '油電燃氣類報酬指數',
+                'IR0042': '其他類報酬指數',
+                'IR0044': 'OTC 紡織纖維報酬指數',
+                'IR0045': 'OTC 電機機械報酬指數',
+                'IR0046': 'OTC 鋼鐵工業報酬指數',
+                'IR0047': 'OTC 電子工業報酬指數',
+                'IR0048': 'OTC 建材營造報酬指數',
+                'IR0049': 'OTC 航運業報酬指數',
+                'IR0050': 'OTC 觀光事業報酬指數',
+                'IR0051': 'OTC 化學工業報酬指數',
+                'IR0052': 'OTC 生技醫療報酬指數',
+                'IR0053': 'OTC 半導體業報酬指數',
+                'IR0054': 'OTC 電腦及週邊設備業報酬指數',
+                'IR0055': 'OTC 光電業報酬指數',
+                'IR0056': 'OTC 通信網路業報酬指數',
+                'IR0057': 'OTC 電子零組件業報酬指數',
+                'IR0058': 'OTC 電子通路業報酬指數',
+                'IR0059': 'OTC 資訊服務業報酬指數',
+                'IR0075': 'OTC 文化創意業報酬指數',
+                'IR0099': 'OTC 其他電子業報酬指數',
+                'IR0100': 'OTC 其他報酬指數',
+                'IR0043': '櫃檯報酬指數'
+            }
+
+            df_sector=(tejapi.get('TWN/APIPRCD', coid = list(sector_code.keys()), 
+                                         opts={'columns':['mdate','coid', 'close_d']},
+                                         mdate={'gte':start_date,'lte':end_date},
+                                         paginate=True).set_index(['mdate','coid'])
+                                         .unstack()
+                                         .tz_localize('utc')
                           )['close_d']
+  
             
             df_sector.index.rename('date',inplace=True)
             
@@ -88,7 +143,7 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
         raise ValueError(f'Invalid field:{field}') 
     
     if assets==None:    
-        assets =  bundle.asset_finder.retrieve_all(bundle.asset_finder.equities_sids)
+        assets =  bundle.asset_finder.retrieve_all(bundle.asset_finder.equities_sids)        
     else:
         if isinstance(assets,list)==False:
             raise ValueError("assets should be list") 
@@ -136,38 +191,44 @@ def getToolData(assets:list,query_columns:list,dataframelike:pd.DataFrame):
     
     st ,et = dataframelike.index[[0,-1]] 
     
-    if 'industry_c' not in query_columns:
-        query_columns.append('industry_c')
+    if 'Industry' not in query_columns:
+        query_columns.append('Industry')
     
     if 'Market_Cap_Dollars' not in query_columns:
         query_columns.append('Market_Cap_Dollars')        
     
     out ={}    
     for col in query_columns:
-    
-        try :        
-            
-            fdata = (TejToolAPI.get_history_data(ticker=assets, columns=[col], 
-                                      start = st.tz_convert(None),
-                                      end = et.tz_convert(None),
-                                      transfer_to_chinese=False)
-                                     .set_index(['mdate','coid'])
-                                     .unstack()                  
-                                     .rename(columns={c.symbol:c  for c in dataframelike.columns})
-                     ) 
-                       
-            if col=='Issue_Shares_1000_Shares':
-                fdata=fdata['Common_Stock_Shares_Issued_Thousand_Shares']
-            
-            if col=='Net_Income_Growth_Rate':
-                fdata=fdata['Net_Income_Growth_Rate_Q']
-         
-            if col=='Total_Operating_Income':
-                fdata=fdata['Total_Operating_Income_Q']
         
-            if isinstance(fdata.columns,pd.MultiIndex):
-                fdata.columns = fdata.columns.droplevel(0)
+        try :        
+            columns_col = col
+            if col.split('_')[-1] in ('Q','A','TTM'):                
+                columns_col = '_'.join(col.split('_')[:-1])
+            
+            fdata = (TejToolAPI.get_history_data(ticker=assets, columns=[columns_col], 
+                        start = st.tz_convert(None),
+                        end = et.tz_convert(None),
+                        transfer_to_chinese=False)
+                        )
+            
+            try :
+                fdata = (fdata.set_index(['mdate','coid'])
+                             .unstack()                  
+                             .rename(columns={c.symbol:c  for c in dataframelike.columns})
+                             )[col]     
+            except:
+            
+                fdata = (fdata.set_index(['mdate','coid'])
+                             .unstack()                  
+                             .rename(columns={c.symbol:c  for c in dataframelike.columns})
+                             )              
+                         
+            # if col=='Issue_Shares_1000_Shares':
+                # fdata=fdata['Common_Stock_Shares_Issued_Thousand_Shares']
                 
+            # if isinstance(fdata.columns,pd.MultiIndex):
+                # fdata.columns = fdata.columns.droplevel(0)
+              
         except Exception as err:            
              
             raise    
@@ -184,7 +245,7 @@ def getToolData(assets:list,query_columns:list,dataframelike:pd.DataFrame):
         adjustments = fdata.reindex(dataframelike.columns, axis=1)
         adjustments = adjustments.reindex(dataframelike.index, axis=0,method='ffill') 
         
-        if col=='industry_c':           
+        if col=='Industry':           
             adjustments = adjustments.fillna(method='ffill').fillna(method='bfill')
         
         out[col] = adjustments

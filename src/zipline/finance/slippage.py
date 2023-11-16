@@ -160,7 +160,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
         """
         raise NotImplementedError("process_order")
 
-    def simulate(self, data, asset, orders_for_asset):
+    def simulate(self, data, asset, orders_for_asset, trading_policy):   #20230804 (by MRC)新增trading_policy功能
         self._volume_for_bar = 0
         volume = data.current(asset, "volume")
 
@@ -180,6 +180,14 @@ class SlippageModel(metaclass=FinancialModelMeta):
         # END
         dt = data.current_dt
 
+        # 20230804 (by MRC) 新增trading_policy判斷，當trading_policy.validate為False時不交易。
+        if trading_policy is not None:
+            for i in trading_policy:
+                if not i.validate(asset, dt, data):
+                    return
+                else:
+                    continue
+					
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue

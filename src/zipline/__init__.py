@@ -54,10 +54,10 @@ try :
 
     __version__ = get_versions()["version"]
     del get_versions
-
-    extension_args = ext.Namespace()
 except :
     __version__ = '2.2.0'
+    
+extension_args = ext.Namespace()
 
 def load_ipython_extension(ipython):
     from .__main__ import zipline_magic

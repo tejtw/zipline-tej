@@ -4,6 +4,7 @@ import inspect
 from contextlib import contextmanager, ExitStack
 from html import escape as escape_html
 from types import MappingProxyType as mappingproxy
+from collections import namedtuple
 from math import ceil
 
 
@@ -19,8 +20,9 @@ wraps = functools.wraps
 
 
 def getargspec(f):
+    ArgSpec = namedtuple("ArgSpec", "args varargs keywords defaults"
     full_argspec = inspect.getfullargspec(f)
-    return inspect.ArgSpec(
+    return ArgSpec(
         args=full_argspec.args,
         varargs=full_argspec.varargs,
         keywords=full_argspec.varkw,

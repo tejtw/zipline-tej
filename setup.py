@@ -107,7 +107,7 @@ def myversion():
     import re
     def my_release_branch_semver_version(version):
         v = no_guess_dev_version(version)
-        rv = re.match('\d+\.\d+\.\d+',v)
+        rv = re.match('\d+\.\d+\.\d+(-\d+)*',v)
         return rv.group()
 
     return {

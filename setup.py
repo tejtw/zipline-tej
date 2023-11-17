@@ -103,7 +103,7 @@ ext_modules = [
 # for ext_module in ext_modules:
 #     ext_module.cython_directives = dict(language_level="3")
 def myversion():
-    from setuptools_scm.version import SEMVER_MINOR, guess_next_simple_semver, release_branch_semver_version
+    from setuptools_scm.version import SEMVER_MINOR, guess_next_simple_semver, release_branch_semver_version, no_guess_dev_version
     import re
     def my_release_branch_semver_version(version):
         v = no_guess_dev_version(version)

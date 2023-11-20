@@ -110,15 +110,7 @@ def myversion():
         rv = re.fullmatch('\d+\.\d+\.\d+',v)
         if rv :
             return rv.group()
-    #     v = release_branch_semver_version(version)
-    #     if v == version.format_next_version(guess_next_simple_semver, retain=SEMVER_MINOR):
-    #         return version.format_next_version(guess_next_simple_semver, fmt="{guessed}", retain=SEMVER_MINOR)
-    #     return v
-
-    # return {
-    #     'version_scheme': my_release_branch_semver_version,
-    #     'local_scheme': 'no-local-version',
-    # }
+        return True
 
 setup(
     use_scm_version=myversion,

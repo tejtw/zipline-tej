@@ -20,7 +20,7 @@ wraps = functools.wraps
 
 
 def getargspec(f):
-    ArgSpec = namedtuple("ArgSpec", "args varargs keywords defaults"
+    ArgSpec = namedtuple("ArgSpec", "args varargs keywords defaults")
     full_argspec = inspect.getfullargspec(f)
     return ArgSpec(
         args=full_argspec.args,

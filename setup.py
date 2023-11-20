@@ -104,7 +104,7 @@ ext_modules = [
 #     ext_module.cython_directives = dict(language_level="3")
 def myversion():
     def my_release_branch_semver_version(version):
-        return version.tag
+        return str(version.tag)
     return {
         'version_scheme': my_release_branch_semver_version,
         'local_scheme': 'no-local-version',

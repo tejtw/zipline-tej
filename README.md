@@ -3,7 +3,7 @@
 ## Used packages and environment
 * Main package: Zipline
 * Python 3.8 or above (currently support up to 3.11)
-* Microsoft Windows OS or macOS or Ubuntu
+* Microsoft Windows OS or macOS or Linux
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars, etc.
 
 ## How to install Zipline Reloaded modified by TEJ

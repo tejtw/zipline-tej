@@ -19,8 +19,13 @@ WORKDIR /app
 
 RUN pip install jupyter && pip install seaborn && pip install tqdm && pip install zipline-tej && pip cache purge
 
-RUN !curl https://github.com/a7532ariel/ms-web/raw/master/Microsoft-JhengHei.ttf --output /usr/local/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/Microsoft-JhengHei.ttf
+RUN curl https://github.com/a7532ariel/ms-web/raw/master/Microsoft-JhengHei.ttf --output /usr/local/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/Microsoft-JhengHei.ttf
 
 EXPOSE 8888
 
-CMD ["jupyter" , "notebook" , "--ip=0.0.0.0", "--allow-root"]
+
+CMD ["sh", "-c", "pip install --upgrade tej-tool-api && pip install --upgrade alphalens-tej \
+               && pip install --upgrade pyfolio-tej && pip install --upgrade zipline-tej \
+               && pip cache purge \
+               && jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root"]
+

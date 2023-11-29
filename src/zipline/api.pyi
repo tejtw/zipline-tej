@@ -627,20 +627,25 @@ def set_cancel_policy(cancel_policy):
     :class:`zipline.api.NeverCancel`
     """
 
-def set_commission(us_equities=None, us_futures=None):
+def set_commission(equities=None, futures=None):
     """Sets the commission models for the simulation.
 
     Parameters
     ----------
-    us_equities : EquityCommissionModel
-        The commission model to use for trading US equities.
-    us_futures : FutureCommissionModel
-        The commission model to use for trading US futures.
+    equities : EquityCommissionModel
+        The commission model to use for trading equities.
+    futures : FutureCommissionModel
+        The commission model to use for trading futures.
 
     Notes
     -----
     This function can only be called during
     :func:`~zipline.api.initialize`.
+
+    (20231127)
+    Change the parameter name from `us_equities` to `equities`,
+    and from `us_futures` to `futures`.
+    Synchronize this change in `zipline.algorithm.py`.
 
     See Also
     --------
@@ -738,20 +743,25 @@ def set_min_leverage(min_leverage, grace_period):
         The offset from the start date used to enforce a minimum leverage.
     """
 
-def set_slippage(us_equities=None, us_futures=None):
+def set_slippage(equities=None, futures=None):
     """Set the slippage models for the simulation.
 
     Parameters
     ----------
-    us_equities : EquitySlippageModel
-        The slippage model to use for trading US equities.
-    us_futures : FutureSlippageModel
-        The slippage model to use for trading US futures.
+    equities : EquitySlippageModel
+        The slippage model to use for trading equities.
+    futures : FutureSlippageModel
+        The slippage model to use for trading futures.
 
     Notes
     -----
     This function can only be called during
     :func:`~zipline.api.initialize`.
+
+    (20231129)
+    Change the parameter name from `us_equities` to `equities`,
+    and from `us_futures` to `futures`.
+    Synchronize this change in `zipline.algorithm.py`.
 
     See Also
     --------

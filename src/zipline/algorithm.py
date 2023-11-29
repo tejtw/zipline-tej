@@ -24,6 +24,8 @@ import numpy as np
 
 from itertools import chain, repeat
 
+from zipline.data.bcolz_daily_bars import ANNOTATION_CHINESE
+
 from zipline.utils.calendar_utils import get_calendar, days_at_time
 
 from zipline._protocol import handle_non_market_minutes
@@ -59,8 +61,7 @@ from zipline.finance.controls import (
     MaxPositionSize,
     MaxLeverage,
     MinLeverage,
-    RestrictedListOrder,
-    ExcludeIlliquidAsset
+    RestrictedListOrder
 )
 from zipline.finance.execution import (
     LimitOrder,
@@ -70,6 +71,9 @@ from zipline.finance.execution import (
 )
 from zipline.finance.asset_restrictions import Restrictions
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
+from zipline.finance.trading_policy import (
+    ExcludeIlliquidAsset
+)
 from zipline.finance.asset_restrictions import (
     NoRestrictions,
     StaticRestrictions,
@@ -125,7 +129,7 @@ from zipline.utils.security_list import SecurityList
 
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
-from zipline.sources.TEJ_Api_Data import PandasRequestsTEJ_API, LIQUIDITY_RISK_COLUMNS
+from zipline.sources.TEJ_Api_Data import PandasRequestsTEJ_API
 
 from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
@@ -1681,21 +1685,26 @@ class TradingAlgorithm(object):
         return dt
 
     @api_method
-    def set_slippage(self, us_equities=None, us_futures=None):
+    def set_slippage(self, equities=None, futures=None):
         """
         Set the slippage models for the simulation.
 
         Parameters
         ----------
-        us_equities : EquitySlippageModel
-            The slippage model to use for trading US equities.
-        us_futures : FutureSlippageModel
-            The slippage model to use for trading US futures.
+        equities : EquitySlippageModel
+            The slippage model to use for trading equities.
+        futures : FutureSlippageModel
+            The slippage model to use for trading futures.
 
         Notes
         -----
         This function can only be called during
         :func:`~zipline.api.initialize`.
+
+        (20231127)
+        Change the parameter name from `us_equities` to `equities`, 
+        and from `us_futures` to `futures`.
+        Synchronize this change in `zipline.api.pyi`.
 
         See Also
         --------
@@ -1704,39 +1713,45 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetSlippagePostInit()
 
-        if us_equities is not None:
-            if Equity not in us_equities.allowed_asset_types:
+        if equities is not None:
+            if Equity not in equities.allowed_asset_types:
                 raise IncompatibleSlippageModel(
                     asset_type="equities",
-                    given_model=us_equities,
-                    supported_asset_types=us_equities.allowed_asset_types,
+                    given_model=equities,
+                    supported_asset_types=equities.allowed_asset_types,
                 )
-            self.blotter.slippage_models[Equity] = us_equities
+            self.blotter.slippage_models[Equity] = equities
 
-        if us_futures is not None:
-            if Future not in us_futures.allowed_asset_types:
+        if futures is not None:
+            if Future not in futures.allowed_asset_types:
                 raise IncompatibleSlippageModel(
                     asset_type="futures",
-                    given_model=us_futures,
-                    supported_asset_types=us_futures.allowed_asset_types,
+                    given_model=futures,
+                    supported_asset_types=futures.allowed_asset_types,
                 )
-            self.blotter.slippage_models[Future] = us_futures
+            self.blotter.slippage_models[Future] = futures
 
     @api_method
-    def set_commission(self, us_equities=None, us_futures=None):
+    def set_commission(self, equities=None, futures=None):
         """Sets the commission models for the simulation.
 
         Parameters
         ----------
-        us_equities : EquityCommissionModel
-            The commission model to use for trading US equities.
-        us_futures : FutureCommissionModel
-            The commission model to use for trading US futures.
+        equities : EquityCommissionModel
+            The commission model to use for trading equities.
+        futures : FutureCommissionModel
+            The commission model to use for trading futures.
 
         Notes
         -----
         This function can only be called during
         :func:`~zipline.api.initialize`.
+
+
+        (20231127)
+        Change the parameter name from `us_equities` to `equities`, 
+        and from `us_futures` to `futures`.
+        Synchronize this change in `zipline.api.pyi`.
 
         See Also
         --------
@@ -1747,23 +1762,23 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetCommissionPostInit()
 
-        if us_equities is not None:
-            if Equity not in us_equities.allowed_asset_types:
+        if equities is not None:
+            if Equity not in equities.allowed_asset_types:
                 raise IncompatibleCommissionModel(
                     asset_type="equities",
-                    given_model=us_equities,
-                    supported_asset_types=us_equities.allowed_asset_types,
+                    given_model=equities,
+                    supported_asset_types=equities.allowed_asset_types,
                 )
-            self.blotter.commission_models[Equity] = us_equities
+            self.blotter.commission_models[Equity] = equities
 
-        if us_futures is not None:
-            if Future not in us_futures.allowed_asset_types:
+        if futures is not None:
+            if Future not in futures.allowed_asset_types:
                 raise IncompatibleCommissionModel(
                     asset_type="futures",
-                    given_model=us_futures,
-                    supported_asset_types=us_futures.allowed_asset_types,
+                    given_model=futures,
+                    supported_asset_types=futures.allowed_asset_types,
                 )
-            self.blotter.commission_models[Future] = us_futures
+            self.blotter.commission_models[Future] = futures
 
     @api_method
     def set_cancel_policy(self, cancel_policy):
@@ -2401,43 +2416,32 @@ class TradingAlgorithm(object):
             raise RegisterTradingPolicyPostInit()
         self.trading_policy.append(trading_policy)
         self.blotter.trading_policy = self.trading_policy
-        
+
     @api_method
     @expect_types(rules=list)
     def set_liquidity_risk_management_rule(self, rules, log=False):
-        """Set a rule specifying that this algorithm cannot take illiquid positions.
-        see also：zipline.sources.TEJ_Api_Data.LIQUIDITY_RISK_COLUMNS
+        """
+        Set a rule specifying that this algorithm cannot take illiquid positions.
+        see also：zipline.data.bcolz_daily_bars.ANNOTATION_CHINESE
 
         Parameters
         ----------
         rules : list
-            see：zipline.sources.TEJ_Api_Data.LIQUIDITY_RISK_COLUMNS
+            see：zipline.data.bcolz_daily_bars.ANNOTATION_CHINESE
         log : bool
             log：whether the logging is active or inactive.
 
-        For example, *rules=Full_Delivery limits an algorithm to trading on Full Delivery assets.
+        For example, *rules=全額交割股票(Full Cash Delivery Securities) limits an
+        algorithm to trading on Full Delivery assets.
         """
-
+        annotation = [i.strip().replace('_', ' ') for i in ANNOTATION_CHINESE]
         for rule in rules:
-            if rule not in LIQUIDITY_RISK_COLUMNS.keys():
+            if rule not in annotation:
                 raise IllegalValueException(parameter = '"rules"',
-                                            value = str([x for x in LIQUIDITY_RISK_COLUMNS.keys()])) 
-        
-        sids = self.asset_finder.equities_sids
-        assets = self.asset_finder.retrieve_all(sids)
-        symbols = [i.symbol for i in assets]
-
-        self.fetch_tej_api(
-                            symbol_column='coid',
-                            date_column='mdate',
-                            columns=[LIQUIDITY_RISK_COLUMNS.get(x) for x in rules],
-                            symbols=symbols,
-                            timezone=pytz.utc.zone,
-                            start=self.sim_params.start_session,
-                            end=self.sim_params.end_session,
-                            country_code=self.default_fetch_csv_country_code(self.trading_calendar,))
+                                            value = str(annotation))
 
         self.register_trading_policy(ExcludeIlliquidAsset(rules, log))
+
 
     ##############
     # Pipeline API

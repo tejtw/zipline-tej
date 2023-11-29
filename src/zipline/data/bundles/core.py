@@ -652,6 +652,8 @@ def _make_bundle_core():
         os.environ['mdate'] = min_start_str
         try :
             ingest(name,os.environ,timestamp=timestamp,assets_versions=(),show_progress= True)
+            bundle_data.adjustment_reader.close()
+            shutil.rmtree(timestr)
         except Exception as e :
             log.info(f"Can not update due to {e}.")
             no_tz_timestamp = timestamp.tz_convert("utc").tz_localize(None)
@@ -731,6 +733,8 @@ def _make_bundle_core():
         os.environ['mdate'] = min_start_str + ',' + max_end_str
         try :
             ingest(name,os.environ,timestamp=timestamp,assets_versions=(),show_progress= True)
+            bundle_data.adjustment_reader.close()
+            shutil.rmtree(timestr)
         except Exception as e :
             log.info(f"Can not update due to {e}.")
             no_tz_timestamp = timestamp.tz_convert("utc").tz_localize(None)

@@ -64,6 +64,17 @@ US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     "annotation"
 )
 
+ANNOTATION_CHINESE = ['注意股票(Attention_Securities)',
+                      '處置股票(Disposition_Securities)',
+                      '五分分盤處置(Matching-Every-5-Minute)',
+                      '二十分分盤處置(Matching-Every-20-Minute)',
+                      '全額交割股票(Full-Cash_Delivery_Securities)',
+                      '漲停股票(Limit_Up)',
+                      '跌停股票(Limit_Down)',
+                      '開盤即鎖死(Limited_Whole_Day)',
+                      '暫停當沖先賣後買(Suspend_Day-Trade_Short_First)'
+        ]
+
 UINT32_MAX = iinfo(np.uint32).max
 
 
@@ -700,20 +711,18 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         # 20230914 add for annotation
         
         annotation = ''
-        annotation_chinese = ['注意股票(Attention Securities)','處置股票(Disposition Securities)',
-        '五分分盤處置(Matching-Every-5-Minute)','二十分分盤處置(Matching-Every-20-Minute)','全額交割股票(Full-Cash Delivery Securities)',
-        '漲停股票(Limit Up)','跌停股票(Limit Down)','開盤即鎖死(Limited Whole Day)','暫停當沖先賣後買(Suspend Intra-Day Trading Short First)'
-        ]
+
         if field == 'annotation' :
             import re
             str_price = list(enumerate(str(int(price))[1:]))
             for idx , value in str_price :
                 if value == '1' :
-                    annotation+= " "+annotation_chinese[idx]+" "
+                    annotation+= " "+ANNOTATION_CHINESE[idx]+" "
             annotation = annotation.strip()
             annotation = re.sub('\s+','、',annotation)
+            annotation = re.sub('_',' ',annotation)
             return annotation
-        
+
         # 20230914 add for annotation
         if field != "volume"  : 
             if price == 0:

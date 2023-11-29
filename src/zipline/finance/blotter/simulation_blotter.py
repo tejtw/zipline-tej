@@ -29,7 +29,8 @@ from zipline.finance.commission import (
     DEFAULT_PER_CONTRACT_COST,
     FUTURE_EXCHANGE_FEES_BY_SYMBOL,
     PerContract,
-    PerShare,
+    # PerShare,
+    Custom_TW_Commission
 )
 from zipline.utils.input_validation import expect_types
 
@@ -46,10 +47,12 @@ class SimulationBlotter(Blotter):
         equity_commission=None,
         future_commission=None,
         cancel_policy=None,
-        trading_policy=None,                                    # 20230804 (by MRC) 新增trading_policy功能
+        # 20230807 add trading_policy
+        trading_policy=None,
     ):
         super().__init__(cancel_policy=cancel_policy,
-                         trading_policy=trading_policy)         # 20230804 (by MRC) 新增trading_policy功能
+                         # 20230807 add trading_policy
+                         trading_policy=trading_policy)
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
@@ -70,7 +73,9 @@ class SimulationBlotter(Blotter):
             ),
         }
         self.commission_models = {
-            Equity: equity_commission or PerShare(),
+            # (20231127) change default commission model for equities from PerShare()
+            # to Custom_TW_Commission().
+            Equity: equity_commission or Custom_TW_Commission(),
             Future: future_commission
             or PerContract(
                 cost=DEFAULT_PER_CONTRACT_COST,
@@ -397,8 +402,9 @@ class SimulationBlotter(Blotter):
             for asset, asset_orders in self.open_orders.items():
                 slippage = self.slippage_models[type(asset)]
 
+                #20230807 add trading_policy
                 for order, txn in slippage.simulate(
-                    bar_data, asset, asset_orders, self.trading_policy      #20230804 (by MRC) 新增trading_policy功能
+                    bar_data, asset, asset_orders, self.trading_policy
                 ):
                     commission = self.commission_models[type(asset)]
                     additional_commission = commission.calculate(order, txn)

@@ -9,9 +9,11 @@ import TejToolAPI
 import zipline.algorithm as algo
 
 from zipline.utils.calendar_utils import get_calendar
-from zipline.utils.input_validation import (expect_types, 
-                                            validate_keys)
-
+from zipline.utils.input_validation import (
+    expect_types,
+    validate_keys,
+    optional
+)
 from zipline.errors import (MultipleSymbolsFound,
                             SymbolNotFound,
                             IllegalValueException,
@@ -729,12 +731,12 @@ def Treasury_Return_TW(start,
         pass
 
 
-    # 銀行定存利率    
+    # 銀行定存利率
     if rate_type=='Time_Deposit_Rate':
 
         if symbol not in Valid_Time_Deposit_Rate:
             raise IllegalValueException(parameter = '"symbol"',
-                                    value = str(list(set(Valid_Time_Deposit_Rate.keys()))))   
+                                    value = str(list(set(Valid_Time_Deposit_Rate.keys()))))
 
         df = tejapi.get('TWN/ARATE',
                         coid = '5844',
@@ -764,7 +766,7 @@ def Treasury_Return_TW(start,
 @expect_types(
     rate_type=str,
     term=str,
-    symbol=str or type(None) # FIXME use zipline.utils.input_validation.optional
+    symbol=optional(str)
     )
 def get_Treasury_Return(start,
                         end,

@@ -837,7 +837,7 @@ calendar_name='TEJ',
 start_session = None,
 end_session = None,
 minutes_per_day = 390,
-create_writers = False,
+create_writers = True,
 )
 
 

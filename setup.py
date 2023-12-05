@@ -105,10 +105,7 @@ ext_modules = [
 def myversion():
     def my_release_branch_semver_version(version):
         tag = str(version.tag)
-        import re
-        if "rc" in tag :
-            return re.search('(\d+\.\d+\.\d+rc\d+)',tag).group(1)
-        return re.search('(\d+\.\d+\.\d+)',tag).group(1)
+        return tag
     return {
         'version_scheme': my_release_branch_semver_version,
         'local_scheme': 'no-local-version',

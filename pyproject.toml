@@ -76,8 +76,8 @@ repository = 'https://github.com/tejtw/zipline-tej'
 
 [build-system]
 requires = [
-    'setuptools>=42.0.0 , < 68',
-    "setuptools_scm[toml]>=8.0",
+    'setuptools>=42.0.0 , < 69',
+    "setuptools_scm[toml]>=8.0 , < 8.0.4",
     'wheel>=0.36.0',
     'Cython>=0.29.21,<3',
     'oldest-supported-numpy; python_version>="3.8"',

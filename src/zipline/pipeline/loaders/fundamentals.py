@@ -68,18 +68,12 @@ class TQuantFundamentalsPipelineLoader(implements(PipelineLoader)):
                                                 start_dt = shifted_dates[0],
                                                 end_dt = shifted_dates[-1],
                                                 dataframeloaders = pivot)
-        # if self.frequency == 'Daily':
-        #     fundamentals = get_fundamentals(bundle_name = 'fundamentals',
-        #                                         fields = fields,
-        #                                         start_dt = shifted_dates[0],
-        #                                         end_dt = shifted_dates[-1],
-        #                                         dataframeloaders = pivot,
-        #                                         **kwargs
-        #                                         )
+        
+        # print(fundamentals.info())
         
 
         for column in columns:
-            missing_value = MISSING_VALUES_BY_DTYPE[column.dtype]
+            # missing_value = MISSING_VALUES_BY_DTYPE[column.dtype]
 
             if fundamentals is not None:
                 fundamentals_for_column = DataFrameLoader(column=column, baseline=fundamentals[column.name])

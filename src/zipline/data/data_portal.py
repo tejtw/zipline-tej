@@ -1821,7 +1821,7 @@ class TQFDataLoader:
         with sqlite3.connect(fundamentals_path) as conn:
             # Create index for the table
             self.create_index(conn)
-            data = pd.read_sql(scripts, conn)
+            data = pd.read_sql(scripts, conn, parse_dates=["fin_date", "mon_sales_date", "share_date"])
             
 
         if self.dataframeloaders:
@@ -1833,6 +1833,7 @@ class TQFDataLoader:
             data.date = pd.to_datetime(data.date, utc =True)
             data = data.set_index(['symbol', 'date']).unstack('symbol')
             data = data.rename(columns = symbol_mapping_sid)
+    
 
         return data
 

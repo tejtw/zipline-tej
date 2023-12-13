@@ -3,6 +3,8 @@ Helpers for downsampling code.
 """
 from toolz import compose
 from operator import attrgetter, methodcaller
+import pandas as pd
+import numpy as np
 
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import changed_locations
@@ -11,11 +13,24 @@ from zipline.utils.sharedoc import (
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 
+def MS_last_announce(date):
+    return date.day >= 11
+
+def fin_last_announce(date):
+    last_day = 25 
+    # announce_month = date.quarter + 2
+    # announce_month = np.where(announce_month > 12, announce_month-12, announce_month)
+    # result = np.where((date.day >= last_day) & (np.array(date.month) > announce_month), True, False)
+
+    return date.day >= last_day
+
 _dt_to_period = {
     "year_start": attrgetter("year"),
     "quarter_start": attrgetter("quarter"),
     "month_start": attrgetter("month"),
     "week_start": compose(attrgetter("week"), methodcaller("isocalendar")),
+    "MS_last_announce":MS_last_announce,
+    "fin_last_announce":fin_last_announce,
 }
 
 SUPPORTED_DOWNSAMPLE_FREQUENCIES = frozenset(_dt_to_period)
@@ -24,6 +39,8 @@ SUPPORTED_DOWNSAMPLE_FREQUENCIES = frozenset(_dt_to_period)
 expect_downsample_frequency = expect_element(
     frequency=SUPPORTED_DOWNSAMPLE_FREQUENCIES,
 )
+
+
 
 
 @expect_downsample_frequency

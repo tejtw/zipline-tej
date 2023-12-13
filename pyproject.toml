@@ -1,7 +1,6 @@
 [project]
 name = 'zipline-tej'
 description = 'A Pythonic backtester for trading algorithms'
-homepage = 'https://tquant.tejwin.com/'
 readme = 'README.md'
 dynamic = ["version"]
 

@@ -457,6 +457,7 @@ def _make_bundle_core():
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
             )
+            log.info("Ingest {} successfully.", name)
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(
                     *asset_db_relative(
@@ -715,15 +716,23 @@ def _make_bundle_core():
         click.echo("start_date : %s."%min_start_str)
         click.echo("end_date : %s."%max_end_str)
         
-    def add(name , company , environ = os.environ  ):
-        
+    def add(name , company , field ,  environ = os.environ  ):
+        if company and field :
+            raise ValueError("Can't add company and field simultaneously.")
         timestamp = pd.Timestamp.utcnow()
         timestr = most_recent_data(name, timestamp, environ=environ)
         os.environ['raw_source'] = timestr
         bundle_data = load(name)
         equities = (bundle_data.asset_finder.retrieve_all(bundle_data.asset_finder.sids))
-        os.environ['ticker'] = company
-        
+        if field is None :
+            os.environ['ticker'] = company
+        else :
+            os.environ['fields'] = field
+            old_company = (lambda x: ';'.join(x))([equity.symbol for equity in equities])
+            if company is None :
+                os.environ['ticker'] = old_company
+            else :
+                os.environ['ticker'] = old_company + ';' + company
         min_start = min([equity.start_date for equity in equities])
         min_start_str = min_start.strftime('%Y%m%d')
         

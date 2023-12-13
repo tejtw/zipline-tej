@@ -1,6 +1,7 @@
 [project]
 name = 'zipline-tej'
 description = 'A Pythonic backtester for trading algorithms'
+homepage = 'https://tquant.tejwin.com/'
 readme = 'README.md'
 dynamic = ["version"]
 
@@ -29,7 +30,7 @@ classifiers = [
     'Topic :: System :: Distributed Computing'
 ]
 
-license = { file = "LICENSE" }
+license = 'Apache-2.0'
 
 requires-python = '>=3.8'
 dependencies = [
@@ -65,13 +66,13 @@ dependencies = [
     'tejapi >= 0.1.28',
     'Logbook >= 1.5.3',
     'openpyxl >= 3.0.9',
-    'tej-tool-api >= 1.0.0',
-    'alphalens-tej >= 0.0.3',
-    'pyfolio-tej >= 0.0.3',
+    'tej-tool-api >= 1.1.0',
+    'alphalens-tej >= 1.0.0',
+    'pyfolio-tej >= 1.0.0',
 ]
 
 [project.urls]
-homepage = 'https://api.tej.com.tw'
+homepage = 'https://tquant.tejwin.com/'
 repository = 'https://github.com/tejtw/zipline-tej'
 
 [build-system]

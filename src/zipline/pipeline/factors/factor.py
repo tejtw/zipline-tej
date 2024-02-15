@@ -651,6 +651,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return GroupedRowTransform(
             transform=demean,
             transform_args=(),
+            transform_kwargs=None, # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
             factor=self,
             groupby=groupby,
             dtype=self.dtype,
@@ -718,6 +719,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return GroupedRowTransform(
             transform=zscore,
             transform_args=(),
+            transform_kwargs=None, # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
             factor=self,
             groupby=groupby,
             dtype=self.dtype,
@@ -775,6 +777,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return GroupedRowTransform(
             transform=rankdata if ascending else rankdata_1d_descending,
             transform_args=(method,),
+            transform_kwargs={'nan_policy': 'omit'}, # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
             factor=self,
             groupby=groupby,
             dtype=float64_dtype,
@@ -1079,6 +1082,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return GroupedRowTransform(
             transform=winsorize,
             transform_args=(min_percentile, max_percentile),
+            transform_kwargs=None, # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
             factor=self,
             groupby=groupby,
             dtype=self.dtype,
@@ -1338,7 +1342,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             inputs=[self],
             min_bound=min_bound,
             max_bound=max_bound,
-			mask=mask                               # 20230713 (by MRC) 原程式碼遺漏mask參數，應新增才能使用mask功能。
+            mask=mask            # !93 原程式碼遺漏mask參數，應新增才能使用mask功能。
         )
 
     @classmethod
@@ -1410,6 +1414,7 @@ class GroupedRowTransform(Factor):
         cls,
         transform,
         transform_args,
+        transform_kwargs,  # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
         factor,
         groupby,
         dtype,
@@ -1430,6 +1435,7 @@ class GroupedRowTransform(Factor):
             GroupedRowTransform,
             transform=transform,
             transform_args=transform_args,
+            transform_kwargs=transform_kwargs, # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
             inputs=(factor, groupby),
             missing_value=missing_value,
             mask=mask,
@@ -1437,17 +1443,19 @@ class GroupedRowTransform(Factor):
             **kwargs,
         )
 
-    def _init(self, transform, transform_args, *args, **kwargs):
+    def _init(self, transform, transform_args, transform_kwargs, *args, **kwargs): # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
         self._transform = transform
         self._transform_args = transform_args
+        self._transform_kwargs = transform_kwargs or {} # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
         return super(GroupedRowTransform, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, transform, transform_args, *args, **kwargs):
+    def _static_identity(cls, transform, transform_args, transform_kwargs, *args, **kwargs): # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
         return (
             super(GroupedRowTransform, cls)._static_identity(*args, **kwargs),
             transform,
             transform_args,
+            tuple((transform_kwargs or {}).items()), # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
         )
 
     def _compute(self, arrays, dates, assets, mask):
@@ -1462,6 +1470,7 @@ class GroupedRowTransform(Factor):
                 group_labels=group_labels,
                 func=self._transform,
                 func_args=self._transform_args,
+                func_kwargs=dict(self._transform_kwargs), # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
                 out=empty_like(data, dtype=self.dtype),
             ),
             self.missing_value,

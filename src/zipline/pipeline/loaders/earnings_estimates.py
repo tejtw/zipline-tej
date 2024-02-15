@@ -463,7 +463,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             of estimates for a particular sid for a particular quarter.
         dates : pd.DatetimeIndex
             The calendar dates for which estimates data is requested.
-        assets : pd.Int64Index
+        assets : pd.Index
             An index of all the assets from the raw data.
         columns : list of BoundColumn
             The columns for which adjustments need to be calculated.

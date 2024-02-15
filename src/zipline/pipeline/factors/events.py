@@ -6,7 +6,7 @@ from numpy import newaxis
 from zipline.utils.numpy_utils import (
     NaTD,
     busday_count_mask_NaT,
-    datetime64D_dtype,
+    datetime64s_dtype,
     float64_dtype,
 )
 
@@ -55,13 +55,13 @@ class BusinessDaysSincePreviousEvent(Factor):
     def _compute(self, arrays, dates, assets, mask):
 
         # Coerce from [ns] to [D] for numpy busday_count.
-        announce_dates = arrays[0].astype(datetime64D_dtype)
+        announce_dates = arrays[0].astype(datetime64s_dtype)
 
         # Set masked values to NaT.
         announce_dates[~mask] = NaTD
 
         # Convert row labels into a column vector for broadcasted comparison.
-        reference_dates = dates.values.astype(datetime64D_dtype)[:, newaxis]
+        reference_dates = dates.values.astype(datetime64s_dtype)[:, newaxis]
         return busday_count_mask_NaT(announce_dates, reference_dates)
 
 
@@ -91,11 +91,11 @@ class BusinessDaysUntilNextEvent(Factor):
     def _compute(self, arrays, dates, assets, mask):
 
         # Coerce from [ns] to [D] for numpy busday_count.
-        announce_dates = arrays[0].astype(datetime64D_dtype)
+        announce_dates = arrays[0].astype(datetime64s_dtype)
 
         # Set masked values to NaT.
         announce_dates[~mask] = NaTD
 
         # Convert row labels into a column vector for broadcasted comparison.
-        reference_dates = dates.values.astype(datetime64D_dtype)[:, newaxis]
+        reference_dates = dates.values.astype(datetime64s_dtype)[:, newaxis]
         return busday_count_mask_NaT(reference_dates, announce_dates)

@@ -1459,7 +1459,7 @@ class AssetFinder(object):
         Returns
         -------
         lifetimes : pd.DataFrame
-            A frame of dtype bool with `dates` as index and an Int64Index of
+            A frame of dtype bool with `dates` as index and an Index of
             assets as columns.  The value at `lifetimes.loc[date, asset]` will
             be True iff `asset` existed on `date`.  If `include_start_date` is
             False, then lifetimes.loc[date, asset] will be false when date ==

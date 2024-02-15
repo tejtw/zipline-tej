@@ -208,7 +208,7 @@ def default_populate_initial_workspace(
     dates : pd.DatetimeIndex
         All of the dates being requested in this pipeline run including
         the extra dates for look back windows.
-    assets : pd.Int64Index
+    assets : pd.Index
         All of the assets that exist for the window being computed.
 
     Returns
@@ -396,7 +396,7 @@ class SimplePipelineEngine(PipelineEngine):
             )
 
         domain = self.resolve_domain(pipeline)
-
+        # 
         plan = pipeline.to_execution_plan(
             domain,
             self._root_mask_term,
@@ -621,7 +621,7 @@ class SimplePipelineEngine(PipelineEngine):
             Dependency graph of the terms to be executed.
         dates : pd.DatetimeIndex
             Row labels for our root mask.
-        sids : pd.Int64Index
+        sids : pd.Index
             Column labels for our root mask.
         workspace : dict
             Map from term -> output.

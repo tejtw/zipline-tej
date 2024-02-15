@@ -29,7 +29,7 @@ from pandas import Timestamp
 
 ctypedef object Timestamp_t
 ctypedef object DatetimeIndex_t
-ctypedef object Int64Index_t
+ctypedef object Index_t
 
 from zipline.lib.adjustment import Float64Multiply
 from zipline.assets.asset_writer import (
@@ -105,7 +105,7 @@ cdef _adjustments(object adjustments_db,
                   set dividends_sids,
                   int start_date,
                   int end_date,
-                  Int64Index_t assets):
+                  Index_t assets):
 
     c = adjustments_db.cursor()
 
@@ -162,7 +162,7 @@ cdef _adjustments(object adjustments_db,
 
 cpdef load_adjustments_from_sqlite(object adjustments_db,
                                    DatetimeIndex_t dates,
-                                   Int64Index_t assets,
+                                   Index_t assets,
                                    bool should_include_splits,
                                    bool should_include_mergers,
                                    bool should_include_dividends,
@@ -177,7 +177,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         SQLiteAdjustmentWriter.
     dates : pd.DatetimeIndex
         Dates for which adjustments are needed.
-    assets : pd.Int64Index
+    assets : pd.Index
         Assets for which adjustments are needed.
     should_include_splits : bool
         Whether split adjustments should be included.

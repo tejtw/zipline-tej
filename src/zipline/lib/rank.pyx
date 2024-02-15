@@ -12,11 +12,13 @@ from zipline.utils.numpy_utils import is_missing
 
 np.import_array()
 
-def rankdata_1d_descending(np.ndarray data, str method):
+def rankdata_1d_descending(np.ndarray data, str method, str nan_policy):
     """
     1D descending version of scipy.stats.rankdata.
+
+    !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
     """
-    return rankdata(-(data.view(np.float64)), method=method)
+    return rankdata(-(data.view(np.float64)), method=method, nan_policy=nan_policy)
 
 
 def masked_rankdata_2d(np.ndarray data,
@@ -49,7 +51,9 @@ def masked_rankdata_2d(np.ndarray data,
         # FUTURE OPTIMIZATION:
         # Write a less general "apply to rows" method that doesn't do all
         # the extra work that apply_along_axis does.
-        result = np.apply_along_axis(rankdata, 1, data, method=method)
+
+        # !312 add nan_policy in scipy.rankdata(SciPy >= 1.10)
+        result = np.apply_along_axis(rankdata, 1, data, method=method, nan_policy='omit') 
 
         # On SciPy >= 0.17, rankdata returns integers for any method except
         # average.

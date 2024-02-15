@@ -43,7 +43,7 @@ def assert_datasource_protocol(event):
     # Done packets have no dt.
     if not event.type == DATASOURCE_TYPE.DONE:
         assert isinstance(event.dt, datetime)
-        assert event.dt.tzinfo == pytz.utc
+        assert event.dt.tzname() == pytz.utc.zone
 
 
 def assert_trade_protocol(event):

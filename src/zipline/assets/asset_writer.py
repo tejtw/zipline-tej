@@ -381,7 +381,7 @@ def _split_symbol_mappings(df, exchanges):
 
 
 def _dt_to_epoch_ns(dt_series):
-    """Convert a timeseries into an Int64Index of nanoseconds since the epoch.
+    """Convert a timeseries into an Index of nanoseconds since the epoch.
 
     Parameters
     ----------
@@ -390,7 +390,7 @@ def _dt_to_epoch_ns(dt_series):
 
     Returns
     -------
-    idx : pd.Int64Index
+    idx : pd.Index
         The index converted to nanoseconds since the epoch.
     """
     index = pd.to_datetime(dt_series.values)
@@ -820,7 +820,7 @@ class AssetDBWriter(object):
 
     def _write_df_to_table(self, tbl, df, txn, chunk_size):
         df = df.copy()
-        for column, dtype in df.dtypes.iteritems():
+        for column, dtype in df.dtypes.items():
             if dtype.kind == "M":
                 df[column] = _dt_to_epoch_ns(df[column])
 

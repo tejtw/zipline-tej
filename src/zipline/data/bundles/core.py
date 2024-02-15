@@ -729,10 +729,8 @@ def _make_bundle_core():
         else :
             os.environ['fields'] = field
             old_company = (lambda x: ';'.join(x))([equity.symbol for equity in equities])
-            if company is None :
-                os.environ['ticker'] = old_company
-            else :
-                os.environ['ticker'] = old_company + ';' + company
+            os.environ['ticker'] = old_company
+                
         min_start = min([equity.start_date for equity in equities])
         min_start_str = min_start.strftime('%Y%m%d')
         

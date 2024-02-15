@@ -9,6 +9,7 @@ import logging
 import pandas as pd
 import requests
 from zipline.utils.calendar_utils import register_calendar_alias
+from zipline.utils.api_info import get_api_key_info
 from datetime import datetime
 import numpy as np
 import re
@@ -54,19 +55,48 @@ def fetch_data_table(api_key, show_progress,  coid, mdate, columns, **kwargs):
                                            end = mdate['lte'],
                                            include_self_acc = self_acc,
                                            require_annd = True,
+                                           show_progress = False
                                            )
+        # print(data.columns)
 
         if data.size == 0:
             raise ValueError("Did not fetch any fundamental data. Please check the correctness of your ticker, mdate and fields.")
         
         data = data.rename({'coid':'symbol', 'mdate':'date'}, axis =1)
-
+        
     
     except Exception as e  :
         raise ValueError(f'Error occurs while downloading metadata due to {e} .')
     
     
     return data
+
+
+
+def cache_df_columns(dataframe, filepath):
+    fileName = os.path.join(filepath, 'cache_columns.txt')
+    if os.path.exists(fileName):
+        existed_columns = get_cached_columns(filepath)
+        columns = set(existed_columns)
+        columns.update(set(dataframe.columns.tolist()))
+        columns = list(columns)
+        with open(fileName, 'w') as file:
+            for column in columns:
+                file.write(column + '\n')
+        return 
+    
+    with open(fileName, 'w') as file:
+        for column in dataframe.columns.tolist():
+            file.write(column + '\n')
+
+def get_cached_columns(filepath):
+    fileName = os.path.join(filepath, 'cache_columns.txt')
+    if os.path.exists(filepath):
+        with open(fileName, 'r') as file:
+            columns = file.read().splitlines()
+        return columns
+    else:
+        raise FileNotFoundError(f"No cached file found at {filepath}")
 
 
 
@@ -148,16 +178,25 @@ def tej_bundle(
         
         fields = (lambda x : ';'.join(x))(fields)
         
+            
+        new_symbol = environ.get('ticker')
+        old_symbol = pd.read_sql('SELECT DISTINCT symbol FROM factor_table;', con).symbol.tolist()
+        if new_symbol :
+            new_symbol = re.split('[,; ]',new_symbol)
+            new_symbol = old_symbol + new_symbol
+            new_symbol = set(new_symbol)
+            old_symbol = set(old_symbol)
+            new_symbol = new_symbol.difference(old_symbol)
+            if new_symbol :
+                symbol = ';'.join(new_symbol)
+                mdate = pd.read_sql(r"SELECT date(min(date)) ||','|| date(max(date)) as mdate FROM factor_table;", con).mdate
+            else :
+                symbol = ';'.join(old_symbol)
+                log.info("No new ticker detected, updating.")
+            
         if isinstance( mdate , pd.Series) :
             mdate = mdate[0]
             
-        new_symbol = environ.get('ticker')
-        symbol = pd.read_sql('SELECT DISTINCT symbol FROM factor_table;', con).symbol.tolist()
-        if new_symbol :
-            new_symbol = re.split('[,; ]',new_symbol)
-            symbol = symbol + new_symbol
-        symbol = set(symbol)    
-        symbol = ';'.join(symbol)
         environ['mdate'] = mdate
         environ['fields'] = fields
         environ['ticker'] = symbol
@@ -222,7 +261,7 @@ def tej_bundle(
         **kwargs,
     )
     
-    
+    # print(raw_data.columns)
     db_output_path = os.path.join(output_dir,DB_name)
 
     if source_path :
@@ -239,8 +278,10 @@ def tej_bundle(
         else :
             raw_data = pd.concat([old_data,raw_data])
         raw_data = raw_data.drop_duplicates()
-        raw_data = raw_data.reset_index(drop = True)
         raw_data = raw_data.sort_values(by =['symbol','date'])
+        raw_data = raw_data.reset_index(drop = True)
+        cols = raw_data.columns[~raw_data.columns.isin(['symbol'])]
+        raw_data[cols] = raw_data.groupby(["symbol"]).fillna(method = 'ffill')
         con.close()
 
 
@@ -258,15 +299,18 @@ def tej_bundle(
 
     # create engine of sqlite
     engine = CreateSQLiteEngine(output_dir, db_name=DB_name, schema_name=schema_name)
+    # cached_columns(raw_data)
+    # print(output_dir)
+    cache_df_columns(dataframe = raw_data, filepath= output_dir)
+    # print(raw_data.columns)
     raw_data.to_sql(name = 'factor_table',
                     con = engine,
                     index=False,
                     )
-
-
-
-
-
+    
+    engine.close()
+    
+    get_api_key_info()
 
 
 import sqlalchemy as sa
@@ -274,7 +318,6 @@ import sqlalchemy as sa
 metadata = sa.MetaData()
 
 fundamental_schema = sa.Table(
-
     "factor_table",  # 資料表名稱
     metadata,  # 元資料
     sa.Column("symbol", sa.String, primary_key=True, nullable=False),  # 公司 ID，字串，主鍵
@@ -482,268 +525,269 @@ fundamental_schema = sa.Table(
     sa.Column("Net_Income_Growth_Rate_A", sa.Float),  # Net_Income_Growth_Rate_A，浮點數
     sa.Column("Net_Income_Growth_Rate_Q", sa.Float),  # Net_Income_Growth_Rate_Q，浮點數
 
-    sa.Column("Net_Income_Growth_Rate_TTM", sa.Float),  # Net_Income_Growth_Rate_TTM，浮點數
-    sa.Column("Basic_Earnings_Per_Share_A", sa.Float),  # Basic_Earnings_Per_Share_A，浮點數
-    sa.Column("Basic_Earnings_Per_Share_Q", sa.Float),  # Basic_Earnings_Per_Share_Q，浮點數
-    sa.Column("Basic_Earnings_Per_Share_TTM", sa.Float),  # Basic_Earnings_Per_Share_TTM，浮點數
-    sa.Column("Current_Ratio_A", sa.Float),  # Current_Ratio_A，浮點數
-    sa.Column("Current_Ratio_Q", sa.Float),  # Current_Ratio_Q，浮點數
-    sa.Column("Current_Ratio_TTM", sa.Float),  # Current_Ratio_TTM，浮點數
-    sa.Column("Total_Operating_Expenses_A", sa.Float),  # Total_Operating_Expenses_A，浮點數
-    sa.Column("Total_Operating_Expenses_Q", sa.Float),  # Total_Operating_Expenses_Q，浮點數
-    sa.Column("Total_Operating_Expenses_TTM", sa.Float),  # Total_Operating_Expenses_TTM，浮點數
-    sa.Column("Cash_Flow_from_Investing_Activities_A", sa.Float),  # Cash_Flow_from_Investing_Activities_A，浮點數
-    sa.Column("Cash_Flow_from_Investing_Activities_Q", sa.Float),  # Cash_Flow_from_Investing_Activities_Q，浮點數
-    sa.Column("Cash_Flow_from_Investing_Activities_TTM", sa.Float),  # Cash_Flow_from_Investing_Activities_TTM，浮點數
-    sa.Column("Total_Non_current_Liabilities_A", sa.Float),  # Total_Non_current_Liabilities_A，浮點數
-    sa.Column("Total_Non_current_Liabilities_Q", sa.Float),  # Total_Non_current_Liabilities_Q，浮點數
-    sa.Column("Total_Non_current_Liabilities_TTM", sa.Float),  # Total_Non_current_Liabilities_TTM，浮點數
-    sa.Column("Return_on_Total_Assets_A_percent_A", sa.Float),  # Return_on_Total_Assets_A_percent_A，浮點數
-    sa.Column("Return_on_Total_Assets_A_percent_Q", sa.Float),  # Return_on_Total_Assets_A_percent_Q，浮點數
-    sa.Column("Return_on_Total_Assets_A_percent_TTM", sa.Float),  # Return_on_Total_Assets_A_percent_TTM，浮點數
-    sa.Column("Preferred_Stocks_A", sa.Float),  # Preferred_Stocks_A，浮點數
-    sa.Column("Preferred_Stocks_Q", sa.Float),  # Preferred_Stocks_Q，浮點數
-    sa.Column("Preferred_Stocks_TTM", sa.Float),  # Preferred_Stocks_TTM，浮點數
-    sa.Column("Total_Liabilities_A", sa.Float),  # Total_Liabilities_A，浮點數
-    sa.Column("Total_Liabilities_Q", sa.Float),  # Total_Liabilities_Q，浮點數
-    sa.Column("Total_Liabilities_TTM", sa.Float),  # Total_Liabilities_TTM，浮點數
-    sa.Column("Borrowings_A", sa.Float),  # Borrowings_A，浮點數
-    sa.Column("Borrowings_Q", sa.Float),  # Borrowings_Q，浮點數
-    sa.Column("Borrowings_TTM", sa.Float),  # Borrowings_TTM，浮點數
-    sa.Column("Interest_Expense_Rate_percent_A", sa.Float),  # Interest_Expense_Rate_percent_A，浮點數
-    sa.Column("Interest_Expense_Rate_percent_Q", sa.Float),  # Interest_Expense_Rate_percent_Q，浮點數
-    sa.Column("Interest_Expense_Rate_percent_TTM", sa.Float),  # Interest_Expense_Rate_percent_TTM，浮點數
-    sa.Column("Depreciation_and_Amortisation_A", sa.Float),  # Depreciation_and_Amortisation_A，浮點數
-    sa.Column("Depreciation_and_Amortisation_Q", sa.Float),  # Depreciation_and_Amortisation_Q，浮點數
-    sa.Column("Depreciation_and_Amortisation_TTM", sa.Float),  # Depreciation_and_Amortisation_TTM，浮點數
-    sa.Column("Cash_and_Cash_Equivalent_A", sa.Float),  # Cash_and_Cash_Equivalent_A，浮點數
-    sa.Column("Cash_and_Cash_Equivalent_Q", sa.Float),  # Cash_and_Cash_Equivalent_Q，浮點數
-    sa.Column("Cash_and_Cash_Equivalent_TTM", sa.Float),  # Cash_and_Cash_Equivalent_TTM，浮點數
-    sa.Column("Accounts_Payable_A", sa.Float),  # Accounts_Payable_A，浮點數
-    sa.Column("Accounts_Payable_Q", sa.Float),  # Accounts_Payable_Q，浮點數
-    sa.Column("Accounts_Payable_TTM", sa.Float),  # Accounts_Payable_TTM，浮點數
-    sa.Column("Days_Receivables_Outstanding_A", sa.Float),  # Days_Receivables_Outstanding_A，浮點數
-    sa.Column("Days_Receivables_Outstanding_Q", sa.Float),  # Days_Receivables_Outstanding_Q，浮點數
-    sa.Column("Days_Receivables_Outstanding_TTM", sa.Float),  # Days_Receivables_Outstanding_TTM，浮點數
-    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_A，浮點數
-    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_Q，浮點數
-    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_TTM，浮點數
-    sa.Column("Taxrate_A", sa.Float),  # Taxrate_A，浮點數
-    sa.Column("Taxrate_Q", sa.Float),  # Taxrate_Q，浮點數
-    sa.Column("Taxrate_TTM", sa.Float),  # Taxrate_TTM，浮點數
-    sa.Column("Earnings_Before_Interest_and_Tax_A", sa.Float),  # Earnings_Before_Interest_and_Tax_A，浮點數
-    sa.Column("Earnings_Before_Interest_and_Tax_Q", sa.Float),  # Earnings_Before_Interest_and_Tax_Q，浮點數
-    sa.Column("Earnings_Before_Interest_and_Tax_TTM", sa.Float),  # Earnings_Before_Interest_and_Tax_TTM，浮點數
-    sa.Column("Non_Operating_Income_A", sa.Float),  # Non_Operating_Income_A，浮點數
-    sa.Column("Non_Operating_Income_Q", sa.Float),  # Non_Operating_Income_Q，浮點數
-    sa.Column("Non_Operating_Income_TTM", sa.Float),  # Non_Operating_Income_TTM，浮點數
-    sa.Column("Interest_Expense_A", sa.Float),  # Interest_Expense_A，浮點數
-    sa.Column("Interest_Expense_Q", sa.Float),  # Interest_Expense_Q，浮點數
-    sa.Column("Interest_Expense_TTM", sa.Float),  # Interest_Expense_TTM，浮點數
-    sa.Column("Total_Current_Liabilities_A", sa.Float),  # Total_Current_Liabilities_A，浮點數
-    sa.Column("Total_Current_Liabilities_Q", sa.Float),  # Total_Current_Liabilities_Q，浮點數
-    sa.Column("Total_Current_Liabilities_TTM", sa.Float),  # Total_Current_Liabilities_TTM，浮點數
-    sa.Column("Net_Operating_Income_Loss_A", sa.Float),  # Net_Operating_Income_Loss_A，浮點數
-    sa.Column("Net_Operating_Income_Loss_Q", sa.Float),  # Net_Operating_Income_Loss_Q，浮點數
-    sa.Column("Net_Operating_Income_Loss_TTM", sa.Float),  # Net_Operating_Income_Loss_TTM，浮點數
-    sa.Column("Non_Controlling_Interest_A", sa.Float),  # Non_Controlling_Interest_A，浮點數
-    sa.Column("Non_Controlling_Interest_Q", sa.Float),  # Non_Controlling_Interest_Q，浮點數
-    sa.Column("Non_Controlling_Interest_TTM", sa.Float),  # Non_Controlling_Interest_TTM，浮點數
-    sa.Column("Total_Non_Current_Assets_A", sa.Float),  # Total_Non_Current_Assets_A，浮點數
-    sa.Column("Total_Non_Current_Assets_Q", sa.Float),  # Total_Non_Current_Assets_Q，浮點數
-    sa.Column("Total_Non_Current_Assets_TTM", sa.Float),  # Total_Non_Current_Assets_TTM，浮點數
-    sa.Column("Number_of_Employees_A", sa.Float),  # Number_of_Employees_A，浮點數
-    sa.Column("Number_of_Employees_Q", sa.Float),  # Number_of_Employees_Q，浮點數
-    sa.Column("Number_of_Employees_TTM", sa.Float),  # Number_of_Employees_TTM，浮點數
-    sa.Column("Total_Assets_Growth_Rate_A", sa.Float),  # Total_Assets_Growth_Rate_A，浮點數
-    sa.Column("Total_Assets_Growth_Rate_Q", sa.Float),  # Total_Assets_Growth_Rate_Q，浮點數
-    sa.Column("Total_Assets_Growth_Rate_TTM", sa.Float),  # Total_Assets_Growth_Rate_TTM，浮點數
-    sa.Column("Prepayments_A", sa.Float),  # Prepayments_A，浮點數
-    sa.Column("Prepayments_Q", sa.Float),  # Prepayments_Q，浮點數
-    sa.Column("Prepayments_TTM", sa.Float),  # Prepayments_TTM，浮點數
-    sa.Column("Times_Interest_Earned_A", sa.Float),  # Times_Interest_Earned_A，浮點數
-    sa.Column("Times_Interest_Earned_Q", sa.Float),  # Times_Interest_Earned_Q，浮點數
-    sa.Column("Times_Interest_Earned_TTM", sa.Float),  # Times_Interest_Earned_TTM，浮點數
-    sa.Column("Total_Assets_A", sa.Float),  # Total_Assets_A，浮點數
-    sa.Column("Total_Assets_Q", sa.Float),  # Total_Assets_Q，浮點數
-    sa.Column("Total_Assets_TTM", sa.Float),  # Total_Assets_TTM，浮點數
-    sa.Column("Total_Assets_Turnover_A", sa.Float),  # Total_Assets_Turnover_A，浮點數
-    sa.Column("Total_Assets_Turnover_Q", sa.Float),  # Total_Assets_Turnover_Q，浮點數
-    sa.Column("Total_Assets_Turnover_TTM", sa.Float),  # Total_Assets_Turnover_TTM，浮點數
-    sa.Column("Common_Stocks_A", sa.Float),  # Common_Stocks_A，浮點數
-    sa.Column("Common_Stocks_Q", sa.Float),  # Common_Stocks_Q，浮點數
-    sa.Column("Common_Stocks_TTM", sa.Float),  # Common_Stocks_TTM，浮點數
-    sa.Column("Cash_Flow_from_Operating_Ratio_A", sa.Float),  # Cash_Flow_from_Operating_Ratio_A，浮點數
-    sa.Column("Cash_Flow_from_Operating_Ratio_Q", sa.Float),  # Cash_Flow_from_Operating_Ratio_Q，浮點數
-    sa.Column("Cash_Flow_from_Operating_Ratio_TTM", sa.Float),  # Cash_Flow_from_Operating_Ratio_TTM，浮點數
-    sa.Column("Acid_Test_A", sa.Float),  # Acid_Test_A，浮點數
-    sa.Column("Acid_Test_Q", sa.Float),  # Acid_Test_Q，浮點數
-    sa.Column("Acid_Test_TTM", sa.Float),  # Acid_Test_TTM，浮點數
-    sa.Column("Net_Non_operating_Income_Ratio_A", sa.Float),  # Net_Non_operating_Income_Ratio_A，浮點數
-    sa.Column("Net_Non_operating_Income_Ratio_Q", sa.Float),  # Net_Non_operating_Income_Ratio_Q，浮點數
-    sa.Column("Net_Non_operating_Income_Ratio_TTM", sa.Float),  # Net_Non_operating_Income_Ratio_TTM，浮點數
-    sa.Column("Sales_Per_Employee_A", sa.Float),
-    sa.Column("Sales_Per_Employee_Q", sa.Float),
-    sa.Column("Sales_Per_Employee_TTM", sa.Float),
-    sa.Column("Accounts_Receivable_Turnover_A", sa.Float),
-    sa.Column("Accounts_Receivable_Turnover_Q", sa.Float),
-    sa.Column("Accounts_Receivable_Turnover_TTM", sa.Float),
-    sa.Column("Capital_Reserves_A", sa.Float),
-    sa.Column("Capital_Reserves_Q", sa.Float),
-    sa.Column("Capital_Reserves_TTM", sa.Float),
-    sa.Column("Days_Inventory_Outstanding_A", sa.Float),
-    sa.Column("Days_Inventory_Outstanding_Q", sa.Float),
-    sa.Column("Days_Inventory_Outstanding_TTM", sa.Float),
-    sa.Column("Non_Recurring_Net_Income_A", sa.Float),
-    sa.Column("Non_Recurring_Net_Income_Q", sa.Float),
-    sa.Column("Non_Recurring_Net_Income_TTM", sa.Float),
-    sa.Column("Accounts_Payable_Turnover_A", sa.Float),
-    sa.Column("Accounts_Payable_Turnover_Q", sa.Float),
-    sa.Column("Accounts_Payable_Turnover_TTM", sa.Float),
-    sa.Column("Total_Interest_Income_A", sa.Float),
-    sa.Column("Total_Interest_Income_Q", sa.Float),
-    sa.Column("Total_Interest_Income_TTM", sa.Float),
-    sa.Column("Quick_Assets_A", sa.Float),
-    sa.Column("Quick_Assets_Q", sa.Float),
-    sa.Column("Quick_Assets_TTM", sa.Float),
-    sa.Column("Preferred_Stock_Dividends_A", sa.Float),
-    sa.Column("Preferred_Stock_Dividends_Q", sa.Float),
-    sa.Column("Preferred_Stock_Dividends_TTM", sa.Float),
-    sa.Column("Total_Current_Assets_A", sa.Float),
-    sa.Column("Total_Current_Assets_Q", sa.Float),
-    sa.Column("Total_Current_Assets_TTM", sa.Float),
-    sa.Column("Intangible_Assets_A", sa.Float),
-    sa.Column("Intangible_Assets_Q", sa.Float),
-    sa.Column("Intangible_Assets_TTM", sa.Float),
-    sa.Column("Short_Term_Borrowings_Financial_Institutions_A", sa.Float),
-    sa.Column("Short_Term_Borrowings_Financial_Institutions_Q", sa.Float),
-    sa.Column("Short_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
-    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),
-    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),
-    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),
-    sa.Column("Cash_Flow_from_Operating_Activities_A", sa.Float),
-    sa.Column("Cash_Flow_from_Operating_Activities_Q", sa.Float),
-    sa.Column("Cash_Flow_from_Operating_Activities_TTM", sa.Float),
-    sa.Column("Inventory_Turnover_A", sa.Float),
-    sa.Column("Inventory_Turnover_Q", sa.Float),
-    sa.Column("Inventory_Turnover_TTM", sa.Float),
-    sa.Column("Liabilities_Ratio_A", sa.Float),
-    sa.Column("Liabilities_Ratio_Q", sa.Float),
-    sa.Column("Liabilities_Ratio_TTM", sa.Float),
-    sa.Column("Total_Fixed_Assets_A", sa.Float),
-    sa.Column("Total_Fixed_Assets_Q", sa.Float),
-    sa.Column("Total_Fixed_Assets_TTM", sa.Float),
-    sa.Column("Fixed_Assets_A", sa.Float),
-    sa.Column("Fixed_Assets_Q", sa.Float),
-    sa.Column("Fixed_Assets_TTM", sa.Float),
-    sa.Column("Advances_Receipts_Non_Current_A", sa.Float),
-    sa.Column("Advances_Receipts_Non_Current_Q", sa.Float),
-    sa.Column("Advances_Receipts_Non_Current_TTM", sa.Float),
-    sa.Column("Fixed_Asset_Turnover_A", sa.Float),
-    sa.Column("Fixed_Asset_Turnover_Q", sa.Float),
-    sa.Column("Fixed_Asset_Turnover_TTM", sa.Float),
-    sa.Column("Total_Liabilities_and_Equity_A", sa.Float),
-    sa.Column("Total_Liabilities_and_Equity_Q", sa.Float),
-    sa.Column("Total_Liabilities_and_Equity_TTM", sa.Float),
-    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_A", sa.Float),
-    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_Q", sa.Float),
-    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_TTM", sa.Float),
-    sa.Column("Long_Term_Borrowings_Financial_Institutions_A", sa.Float),
-    sa.Column("Long_Term_Borrowings_Financial_Institutions_Q", sa.Float),
-    sa.Column("Long_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
-    sa.Column("Inventories_A", sa.Float),
-    sa.Column("Inventories_Q", sa.Float),
-    sa.Column("Inventories_TTM", sa.Float),
-    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_A", sa.Float),
-    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_Q", sa.Float),
-    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_TTM", sa.Float),
-    sa.Column("Equity_Turnover_A", sa.Float),
-    sa.Column("Equity_Turnover_Q", sa.Float),
-    sa.Column("Equity_Turnover_TTM", sa.Float),
-    sa.Column("Book_Value_Per_Share_A_A", sa.Float),
-    sa.Column("Book_Value_Per_Share_A_Q", sa.Float),
-    sa.Column("Book_Value_Per_Share_A_TTM", sa.Float),
-    sa.Column("Days_Payables_Outstanding_A", sa.Float),
-    sa.Column("Days_Payables_Outstanding_Q", sa.Float),
-    sa.Column("Days_Payables_Outstanding_TTM", sa.Float),
-    sa.Column("Other_Accounts_Payable_A", sa.Float),
-    sa.Column("Other_Accounts_Payable_Q", sa.Float),
-    sa.Column("Other_Accounts_Payable_TTM", sa.Float),
-    sa.Column("Total_Equity_Growth_Rate_A", sa.Float),
-    sa.Column("Total_Equity_Growth_Rate_Q", sa.Float),
-    sa.Column("Total_Equity_Growth_Rate_TTM", sa.Float),
-    sa.Column("Return_Rate_on_Equity_A_percent_A", sa.Float),
-    sa.Column("Return_Rate_on_Equity_A_percent_Q", sa.Float),
-    sa.Column("Return_Rate_on_Equity_A_percent_TTM", sa.Float),
-    sa.Column("Total_Other_Equity_Interest_A", sa.Float),
-    sa.Column("Total_Other_Equity_Interest_Q", sa.Float),
-    sa.Column("Total_Other_Equity_Interest_TTM", sa.Float),
-    sa.Column("Other_Receivables_A", sa.Float),
-    sa.Column("Other_Receivables_Q", sa.Float),
-    sa.Column("Other_Receivables_TTM", sa.Float),
-    sa.Column("Income_Tax_Expense_A", sa.Float),
-    sa.Column("Income_Tax_Expense_Q", sa.Float),
-    sa.Column("Income_Tax_Expense_TTM", sa.Float),
-    sa.Column("Total_Equity_A", sa.Float),
-    sa.Column("Total_Equity_Q", sa.Float),
-    sa.Column("Total_Equity_TTM", sa.Float),
-    sa.Column("Accounts_Receivable_Current_and_Non_Current_A", sa.Float),
-    sa.Column("Accounts_Receivable_Current_and_Non_Current_Q", sa.Float),
-    sa.Column("Accounts_Receivable_Current_and_Non_Current_TTM", sa.Float),
-    sa.Column("Sales_Per_Share_A", sa.Float),
-    sa.Column("Sales_Per_Share_Q", sa.Float),
-    sa.Column("Sales_Per_Share_TTM", sa.Float),
-    sa.Column("Cash_Flow_from_Financing_Activities_A", sa.Float),
-    sa.Column("Cash_Flow_from_Financing_Activities_Q", sa.Float),
-    sa.Column("Cash_Flow_from_Financing_Activities_TTM", sa.Float),
-    sa.Column("Debt_Equity_Ratio_A", sa.Float),
-    sa.Column("Debt_Equity_Ratio_Q", sa.Float),
-    sa.Column("Debt_Equity_Ratio_TTM", sa.Float),
-    sa.Column("Operating_Expenses_Ratio_A", sa.Float),
-    sa.Column("Operating_Expenses_Ratio_Q", sa.Float),
-    sa.Column("Operating_Expenses_Ratio_TTM", sa.Float),
-    sa.Column("Net_Income_Per_Share_A", sa.Float),
-    sa.Column("Net_Income_Per_Share_Q", sa.Float),
-    sa.Column("Net_Income_Per_Share_TTM", sa.Float),
-    sa.Column("Advances_Receipts_Current_A", sa.Float),
-    sa.Column("Advances_Receipts_Current_Q", sa.Float),
-    sa.Column("Advances_Receipts_Current_TTM", sa.Float),
-    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_A", sa.Float),
-    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_Q", sa.Float),
-    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_TTM", sa.Float),
-    sa.Column("Long_Term_Accounts_Receivable_A", sa.Float),
-    sa.Column("Long_Term_Accounts_Receivable_Q", sa.Float),
-    sa.Column("Long_Term_Accounts_Receivable_TTM", sa.Float),
-    sa.Column("Total_Retained_Earnings_A", sa.Float),
-    sa.Column("Total_Retained_Earnings_Q", sa.Float),
-    sa.Column("Total_Retained_Earnings_TTM", sa.Float),
-    sa.Column("Recurring_Net_Income_A", sa.Float),
-    sa.Column("Recurring_Net_Income_Q", sa.Float),
-    sa.Column("Recurring_Net_Income_TTM", sa.Float),
-    sa.Column("Accounts_Receivable_A", sa.Float),
-    sa.Column("Accounts_Receivable_Q", sa.Float),
-    sa.Column("Accounts_Receivable_TTM", sa.Float),
-    sa.Column("Total_Operating_Cost_A", sa.Float),
-    sa.Column("Total_Operating_Cost_Q", sa.Float),
-    sa.Column("Total_Operating_Cost_TTM", sa.Float),
-    sa.Column("Operating_Income_Per_Share_A", sa.Float),
-    sa.Column("Operating_Income_Per_Share_Q", sa.Float),
-    sa.Column("Operating_Income_Per_Share_TTM", sa.Float),
-    sa.Column("Initial_REG_Listing_Date", sa.DateTime),
-    sa.Column("Initial_OTC_Listing_Date", sa.DateTime),
-    sa.Column("Security_Type", sa.String),  # You can adjust the length according to your data
-    sa.Column("Latest_Listing_Date", sa.DateTime),
-    sa.Column("Initial_TSE_Listing_Date", sa.DateTime),
-    sa.Column("TEJ_Industry_Code", sa.String),  # You can adjust the length according to your data
-    sa.Column("English_Full_Name", sa.String),  # You can adjust the length according to your data
-    sa.Column("TEJ_Industry_Name", sa.String),  # You can adjust the length according to your data
-    sa.Column("Exchange_Industry_Name", sa.String),  # You can adjust the length according to your data
-    sa.Column("Security_Name", sa.String),  # You can adjust the length according to your data
-    sa.Column("English_Abbreviation", sa.String),  # You can adjust the length according to your data
-    sa.Column("Exchange_Industry_Code", sa.String),  # You can adjust the length according to your data
-    sa.Column("Unified_Identification_Number", sa.String),  # You can adjust the length according to your data
-    sa.Column("Security_Full_Name", sa.String),  # You can adjust the length according to your data
-    sa.Column("Delisting_Date", sa.DateTime)
+sa.Column("Net_Income_Growth_Rate_TTM", sa.Float),  # Net_Income_Growth_Rate_TTM，浮點數
+sa.Column("Basic_Earnings_Per_Share_A", sa.Float),  # Basic_Earnings_Per_Share_A，浮點數
+sa.Column("Basic_Earnings_Per_Share_Q", sa.Float),  # Basic_Earnings_Per_Share_Q，浮點數
+sa.Column("Basic_Earnings_Per_Share_TTM", sa.Float),  # Basic_Earnings_Per_Share_TTM，浮點數
+sa.Column("Current_Ratio_A", sa.Float),  # Current_Ratio_A，浮點數
+sa.Column("Current_Ratio_Q", sa.Float),  # Current_Ratio_Q，浮點數
+sa.Column("Current_Ratio_TTM", sa.Float),  # Current_Ratio_TTM，浮點數
+sa.Column("Total_Operating_Expenses_A", sa.Float),  # Total_Operating_Expenses_A，浮點數
+sa.Column("Total_Operating_Expenses_Q", sa.Float),  # Total_Operating_Expenses_Q，浮點數
+sa.Column("Total_Operating_Expenses_TTM", sa.Float),  # Total_Operating_Expenses_TTM，浮點數
+sa.Column("Cash_Flow_from_Investing_Activities_A", sa.Float),  # Cash_Flow_from_Investing_Activities_A，浮點數
+sa.Column("Cash_Flow_from_Investing_Activities_Q", sa.Float),  # Cash_Flow_from_Investing_Activities_Q，浮點數
+sa.Column("Cash_Flow_from_Investing_Activities_TTM", sa.Float),  # Cash_Flow_from_Investing_Activities_TTM，浮點數
+sa.Column("Total_Non_current_Liabilities_A", sa.Float),  # Total_Non_current_Liabilities_A，浮點數
+sa.Column("Total_Non_current_Liabilities_Q", sa.Float),  # Total_Non_current_Liabilities_Q，浮點數
+sa.Column("Total_Non_current_Liabilities_TTM", sa.Float),  # Total_Non_current_Liabilities_TTM，浮點數
+sa.Column("Return_on_Total_Assets_A_percent_A", sa.Float),  # Return_on_Total_Assets_A_percent_A，浮點數
+sa.Column("Return_on_Total_Assets_A_percent_Q", sa.Float),  # Return_on_Total_Assets_A_percent_Q，浮點數
+sa.Column("Return_on_Total_Assets_A_percent_TTM", sa.Float),  # Return_on_Total_Assets_A_percent_TTM，浮點數
+sa.Column("Preferred_Stocks_A", sa.Float),  # Preferred_Stocks_A，浮點數
+sa.Column("Preferred_Stocks_Q", sa.Float),  # Preferred_Stocks_Q，浮點數
+sa.Column("Preferred_Stocks_TTM", sa.Float),  # Preferred_Stocks_TTM，浮點數
+sa.Column("Total_Liabilities_A", sa.Float),  # Total_Liabilities_A，浮點數
+sa.Column("Total_Liabilities_Q", sa.Float),  # Total_Liabilities_Q，浮點數
+sa.Column("Total_Liabilities_TTM", sa.Float),  # Total_Liabilities_TTM，浮點數
+sa.Column("Borrowings_A", sa.Float),  # Borrowings_A，浮點數
+sa.Column("Borrowings_Q", sa.Float),  # Borrowings_Q，浮點數
+sa.Column("Borrowings_TTM", sa.Float),  # Borrowings_TTM，浮點數
+sa.Column("Interest_Expense_Rate_percent_A", sa.Float),  # Interest_Expense_Rate_percent_A，浮點數
+sa.Column("Interest_Expense_Rate_percent_Q", sa.Float),  # Interest_Expense_Rate_percent_Q，浮點數
+sa.Column("Interest_Expense_Rate_percent_TTM", sa.Float),  # Interest_Expense_Rate_percent_TTM，浮點數
+sa.Column("Depreciation_and_Amortisation_A", sa.Float),  # Depreciation_and_Amortisation_A，浮點數
+sa.Column("Depreciation_and_Amortisation_Q", sa.Float),  # Depreciation_and_Amortisation_Q，浮點數
+sa.Column("Depreciation_and_Amortisation_TTM", sa.Float),  # Depreciation_and_Amortisation_TTM，浮點數
+sa.Column("Cash_and_Cash_Equivalent_A", sa.Float),  # Cash_and_Cash_Equivalent_A，浮點數
+sa.Column("Cash_and_Cash_Equivalent_Q", sa.Float),  # Cash_and_Cash_Equivalent_Q，浮點數
+sa.Column("Cash_and_Cash_Equivalent_TTM", sa.Float),  # Cash_and_Cash_Equivalent_TTM，浮點數
+sa.Column("Accounts_Payable_A", sa.Float),  # Accounts_Payable_A，浮點數
+sa.Column("Accounts_Payable_Q", sa.Float),  # Accounts_Payable_Q，浮點數
+sa.Column("Accounts_Payable_TTM", sa.Float),  # Accounts_Payable_TTM，浮點數
+sa.Column("Days_Receivables_Outstanding_A", sa.Float),  # Days_Receivables_Outstanding_A，浮點數
+sa.Column("Days_Receivables_Outstanding_Q", sa.Float),  # Days_Receivables_Outstanding_Q，浮點數
+sa.Column("Days_Receivables_Outstanding_TTM", sa.Float),  # Days_Receivables_Outstanding_TTM，浮點數
+sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_A，浮點數
+sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_Q，浮點數
+sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_TTM，浮點數
+sa.Column("Taxrate_A", sa.Float),  # Taxrate_A，浮點數
+sa.Column("Taxrate_Q", sa.Float),  # Taxrate_Q，浮點數
+sa.Column("Taxrate_TTM", sa.Float),  # Taxrate_TTM，浮點數
+sa.Column("Earnings_Before_Interest_and_Tax_A", sa.Float),  # Earnings_Before_Interest_and_Tax_A，浮點數
+sa.Column("Earnings_Before_Interest_and_Tax_Q", sa.Float),  # Earnings_Before_Interest_and_Tax_Q，浮點數
+sa.Column("Earnings_Before_Interest_and_Tax_TTM", sa.Float),  # Earnings_Before_Interest_and_Tax_TTM，浮點數
+sa.Column("Non_Operating_Income_A", sa.Float),  # Non_Operating_Income_A，浮點數
+sa.Column("Non_Operating_Income_Q", sa.Float),  # Non_Operating_Income_Q，浮點數
+sa.Column("Non_Operating_Income_TTM", sa.Float),  # Non_Operating_Income_TTM，浮點數
+sa.Column("Interest_Expense_A", sa.Float),  # Interest_Expense_A，浮點數
+sa.Column("Interest_Expense_Q", sa.Float),  # Interest_Expense_Q，浮點數
+sa.Column("Interest_Expense_TTM", sa.Float),  # Interest_Expense_TTM，浮點數
+sa.Column("Total_Current_Liabilities_A", sa.Float),  # Total_Current_Liabilities_A，浮點數
+sa.Column("Total_Current_Liabilities_Q", sa.Float),  # Total_Current_Liabilities_Q，浮點數
+sa.Column("Total_Current_Liabilities_TTM", sa.Float),  # Total_Current_Liabilities_TTM，浮點數
+sa.Column("Net_Operating_Income_Loss_A", sa.Float),  # Net_Operating_Income_Loss_A，浮點數
+sa.Column("Net_Operating_Income_Loss_Q", sa.Float),  # Net_Operating_Income_Loss_Q，浮點數
+sa.Column("Net_Operating_Income_Loss_TTM", sa.Float),  # Net_Operating_Income_Loss_TTM，浮點數
+sa.Column("Non_Controlling_Interest_A", sa.Float),  # Non_Controlling_Interest_A，浮點數
+sa.Column("Non_Controlling_Interest_Q", sa.Float),  # Non_Controlling_Interest_Q，浮點數
+sa.Column("Non_Controlling_Interest_TTM", sa.Float),  # Non_Controlling_Interest_TTM，浮點數
+sa.Column("Total_Non_Current_Assets_A", sa.Float),  # Total_Non_Current_Assets_A，浮點數
+sa.Column("Total_Non_Current_Assets_Q", sa.Float),  # Total_Non_Current_Assets_Q，浮點數
+sa.Column("Total_Non_Current_Assets_TTM", sa.Float),  # Total_Non_Current_Assets_TTM，浮點數
+sa.Column("Number_of_Employees_A", sa.Float),  # Number_of_Employees_A，浮點數
+sa.Column("Number_of_Employees_Q", sa.Float),  # Number_of_Employees_Q，浮點數
+sa.Column("Number_of_Employees_TTM", sa.Float),  # Number_of_Employees_TTM，浮點數
+sa.Column("Total_Assets_Growth_Rate_A", sa.Float),  # Total_Assets_Growth_Rate_A，浮點數
+sa.Column("Total_Assets_Growth_Rate_Q", sa.Float),  # Total_Assets_Growth_Rate_Q，浮點數
+sa.Column("Total_Assets_Growth_Rate_TTM", sa.Float),  # Total_Assets_Growth_Rate_TTM，浮點數
+sa.Column("Prepayments_A", sa.Float),  # Prepayments_A，浮點數
+sa.Column("Prepayments_Q", sa.Float),  # Prepayments_Q，浮點數
+sa.Column("Prepayments_TTM", sa.Float),  # Prepayments_TTM，浮點數
+sa.Column("Times_Interest_Earned_A", sa.Float),  # Times_Interest_Earned_A，浮點數
+sa.Column("Times_Interest_Earned_Q", sa.Float),  # Times_Interest_Earned_Q，浮點數
+sa.Column("Times_Interest_Earned_TTM", sa.Float),  # Times_Interest_Earned_TTM，浮點數
+sa.Column("Total_Assets_A", sa.Float),  # Total_Assets_A，浮點數
+sa.Column("Total_Assets_Q", sa.Float),  # Total_Assets_Q，浮點數
+sa.Column("Total_Assets_TTM", sa.Float),  # Total_Assets_TTM，浮點數
+sa.Column("Total_Assets_Turnover_A", sa.Float),  # Total_Assets_Turnover_A，浮點數
+sa.Column("Total_Assets_Turnover_Q", sa.Float),  # Total_Assets_Turnover_Q，浮點數
+sa.Column("Total_Assets_Turnover_TTM", sa.Float),  # Total_Assets_Turnover_TTM，浮點數
+sa.Column("Common_Stocks_A", sa.Float),  # Common_Stocks_A，浮點數
+sa.Column("Common_Stocks_Q", sa.Float),  # Common_Stocks_Q，浮點數
+sa.Column("Common_Stocks_TTM", sa.Float),  # Common_Stocks_TTM，浮點數
+sa.Column("Cash_Flow_from_Operating_Ratio_A", sa.Float),  # Cash_Flow_from_Operating_Ratio_A，浮點數
+sa.Column("Cash_Flow_from_Operating_Ratio_Q", sa.Float),  # Cash_Flow_from_Operating_Ratio_Q，浮點數
+sa.Column("Cash_Flow_from_Operating_Ratio_TTM", sa.Float),  # Cash_Flow_from_Operating_Ratio_TTM，浮點數
+sa.Column("Acid_Test_A", sa.Float),  # Acid_Test_A，浮點數
+sa.Column("Acid_Test_Q", sa.Float),  # Acid_Test_Q，浮點數
+sa.Column("Acid_Test_TTM", sa.Float),  # Acid_Test_TTM，浮點數
+sa.Column("Net_Non_operating_Income_Ratio_A", sa.Float),  # Net_Non_operating_Income_Ratio_A，浮點數
+sa.Column("Net_Non_operating_Income_Ratio_Q", sa.Float),  # Net_Non_operating_Income_Ratio_Q，浮點數
+sa.Column("Net_Non_operating_Income_Ratio_TTM", sa.Float),  # Net_Non_operating_Income_Ratio_TTM，浮點數
+sa.Column("Sales_Per_Employee_A", sa.Float),
+sa.Column("Sales_Per_Employee_Q", sa.Float),
+sa.Column("Sales_Per_Employee_TTM", sa.Float),
+sa.Column("Accounts_Receivable_Turnover_A", sa.Float),
+sa.Column("Accounts_Receivable_Turnover_Q", sa.Float),
+sa.Column("Accounts_Receivable_Turnover_TTM", sa.Float),
+sa.Column("Capital_Reserves_A", sa.Float),
+sa.Column("Capital_Reserves_Q", sa.Float),
+sa.Column("Capital_Reserves_TTM", sa.Float),
+sa.Column("Days_Inventory_Outstanding_A", sa.Float),
+sa.Column("Days_Inventory_Outstanding_Q", sa.Float),
+sa.Column("Days_Inventory_Outstanding_TTM", sa.Float),
+sa.Column("Non_Recurring_Net_Income_A", sa.Float),
+sa.Column("Non_Recurring_Net_Income_Q", sa.Float),
+sa.Column("Non_Recurring_Net_Income_TTM", sa.Float),
+sa.Column("Accounts_Payable_Turnover_A", sa.Float),
+sa.Column("Accounts_Payable_Turnover_Q", sa.Float),
+sa.Column("Accounts_Payable_Turnover_TTM", sa.Float),
+sa.Column("Total_Interest_Income_A", sa.Float),
+sa.Column("Total_Interest_Income_Q", sa.Float),
+sa.Column("Total_Interest_Income_TTM", sa.Float),
+sa.Column("Quick_Assets_A", sa.Float),
+sa.Column("Quick_Assets_Q", sa.Float),
+sa.Column("Quick_Assets_TTM", sa.Float),
+sa.Column("Preferred_Stock_Dividends_A", sa.Float),
+sa.Column("Preferred_Stock_Dividends_Q", sa.Float),
+sa.Column("Preferred_Stock_Dividends_TTM", sa.Float),
+sa.Column("Total_Current_Assets_A", sa.Float),
+sa.Column("Total_Current_Assets_Q", sa.Float),
+sa.Column("Total_Current_Assets_TTM", sa.Float),
+sa.Column("Intangible_Assets_A", sa.Float),
+sa.Column("Intangible_Assets_Q", sa.Float),
+sa.Column("Intangible_Assets_TTM", sa.Float),
+sa.Column("Short_Term_Borrowings_Financial_Institutions_A", sa.Float),
+sa.Column("Short_Term_Borrowings_Financial_Institutions_Q", sa.Float),
+sa.Column("Short_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
+sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),
+sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),
+sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),
+sa.Column("Cash_Flow_from_Operating_Activities_A", sa.Float),
+sa.Column("Cash_Flow_from_Operating_Activities_Q", sa.Float),
+sa.Column("Cash_Flow_from_Operating_Activities_TTM", sa.Float),
+sa.Column("Inventory_Turnover_A", sa.Float),
+sa.Column("Inventory_Turnover_Q", sa.Float),
+sa.Column("Inventory_Turnover_TTM", sa.Float),
+sa.Column("Liabilities_Ratio_A", sa.Float),
+sa.Column("Liabilities_Ratio_Q", sa.Float),
+sa.Column("Liabilities_Ratio_TTM", sa.Float),
+sa.Column("Total_Fixed_Assets_A", sa.Float),
+sa.Column("Total_Fixed_Assets_Q", sa.Float),
+sa.Column("Total_Fixed_Assets_TTM", sa.Float),
+sa.Column("Fixed_Assets_A", sa.Float),
+sa.Column("Fixed_Assets_Q", sa.Float),
+sa.Column("Fixed_Assets_TTM", sa.Float),
+sa.Column("Advances_Receipts_Non_Current_A", sa.Float),
+sa.Column("Advances_Receipts_Non_Current_Q", sa.Float),
+sa.Column("Advances_Receipts_Non_Current_TTM", sa.Float),
+sa.Column("Fixed_Asset_Turnover_A", sa.Float),
+sa.Column("Fixed_Asset_Turnover_Q", sa.Float),
+sa.Column("Fixed_Asset_Turnover_TTM", sa.Float),
+sa.Column("Total_Liabilities_and_Equity_A", sa.Float),
+sa.Column("Total_Liabilities_and_Equity_Q", sa.Float),
+sa.Column("Total_Liabilities_and_Equity_TTM", sa.Float),
+sa.Column("Weighted_Average_Outstanding_Shares_Thousand_A", sa.Float),
+sa.Column("Weighted_Average_Outstanding_Shares_Thousand_Q", sa.Float),
+sa.Column("Weighted_Average_Outstanding_Shares_Thousand_TTM", sa.Float),
+sa.Column("Long_Term_Borrowings_Financial_Institutions_A", sa.Float),
+sa.Column("Long_Term_Borrowings_Financial_Institutions_Q", sa.Float),
+sa.Column("Long_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
+sa.Column("Inventories_A", sa.Float),
+sa.Column("Inventories_Q", sa.Float),
+sa.Column("Inventories_TTM", sa.Float),
+sa.Column("Depreciable_Fixed_Assets_Growth_Rate_A", sa.Float),
+sa.Column("Depreciable_Fixed_Assets_Growth_Rate_Q", sa.Float),
+sa.Column("Depreciable_Fixed_Assets_Growth_Rate_TTM", sa.Float),
+sa.Column("Equity_Turnover_A", sa.Float),
+sa.Column("Equity_Turnover_Q", sa.Float),
+sa.Column("Equity_Turnover_TTM", sa.Float),
+sa.Column("Book_Value_Per_Share_A_A", sa.Float),
+sa.Column("Book_Value_Per_Share_A_Q", sa.Float),
+sa.Column("Book_Value_Per_Share_A_TTM", sa.Float),
+sa.Column("Days_Payables_Outstanding_A", sa.Float),
+sa.Column("Days_Payables_Outstanding_Q", sa.Float),
+sa.Column("Days_Payables_Outstanding_TTM", sa.Float),
+sa.Column("Other_Accounts_Payable_A", sa.Float),
+sa.Column("Other_Accounts_Payable_Q", sa.Float),
+sa.Column("Other_Accounts_Payable_TTM", sa.Float),
+sa.Column("Total_Equity_Growth_Rate_A", sa.Float),
+sa.Column("Total_Equity_Growth_Rate_Q", sa.Float),
+sa.Column("Total_Equity_Growth_Rate_TTM", sa.Float),
+sa.Column("Return_Rate_on_Equity_A_percent_A", sa.Float),
+sa.Column("Return_Rate_on_Equity_A_percent_Q", sa.Float),
+sa.Column("Return_Rate_on_Equity_A_percent_TTM", sa.Float),
+sa.Column("Total_Other_Equity_Interest_A", sa.Float),
+sa.Column("Total_Other_Equity_Interest_Q", sa.Float),
+sa.Column("Total_Other_Equity_Interest_TTM", sa.Float),
+sa.Column("Other_Receivables_A", sa.Float),
+sa.Column("Other_Receivables_Q", sa.Float),
+sa.Column("Other_Receivables_TTM", sa.Float),
+sa.Column("Income_Tax_Expense_A", sa.Float),
+sa.Column("Income_Tax_Expense_Q", sa.Float),
+sa.Column("Income_Tax_Expense_TTM", sa.Float),
+sa.Column("Total_Equity_A", sa.Float),
+sa.Column("Total_Equity_Q", sa.Float),
+sa.Column("Total_Equity_TTM", sa.Float),
+sa.Column("Accounts_Receivable_Current_and_Non_Current_A", sa.Float),
+sa.Column("Accounts_Receivable_Current_and_Non_Current_Q", sa.Float),
+sa.Column("Accounts_Receivable_Current_and_Non_Current_TTM", sa.Float),
+sa.Column("Sales_Per_Share_A", sa.Float),
+sa.Column("Sales_Per_Share_Q", sa.Float),
+sa.Column("Sales_Per_Share_TTM", sa.Float),
+sa.Column("Cash_Flow_from_Financing_Activities_A", sa.Float),
+sa.Column("Cash_Flow_from_Financing_Activities_Q", sa.Float),
+sa.Column("Cash_Flow_from_Financing_Activities_TTM", sa.Float),
+sa.Column("Debt_Equity_Ratio_A", sa.Float),
+sa.Column("Debt_Equity_Ratio_Q", sa.Float),
+sa.Column("Debt_Equity_Ratio_TTM", sa.Float),
+sa.Column("Operating_Expenses_Ratio_A", sa.Float),
+sa.Column("Operating_Expenses_Ratio_Q", sa.Float),
+sa.Column("Operating_Expenses_Ratio_TTM", sa.Float),
+sa.Column("Net_Income_Per_Share_A", sa.Float),
+sa.Column("Net_Income_Per_Share_Q", sa.Float),
+sa.Column("Net_Income_Per_Share_TTM", sa.Float),
+sa.Column("Advances_Receipts_Current_A", sa.Float),
+sa.Column("Advances_Receipts_Current_Q", sa.Float),
+sa.Column("Advances_Receipts_Current_TTM", sa.Float),
+sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_A", sa.Float),
+sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_Q", sa.Float),
+sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_TTM", sa.Float),
+sa.Column("Long_Term_Accounts_Receivable_A", sa.Float),
+sa.Column("Long_Term_Accounts_Receivable_Q", sa.Float),
+sa.Column("Long_Term_Accounts_Receivable_TTM", sa.Float),
+sa.Column("Total_Retained_Earnings_A", sa.Float),
+sa.Column("Total_Retained_Earnings_Q", sa.Float),
+sa.Column("Total_Retained_Earnings_TTM", sa.Float),
+sa.Column("Recurring_Net_Income_A", sa.Float),
+sa.Column("Recurring_Net_Income_Q", sa.Float),
+sa.Column("Recurring_Net_Income_TTM", sa.Float),
+sa.Column("Accounts_Receivable_A", sa.Float),
+sa.Column("Accounts_Receivable_Q", sa.Float),
+sa.Column("Accounts_Receivable_TTM", sa.Float),
+sa.Column("Total_Operating_Cost_A", sa.Float),
+sa.Column("Total_Operating_Cost_Q", sa.Float),
+sa.Column("Total_Operating_Cost_TTM", sa.Float),
+sa.Column("Operating_Income_Per_Share_A", sa.Float),
+sa.Column("Operating_Income_Per_Share_Q", sa.Float),
+sa.Column("Operating_Income_Per_Share_TTM", sa.Float),
+sa.Column("Initial_REG_Listing_Date", sa.DateTime),
+sa.Column("Initial_OTC_Listing_Date", sa.DateTime),
+sa.Column("Security_Type", sa.String),  # You can adjust the length according to your data
+sa.Column("Latest_Listing_Date", sa.DateTime),
+sa.Column("Initial_TSE_Listing_Date", sa.DateTime),
+sa.Column("TEJ_Industry_Code", sa.String),  # You can adjust the length according to your data
+sa.Column("English_Full_Name", sa.String),  # You can adjust the length according to your data
+sa.Column("TEJ_Industry_Name", sa.String),  # You can adjust the length according to your data
+sa.Column("Exchange_Industry_Name", sa.String),  # You can adjust the length according to your data
+sa.Column("Security_Name", sa.String),  # You can adjust the length according to your data
+sa.Column("English_Abbreviation", sa.String),  # You can adjust the length according to your data
+sa.Column("Exchange_Industry_Code", sa.String),  # You can adjust the length according to your data
+sa.Column("Unified_Identification_Number", sa.String),  # You can adjust the length according to your data
+sa.Column("Security_Full_Name", sa.String),  # You can adjust the length according to your data
+sa.Column("Delisting_Date", sa.DateTime)
+
 )
 
 
@@ -759,3 +803,4 @@ create_writers = True,
 
 
 register_calendar_alias("fundamentals", "TEJ")
+

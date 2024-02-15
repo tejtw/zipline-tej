@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 28 11:40:32 2023
+import warnings
+warnings.filterwarnings("always", category=FutureWarning, module=__name__.replace('.', r'\.'))
+warnings.warn(
+    "`zipline.pipeline.data.tejquant` will be deprecated in a future version, "
+    "which includes the removal of the `TQDataSet` class. "
+    "Please migrate to `zipline.pipeline.data.TQFundamentals` for accessing the equivalent classes: "
+    "`TQData`, `TQDataSet`, `TQAltData`, and `TQAltDataSet`. ",
+    FutureWarning
+)
 
-@author: 2020033001
-"""
-from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.data import Column, DataSet
-from zipline.pipeline.domain import Domain,TW_EQUITIES
+from zipline.pipeline.domain import TW_EQUITIES
 
 class TQDataSet(DataSet): 
     

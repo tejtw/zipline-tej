@@ -726,6 +726,7 @@ class ComputableTerm(Term):
         from .mixins import DownsampledMixin
 
         downsampled_type = type(self)._with_mixin(DownsampledMixin)
+        # print(downsampled_type)
         return downsampled_type(term=self, frequency=frequency)
 
     @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)

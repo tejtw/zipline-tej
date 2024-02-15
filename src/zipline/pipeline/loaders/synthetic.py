@@ -55,7 +55,7 @@ class PrecomputedLoader(implements(PipelineLoader)):
         coerce to a DatetimeIndex.
     sids : iterable[int-like]
         Column labels for input data.  Can be anything that pd.DataFrame will
-        coerce to an Int64Index.
+        coerce to an Index.
 
     Notes
     -----

@@ -386,6 +386,40 @@ class FixedSlippage(SlippageModel):
 
         return (price + (self.spread / 2.0 * order.direction), order.amount)
 
+class PctSlippage(SlippageModel):
+ 
+    def __init__(self, spread=0.0):
+        super(PctSlippage, self).__init__()
+        self.spread = spread
+        #self.price_type = price_type
+ 
+    def __repr__(self):
+        return "{class_name}(spread={spread})".format(
+            class_name=self.__class__.__name__,
+            spread=self.spread,
+        )
+ 
+    def process_order(self, data, order):
+        close_t1 = data.history(order.asset, fields='close', bar_count=2, frequency='1d')[-2]
+
+        if np.isnan(close_t1):
+            close_t1 = data.current(order.asset, 'close')
+
+        close = data.current(order.asset, 'close')
+ 
+        buy_limit = close_t1 * 1.1
+        sell_limit = close_t1 * 0.9
+ 
+        if order.direction > 0:
+ 
+            order_price = min(buy_limit, close * (1 + self.spread))
+ 
+        else:
+ 
+            order_price = max(sell_limit, close * (1 - self.spread))
+ 
+        return (order_price, order.amount)
+    
 
 class MarketImpactBase(SlippageModel):
     """

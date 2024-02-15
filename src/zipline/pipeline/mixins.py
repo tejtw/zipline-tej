@@ -474,10 +474,12 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         # starting position.
         # TODO: Consider bounding this below by self.window_length
         candidates = all_dates[: current_start_pos + 1]
+        # print(candidates)
 
         # Choose the latest date in the candidates that is the start of a new
         # period at our frequency.
         choices = select_sampling_indices(candidates, self._frequency)
+        # print(choices)
 
         # If we have choices, the last choice is the first date if the
         # period containing current_start_date.  Choose it.
@@ -487,6 +489,7 @@ class DownsampledMixin(StandardOutputs, UniversalMixin):
         # number of rows for the new start_date.
         new_start_pos = all_dates.get_loc(new_start_date)
         assert new_start_pos <= current_start_pos, "Computed negative extra rows!"
+
 
         return min_extra_rows + (current_start_pos - new_start_pos)
 

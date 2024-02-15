@@ -13,11 +13,18 @@ from zipline.utils.events import (
     EventRule
 )
 
-from zipline.pipeline.data import TQDataSet, USEquityPricing
-from zipline.pipeline.loaders import EquityPricingLoader
-from zipline.pipeline.loaders.fundamentals import TQuantFundamentalsPipelineLoader
+from zipline.pipeline.data import (USEquityPricing, 
+                                   TQDataSet,
+                                   # EquityPricing,
+                                   TQAltDataSet
+                                   )
+from zipline.pipeline.loaders import (EquityPricingLoader,
+                                      TQuantFundamentalsPipelineLoader,
+                                      TQuantAlternativesPipelineLoader)
 
 from zipline.finance import slippage, commission
+
+from zipline.pipeline import Pipeline
 
 from .basic_algo import BasicAlgo
 
@@ -37,7 +44,6 @@ class PipeAlgo(BasicAlgo):
                  data_frequency,
                  tradeday,
                  stocklist,
-                 benchmark,
                  zero_treasury_returns,
                  initialize,
                  handle_data,
@@ -49,7 +55,10 @@ class PipeAlgo(BasicAlgo):
                  slippage_model,
                  commission_model,
                  custom_loader,
-                 pipeline):
+                 pipeline,
+                 liquidity_risk_management_rule,
+                 order_filling_policy='next_bar',
+                 benchmark = 'IR0001'):
 
         super().__init__(bundle_name = bundle_name,
                          start_session = start_session,
@@ -70,15 +79,28 @@ class PipeAlgo(BasicAlgo):
                          get_transaction_detail = get_transaction_detail,
                          slippage_model = slippage_model,
                          commission_model = commission_model,
-                         get_pipeline_loader = self.choose_loader)
+                         get_pipeline_loader = self.choose_loader,
+                         liquidity_risk_management_rule = liquidity_risk_management_rule,
+                         order_filling_policy = order_filling_policy)
 
         self.custom_loader = custom_loader
         self.symbol_mapping_sid = {i.symbol:i.sid for i in self.assets}
-        self.TQuantPipelineLoader = TQuantFundamentalsPipelineLoader(zipline_sids_to_real_sids=self.symbol_mapping_sid)
+        self.TQuantFinPipelineLoader = TQuantFundamentalsPipelineLoader(zipline_sids_to_real_sids=self.symbol_mapping_sid)
+        self.TQuantAltPipelineLoader = TQuantAlternativesPipelineLoader(zipline_sids_to_real_sids=self.symbol_mapping_sid)
         self.pipeline_loader = EquityPricingLoader.without_fx(self.bundle.equity_daily_bar_reader,
                                                               self.bundle.adjustment_reader,
                                                               )
-        self.pipeline = pipeline
+        """
+        Check if pipeline is a function. If it is a function, call it and assign the result
+        to self.pipeline. If pipeline is already a Pipeline object, directly assign it
+        If pipeline is neither a function nor a Pipeline object, raise an error.
+        """
+        if callable(pipeline):
+            self.pipeline = pipeline()
+        elif isinstance(pipeline, Pipeline):
+            self.pipeline = pipeline
+        else:
+            raise ValueError("The pipeline argument must be a function or a Pipeline object.")
 
 
     def choose_loader(self, column):
@@ -95,10 +117,15 @@ class PipeAlgo(BasicAlgo):
         --------
         :func:`zipline.utils.run_algo._run`
         """
-        if column in USEquityPricing.columns:  # 不能用EquityPricing.columns
+
+        if column in USEquityPricing.columns:
             return self.pipeline_loader
-        elif (column in TQDataSet.columns):
-            return self.TQuantPipelineLoader
+
+        if column in TQDataSet.columns:
+            return self.TQuantFinPipelineLoader
+
+        if column in TQAltDataSet.columns:
+            return self.TQuantAltPipelineLoader
 
         try:
             return self.custom_loader.get(column)
@@ -149,9 +176,16 @@ class TargetPercentPipeAlgo(PipeAlgo):
                  analyze=None,
                  record_vars=None,
                  get_record_vars=False,
-                 get_transaction_detail=False):
+                 get_transaction_detail=False,
+                 liquidity_risk_management_rule=None,
+                 order_filling_policy='next_bar'):
 
         self.rebalance_date_rule = rebalance_date_rule
+        if self.rebalance_date_rule:
+            self.rebalance_date_rule.cal = trading_calendar
+            self.open_hour = self.rebalance_date_rule.cal.open_times[0][1].hour
+            self.open_minute = self.rebalance_date_rule.cal.open_times[0][1].minute
+
         self.max_leverage = max_leverage
         self.adjust_amount = adjust_amount
         self.limit_buy_multiplier = limit_buy_multiplier
@@ -182,7 +216,9 @@ class TargetPercentPipeAlgo(PipeAlgo):
                          get_record_vars=get_record_vars,
                          get_transaction_detail=get_transaction_detail,
                          slippage_model = slippage_model,
-                         commission_model = commission_model
+                         commission_model = commission_model,
+                         liquidity_risk_management_rule = liquidity_risk_management_rule,
+                         order_filling_policy = order_filling_policy
                         )
 
 
@@ -202,6 +238,8 @@ class TargetPercentPipeAlgo(PipeAlgo):
     max_leverage = {max_leverage},
     slippage model used = {slippage_model},
     commission_model = {commission_model},
+    liquidity_risk_management_rule = {liquidity_risk_management_rule},
+    order_filling_policy = {order_filling_policy},
     adjust amount or not = {adjust_amount},
     limit_buy_multiplier = {limit_buy_multiplier},
     limit_sell_multiplier = {limit_sell_multiplier},
@@ -222,6 +260,8 @@ class TargetPercentPipeAlgo(PipeAlgo):
                            max_leverage=self.max_leverage,
                            slippage_model=self.slippage_model,
                            commission_model=self.commission_model,
+                           liquidity_risk_management_rule=self.liquidity_risk_management_rule,
+                           order_filling_policy=self. order_filling_policy,
                            adjust_amount=self.adjust_amount,
                            limit_buy_multiplier=self.limit_buy_multiplier,
                            limit_sell_multiplier=self.limit_sell_multiplier,
@@ -307,38 +347,43 @@ class TargetPercentPipeAlgo(PipeAlgo):
         # unbound method是不會自動接收self參數的，之後會在zipline.utils.events.Event重新手動綁定這個方法。
         # （傳入一個context物件作為該方法的第一個參數）
 
-        self.schedule_function(func=self.exec_cancel.__func__,
-                               date_rule=date_rules.every_day(),
-                               time_rule=time_rules.market_open)
+        if self.order_filling_policy=='next_bar':
+            self.schedule_function(func=self.exec_cancel.__func__,
+                                   date_rule=date_rules.every_day(),
+                                   time_rule=time_rules.market_open)
 
-        if self.rebalance_date_rule is not None:
-            self.schedule_function(func=self.rebalance.__func__,
-                                date_rule=self.rebalance_date_rule,
-                                time_rule=time_rules.market_open)
+            if self.rebalance_date_rule is not None:
+                self.schedule_function(func=self.rebalance.__func__,
+                                       date_rule=self.rebalance_date_rule,
+                                       time_rule=time_rules.market_open)
+
+            else:
+                self.schedule_function(func=self.rebalance.__func__,
+                                       date_rule=date_rules.every_day(),
+                                       time_rule=time_rules.market_open)
+
         else:
-            self.schedule_function(func=self.rebalance.__func__,
-                                date_rule=date_rules.every_day(),
-                                time_rule=time_rules.market_open)
+            pass
 
         self.schedule_function(func=self._record_vars,
                                date_rule=date_rules.every_day(),
                                time_rule=time_rules.market_close)
 
 #         pipeline
-        self.attach_pipeline(self.pipeline(), 'signals')
+        self.attach_pipeline(self.pipeline, 'signals')
 
 #         chk long
-        if 'longs' not in self.pipeline().columns:
+        if 'longs' not in self.pipeline.columns:
             raise ValueError('No PipelineLoader registered for column "longs", check func："pipeline"')
 
 #         chk allow_short
-        if (self.allow_short==True) & ('shorts' not in self.pipeline().columns):
+        if (self.allow_short==True) & ('shorts' not in self.pipeline.columns):
             raise ValueError('No PipelineLoader registered for column "shorts", set "allow_short = False" instead or check func："pipeline"')
 
 #         chk weights
-        if ('long_weights' not in self.pipeline().columns) & (self.custom_weight==True):
+        if ('long_weights' not in self.pipeline.columns) & (self.custom_weight==True):
             raise ValueError('No PipelineLoader registered for column "long_weights", set "custom_weight = False" instead or check func："pipeline"')
-        elif (self.allow_short==True) & ('short_weights' not in self.pipeline().columns) & (self.custom_weight==True):
+        elif (self.allow_short==True) & ('short_weights' not in self.pipeline.columns) & (self.custom_weight==True):
             raise ValueError('No PipelineLoader registered for column "short_weights", set "custom_weight = False" instead or check func："pipeline"')
 
 
@@ -363,7 +408,7 @@ class TargetPercentPipeAlgo(PipeAlgo):
             weight_columns = 'long_weights'
 
         elif long_short=='short':
-            max_leverage = self.max_leverage * -1  
+            max_leverage = self.max_leverage * -1
             weight_columns = 'short_weights'
 
         if data.can_trade(asset) and \
@@ -544,6 +589,29 @@ class TargetPercentPipeAlgo(PipeAlgo):
         output = self.pipeline_output('signals')
         self.output = output
 
+        # deal with current_bar
+        if self.order_filling_policy=='current_bar':
+
+            self.exec_cancel(data)
+
+            if self.rebalance_date_rule is not None:
+                """
+                Because `self.rebalance_date_rule.should_trigger` will only be triggered during trading hours (9:01-13:00),
+                and the `before_trading_start` phase occurs at 8:45, we are modifying the hour and minute components of
+                `get_datetime` accordingly.
+                """
+                dt = (self.get_datetime(). # 2024-01-02 00:00:00+0
+                      tz_convert(self.rebalance_date_rule.cal.tz.zone). # 2024-01-02 08:00:00+8
+                      replace(hour=self.open_hour, minute=self.open_minute, second=0). # 2024-01-02 09:01:00+8
+                      tz_convert('utc'). # 2024-01-02 01:01:00+8
+                      tz_localize(None) # 2024-01-02 01:01:00+0
+                      )
+                print(self.get_datetime())
+                if self.rebalance_date_rule.should_trigger(dt):
+                    self.rebalance(data)
+
+            else:
+                self.rebalance(data)
 
 
 

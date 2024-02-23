@@ -63,7 +63,9 @@ def fetch_data_table(api_key, show_progress,  coid, mdate, columns, **kwargs):
             raise ValueError("Did not fetch any fundamental data. Please check the correctness of your ticker, mdate and fields.")
         
         data = data.rename({'coid':'symbol', 'mdate':'date'}, axis =1)
-        
+        data['date'] = data['date'].astype('datetime64[ns]')
+        if 'fin_date' in data.columns :
+            data['fin_date'] = data['fin_date'].astype('datetime64[ns]')
     
     except Exception as e  :
         raise ValueError(f'Error occurs while downloading metadata due to {e} .')

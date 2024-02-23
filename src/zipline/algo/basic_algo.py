@@ -184,8 +184,8 @@ class BasicAlgo(TradingAlgorithm):
         ----------
         pd.Timestamp: The next trading date.
         """
-        schedule = calendar.sessions_in_range(start_date, pd.Timestamp.max)
         start_date_timestamp = pd.Timestamp(start_date, tz="UTC")
+        schedule = calendar.sessions_in_range(start_date_timestamp , pd.Timestamp.max.tz_localize('utc'))
 
 #         檢查是否有足夠的交易日可供選擇
         if len(schedule) <= days_to_add:

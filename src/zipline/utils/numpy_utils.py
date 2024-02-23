@@ -42,7 +42,7 @@ float64_dtype = dtype("float64")
 
 complex128_dtype = dtype("complex128")
 
-datetime64D_dtype = dtype("datetime64[D]")
+datetime64s_dtype = dtype("datetime64[s]")
 datetime64ns_dtype = dtype("datetime64[ns]")
 
 object_dtype = dtype("O")
@@ -50,7 +50,7 @@ object_dtype = dtype("O")
 categorical_dtype = object_dtype
 
 make_datetime64ns = flip(datetime64, "ns")
-make_datetime64D = flip(datetime64, "D")
+make_datetime64s = flip(datetime64, "s")
 
 # Array compare that works across versions of numpy
 try:
@@ -81,7 +81,7 @@ def NaT_for_dtype(dtype):
 
 
 NaTns = NaT_for_dtype(datetime64ns_dtype)
-NaTD = NaT_for_dtype(datetime64D_dtype)
+NaTD = NaT_for_dtype(datetime64s_dtype)
 
 _FILLVALUE_DEFAULTS = {
     bool_dtype: False,
@@ -152,12 +152,12 @@ def coerce_to_dtype(dtype, value):
     """
     Make a value with the specified numpy dtype.
 
-    Only datetime64[ns] and datetime64[D] are supported for datetime dtypes.
+    Only datetime64[ns] and datetime64[s] are supported for datetime dtypes.
     """
     name = dtype.name
     if name.startswith("datetime64"):
-        if name == "datetime64[D]":
-            return make_datetime64D(value)
+        if name == "datetime64[s]":
+            return make_datetime64s(value)
         elif name == "datetime64[ns]":
             return make_datetime64ns(value)
         else:
@@ -331,7 +331,7 @@ def rolling_window(array, length):
 
 
 # Sentinel value that isn't NaT.
-_notNaT = make_datetime64D(0)
+_notNaT = make_datetime64s(0)
 iNaT = int(NaTns.view(int64_dtype))
 assert iNaT == NaTD.view(int64_dtype), "iNaTns != iNaTD"
 

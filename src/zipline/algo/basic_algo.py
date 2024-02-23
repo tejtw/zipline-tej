@@ -22,13 +22,14 @@ from zipline.utils.input_validation import (
     preprocess,
     expect_types,
     optional,
+    expect_element
 )
 from zipline.utils.compat import ExitStack
 
 from zipline.finance.slippage import SlippageModel
 from zipline.finance.commission import CommissionModel
-
 from zipline.finance.trading import SimulationParameters
+
 
 from .utils import check_tradeday
 
@@ -40,6 +41,7 @@ class BasicAlgo(TradingAlgorithm):
     Base class for Algo.
     """
     @preprocess(tradeday=check_tradeday)
+    @expect_element(order_filling_policy=('next_bar', 'current_bar'))
     @expect_types(stocklist=optional(list),
                   zero_treasury_returns=bool,
                   get_record_vars=bool,
@@ -48,6 +50,8 @@ class BasicAlgo(TradingAlgorithm):
                   commission_model=CommissionModel,
                   #get_pipeline_loader=,
                   benchmark=optional(str),
+                  liquidity_risk_management_rule=optional(list),
+                  order_filling_policy=str
                   )
     def __init__(self,
                  bundle_name,
@@ -69,6 +73,8 @@ class BasicAlgo(TradingAlgorithm):
                  slippage_model,
                  commission_model,
                  get_pipeline_loader,
+                 liquidity_risk_management_rule,
+                 order_filling_policy='next_bar',
                  benchmark = 'IR0001'):
 
         self.bundle_name = bundle_name
@@ -155,6 +161,9 @@ class BasicAlgo(TradingAlgorithm):
         self.slippage_model = slippage_model
         self.commission_model = commission_model
 
+        self.liquidity_risk_management_rule = liquidity_risk_management_rule
+        self.order_filling_policy = order_filling_policy
+
 
     @staticmethod
     def calculate_next_trading_date(calendar, start_date, days_to_add):
@@ -175,8 +184,8 @@ class BasicAlgo(TradingAlgorithm):
         ----------
         pd.Timestamp: The next trading date.
         """
-        schedule = calendar.sessions_in_range(start_date, pd.Timestamp.max)
         start_date_timestamp = pd.Timestamp(start_date, tz="UTC")
+        schedule = calendar.sessions_in_range(start_date_timestamp , pd.Timestamp.max.tz_localize('utc'))
 
 #         檢查是否有足夠的交易日可供選擇
         if len(schedule) <= days_to_add:
@@ -252,6 +261,9 @@ class BasicAlgo(TradingAlgorithm):
             self.set_commission(self.commission_model)
 
             self.universe = [self.symbol(i) for i in self.stocklist]
+
+            if self.liquidity_risk_management_rule:
+                self.set_liquidity_risk_management_rule(rules=self.liquidity_risk_management_rule, log=True)
 
             """
             這邊理論上不可用self._initialize(self, *args, **kwargs)，因為這是在底層類別下定義的

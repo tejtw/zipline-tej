@@ -165,7 +165,7 @@ def last_in_date_group(
         the correct last item is chosen from each group.
     data_query_cutoff_times : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
-    assets : pd.Int64Index
+    assets : pd.Index
         The assets that should be included in the column multiindex.
     reindex : bool
         Whether or not the DataFrame should be reindexed against the date

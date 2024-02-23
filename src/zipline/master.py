@@ -19,11 +19,12 @@ from zipline.assets import Equity
 from zipline.pipeline.loaders import EquityPricingLoader
 from zipline.data.data_portal import DataPortal
 from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.api_info import get_api_key_info
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.data import EquityPricing,TWEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from TejToolAPI import TejToolAPI
-from zipline.pipeline.data import tejquant 
+from zipline.pipeline.data import tejquant
 
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import Returns, Latest
@@ -31,7 +32,7 @@ from zipline.pipeline.factors import Returns, Latest
 global bundles_name
 bundles_name = 'tquant'
 
-def get_prices(start_date,end_date,field:str ,assets:list=None):   
+def get_prices(start_date,end_date,field:str ,assets:list=None):
     
     bundle = bundles.load(bundles_name) 
     trading_calendar =  get_calendar('TEJ_XTAI')     
@@ -53,7 +54,7 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
                               .tz_localize('utc')
                            )/100/252 
             df_rf.index.rename('date',inplace=True)
-            
+            get_api_key_info()
             return df_rf
             
         if set(assets).issubset(set(['benchmark'])):
@@ -66,7 +67,7 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
                              .tz_localize('utc')
                           )
             df_bm.index.rename('date',inplace=True)
-            
+            get_api_key_info()
             return df_bm  
         
         if set(assets).issubset(set(['sector'])):
@@ -134,7 +135,7 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
   
             
             df_sector.index.rename('date',inplace=True)
-            
+            get_api_key_info()
             return df_sector        
         
     ohlcv= ('open', 'high', 'low', 'close', 'volume')
@@ -175,8 +176,9 @@ def get_prices(start_date,end_date,field:str ,assets:list=None):
     prices.index.rename('date',inplace=True)
     
     prices.dropna(how='all',axis=0,inplace=True)
+
     
-    return prices 
+    return prices
     
 
         
@@ -195,14 +197,14 @@ def getToolData(assets:list,query_columns:list,dataframelike:pd.DataFrame):
         query_columns.append('Industry')
     
     if 'Market_Cap_Dollars' not in query_columns:
-        query_columns.append('Market_Cap_Dollars')        
+        query_columns.append('Market_Cap_Dollars')
     
     out ={}    
     for col in query_columns:
         
         try :        
             columns_col = col
-            if col.split('_')[-1] in ('Q','A','TTM'):                
+            if col.split('_')[-1] in ('Q','A','TTM'):
                 columns_col = '_'.join(col.split('_')[:-1])
             
             fdata = (TejToolAPI.get_history_data(ticker=assets, columns=[columns_col], 
@@ -210,28 +212,28 @@ def getToolData(assets:list,query_columns:list,dataframelike:pd.DataFrame):
                         end = et.tz_convert(None),
                         transfer_to_chinese=False)
                         )
-            
+
             try :
                 fdata = (fdata.set_index(['mdate','coid'])
-                             .unstack()                  
+                             .unstack()
                              .rename(columns={c.symbol:c  for c in dataframelike.columns})
                              )[col]     
             except:
-            
+
                 fdata = (fdata.set_index(['mdate','coid'])
-                             .unstack()                  
+                             .unstack()
                              .rename(columns={c.symbol:c  for c in dataframelike.columns})
-                             )              
-                         
+                             )
+
             # if col=='Issue_Shares_1000_Shares':
                 # fdata=fdata['Common_Stock_Shares_Issued_Thousand_Shares']
                 
             # if isinstance(fdata.columns,pd.MultiIndex):
                 # fdata.columns = fdata.columns.droplevel(0)
               
-        except Exception as err:            
-             
-            raise    
+        except Exception as err:
+
+            raise
 
         if (fdata.index.dtype==dataframelike.index.dtype): 
             pass

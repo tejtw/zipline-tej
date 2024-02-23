@@ -168,7 +168,7 @@ cdef Adjustment make_adjustment_from_indices_fused(Py_ssize_t first_row,
 
 
 cpdef make_adjustment_from_labels(DatetimeIndex_t dates_index,
-                                  Int64Index_t assets_index,
+                                  Index_t assets_index,
                                   Timestamp_t start_date,
                                   Timestamp_t end_date,
                                   np.int64_t asset_id,
@@ -190,7 +190,7 @@ cpdef make_adjustment_from_labels(DatetimeIndex_t dates_index,
 
 
 cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
-                                Int64Index_t assets_index,
+                                Index_t assets_index,
                                 Timestamp_t start_date,
                                 Timestamp_t end_date,
                                 np.int64_t asset_id):
@@ -202,9 +202,9 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
 
     Example:
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> get_adjustment_locs(
     ...     dates,
     ...     assets,
@@ -233,7 +233,7 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
 
 cpdef _from_assets_and_dates(cls,
                              DatetimeIndex_t dates_index,
-                             Int64Index_t assets_index,
+                             Index_t assets_index,
                              Timestamp_t start_date,
                              Timestamp_t end_date,
                              np.int64_t asset_id,
@@ -245,9 +245,9 @@ cpdef _from_assets_and_dates(cls,
     Example
     -------
 
-    >>> from pandas import date_range, Int64Index, Timestamp
+    >>> from pandas import date_range, Index, Timestamp
     >>> dates = date_range('2014-01-01', '2014-01-07')
-    >>> assets = Int64Index(range(10))
+    >>> assets = Index(range(10))
     >>> Float64Multiply.from_assets_and_dates(
     ...     dates,
     ...     assets,

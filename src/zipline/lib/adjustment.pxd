@@ -1,7 +1,7 @@
 cimport numpy as np
 
 # Purely for readability. There aren't C-level declarations for these types.
-ctypedef object Int64Index_t
+ctypedef object Index_t
 ctypedef object DatetimeIndex_t
 ctypedef object Timestamp_t
 

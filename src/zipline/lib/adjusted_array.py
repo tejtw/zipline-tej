@@ -45,7 +45,7 @@ INT_DTYPES = frozenset(
     map(dtype, [int16, uint16, int32, int64, uint32]),
 )
 DATETIME_DTYPES = frozenset(
-    map(dtype, ["datetime64[ns]", "datetime64[D]"]),
+    map(dtype, ["datetime64[ns]", "datetime64[s]"]),
 )
 # We use object arrays for strings.
 OBJECT_DTYPES = frozenset(map(dtype, ["O"]))

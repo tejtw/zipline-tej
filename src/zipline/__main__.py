@@ -587,7 +587,7 @@ def bundle_info( bundle ,time ) :
     "--field",
     default = None ,
     type = str ,
-    help="The company id wanted to add.",
+    help="The field wanted to add.",
 )
 def add( bundle , ticker , field) :
     "Add new ticker into bundle data, start and end align the minimize start date and maximize end date."

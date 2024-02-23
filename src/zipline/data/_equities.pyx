@@ -37,7 +37,7 @@ ctypedef object carray_t
 ctypedef object ctable_t
 ctypedef object Timestamp_t
 ctypedef object DatetimeIndex_t
-ctypedef object Int64Index_t
+ctypedef object Index_t
 
 
 @cython.boundscheck(False)
@@ -47,7 +47,7 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
                           dict asset_starts_calendar,
                           intp_t query_start,
                           intp_t query_end,
-                          Int64Index_t requested_assets):
+                          Index_t requested_assets):
     """
     Core indexing functionality for loading raw data from bcolz.
 
@@ -76,7 +76,7 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         Start index in our calendar of the dates for which we're querying.
     query_end : intp
         End index in our calendar of the dates for which we're querying.
-    requested_assets : pandas.Int64Index
+    requested_assets : pandas.Index
         The assets for which we want to load data.
 
     Returns

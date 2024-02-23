@@ -158,7 +158,7 @@ class SQLiteAdjustmentReader(object):
         ----------
         dates : pd.DatetimeIndex
             Dates for which adjustments are needed.
-        assets : pd.Int64Index
+        assets : pd.Index
             Assets for which adjustments are needed.
         should_include_splits : bool
             Whether split adjustments should be included.

@@ -24,8 +24,15 @@ from zipline.data.treasury import get_treasury_returns_from_file   #20230210 (by
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import SimulationParameters
-from zipline.pipeline.data import USEquityPricing, TQDataSet
-from zipline.pipeline.loaders import USEquityPricingLoader, TQuantFundamentalsPipelineLoader
+from zipline.pipeline.data import (USEquityPricing, 
+                                   TQDataSet,
+                                   EquityPricing,
+                                   TQAltDataSet
+                                    )
+from zipline.pipeline.loaders import (USEquityPricingLoader,
+                                    TQuantFundamentalsPipelineLoader,
+                                    EquityPricingLoader, 
+                                    TQuantAlternativesPipelineLoader) # 20240126 HJK
 
 import zipline.utils.paths as pth
 from zipline.utils.input_validation import expect_types #20230809 (by MRC)
@@ -37,6 +44,7 @@ from zipline.errors import (IllegalDTypeException,IllegalColumnException) #20230
 from zipline.algorithm import TradingAlgorithm, NoBenchmark
 from zipline.algorithm import NoTreasury      #20230210 (by MRC)
 from zipline.finance.blotter import Blotter
+from zipline.pipeline.loaders.router import TQuantLabPipelineLoaderRouter # 20230126 HJK
 
 import zipline                                #20230325 (by MRC)
 
@@ -205,15 +213,34 @@ def _run(
     assets = bundle_data.asset_finder.retrieve_all(sids)
     symbol_mapping_sid = {i.symbol:i.sid for i in assets}
 
-    TQuantPipelineLoader = TQuantFundamentalsPipelineLoader(zipline_sids_to_real_sids=symbol_mapping_sid)
+    
+
+
+    TQuantFinPipelineLoader = TQuantFundamentalsPipelineLoader(zipline_sids_to_real_sids=symbol_mapping_sid)
+    TQuantAltPipelineLoader = TQuantAlternativesPipelineLoader(zipline_sids_to_real_sids=symbol_mapping_sid)
+    # pricing_loader = EquityPricingLoader.without_fx(bundle_data.equity_daily_bar_reader,
+    #                                             bundle_data.adjustment_reader)
+    # bundle_name = 'tquant'
+    # calendar_name = bundles.bundles[bundle_name].calendar_name
+    # exchange_calendar = get_calendar(calendar_name)
+    # pipeline_loader = TQuantLabPipelineLoaderRouter(
+    # sids_to_real_sids = symbol_mapping_sid,
+    # calendar = exchange_calendar,
+    # default_loader = pricing_loader,
+    # default_loader_columns=EquityPricing.columns
+
+    # )
 
     def choose_loader(column):
         if column in USEquityPricing.columns:
             return pipeline_loader
         
         if column in TQDataSet.columns:
-            return TQuantPipelineLoader
+            return TQuantFinPipelineLoader
         
+        if column in TQAltDataSet.columns: # 20240126 HJK
+            return TQuantAltPipelineLoader
+
         try:
             return custom_loader.get(column)
         except KeyError:
@@ -534,7 +561,7 @@ def _transform_perf_table_for_record(perf, column):
     else:
         data = pd.DataFrame()
         for i in df1:
-            data = i.append(data)
+            data = pd.concat([i,data])
 
     # transform sid to symbol    
     for i in data.columns:
@@ -630,7 +657,7 @@ def transform_perf_table(perf, column):
         raise IllegalColumnException(column = column)   
 
     raw = []
-    for dt, row in perf[column].iteritems():
+    for dt, row in perf[column].items():
         df = pd.DataFrame(row)
         df.index = [dt] * len(df)
         raw.append(df)

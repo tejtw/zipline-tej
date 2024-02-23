@@ -6,12 +6,14 @@ from zipline.utils.numpy_utils import (
     object_dtype,
     datetime64ns_dtype,
     nan,
-    NaTD
+    NaTD,
+    NaTns
 )
 
 MISSING_VALUES_BY_DTYPE = {
     bool_dtype: False,
     float64_dtype: nan,
     datetime64ns_dtype: NaTD,
+    # datetime64ns_dtype:NaTns,
     object_dtype: ""
 }

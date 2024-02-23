@@ -548,7 +548,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             Index of first date for which we want data.
         end_idx : int
             Index of last date for which we want data.
-        assets : pandas.Int64Index
+        assets : pandas.Index
             Assets for which we want to compute row indices
 
         Returns

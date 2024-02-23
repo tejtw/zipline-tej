@@ -8,6 +8,7 @@ import logging
 import pandas as pd
 import requests
 from zipline.utils.calendar_utils import register_calendar_alias
+from zipline.utils.api_info import get_api_key_info
 from datetime import datetime
 import numpy as np
 import re
@@ -366,7 +367,7 @@ def tej_bundle(
         #     ].loc[raw_data.split_ratio != 1] ## 要改
         #     ,show_progress= show_progress)
     )
-
+    get_api_key_info()
 
 def download_with_progress(url, chunk_size, **progress_kwargs):
     """

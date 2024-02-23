@@ -1000,6 +1000,7 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
 
         Slice = cls._make_dataset(coords)
         cls._slice_cache[hash_key] = Slice
+        # print(Slice)
         return Slice
 
 

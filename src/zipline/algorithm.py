@@ -1399,9 +1399,10 @@ class TradingAlgorithm(object):
 
         return True
 
-		
+
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order(self, asset, amount, limit_price=None, stop_price=None, style=None):
         """Place an order for a fixed number of shares.
 
@@ -1531,7 +1532,8 @@ class TradingAlgorithm(object):
             return MarketOrder()
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_value(self, asset, value, limit_price=None, stop_price=None, style=None):
         """
         Place an order for a fixed amount of money.
@@ -1679,7 +1681,7 @@ class TradingAlgorithm(object):
             The current simulation datetime converted to ``tz``.
         """
         dt = self.datetime
-        assert dt.tzinfo == pytz.utc, "Algorithm should have a utc datetime"
+        assert dt.tzname() == pytz.utc.zone, "Algorithm should have a utc datetime"
         if tz is not None:
             dt = dt.astimezone(tz)
         return dt
@@ -1830,7 +1832,8 @@ class TradingAlgorithm(object):
         self.sim_params.data_frequency = value
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_percent(
         self, asset, percent, limit_price=None, stop_price=None, style=None
     ):
@@ -1884,7 +1887,8 @@ class TradingAlgorithm(object):
         return self._calculate_order_value_amount(asset, value)
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target(
         self, asset, target, limit_price=None, stop_price=None, style=None
     ):
@@ -1957,7 +1961,8 @@ class TradingAlgorithm(object):
         return target
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_value(
         self, asset, target, limit_price=None, stop_price=None, style=None
     ):
@@ -2025,7 +2030,8 @@ class TradingAlgorithm(object):
         )
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_percent(
         self, asset, target, limit_price=None, stop_price=None, style=None
     ):
@@ -2096,7 +2102,8 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    # 20240130 為了支援instant_fill（!293）
+    # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def calculate_order_target_percent_amount(self, asset, target):
         """Calculate order target percent amount (20230831)
         Parameters

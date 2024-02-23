@@ -199,7 +199,7 @@ class Pipeline(object):
                 "Attempted to compile Pipeline with domain {} to execution "
                 "plan with different domain {}.".format(self._domain, domain)
             )
-
+        # 
         return ExecutionPlan(
             domain=domain,
             terms=self._prepare_graph_terms(default_screen),

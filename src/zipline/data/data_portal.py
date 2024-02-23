@@ -14,6 +14,8 @@
 # limitations under the License.
 from operator import mul
 
+from pandas.core.api import Timestamp as Timestamp
+
 from logbook import Logger
 
 import numpy as np
@@ -72,6 +74,7 @@ from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.input_validation import expect_element
 import zipline.utils.paths as pth
+from TejToolAPI import Map_Dask_API as dask_api
 
 from zipline.errors import HistoryWindowStartsBeforeData
 
@@ -399,7 +402,7 @@ class DataPortal(object):
 
             # Append to extra_source_df the reindexed dataframe for the single
             # sid
-            extra_source_df = extra_source_df.append(df)
+            extra_source_df = pd.concat([extra_source_df,df])
             
         self._extra_source_df = extra_source_df
 
@@ -1285,7 +1288,6 @@ def get_bundle_price(start_dt,
                      data_frequency = 'daily',
                      assets = None,
                      transform = False):
-
     """
     Export the bundle's price and volume data (pre-adjustment + post-adjustment)
     into a DataFrame.
@@ -1343,6 +1345,10 @@ def get_bundle_price(start_dt,
     # Removes the last 4 characters '_adj'
     adj_field = [i[:-4] for i in fields if i.endswith('_adj')]
 
+    # 避免get_bundle出來的日期與start_dt及end_dt不一致 (#215 20240202)
+    if not get_calendar(calendar_name).is_session(end_dt):
+        end_dt = get_calendar(calendar_name).previous_close(end_dt).normalize()
+    
     def get_history(adj, fields, transform=False):
 
         if adj:
@@ -1368,7 +1374,8 @@ def get_bundle_price(start_dt,
             df = Bar.history(assets=assets,
                              fields=fields,
                              bar_count=N_tradate,
-                             frequency=frequency)
+                             frequency=frequency
+                             )
 
             # add：symbol and sid
             df.index.set_names(['date','asset'],inplace=True)
@@ -1444,6 +1451,10 @@ def get_bundle_price(start_dt,
 
         # Concatenate the DataFrames with multi-level columns from dict
         df = pd.concat(merged_dict.values(), axis=1, keys=merged_dict.keys())
+    
+        # prevent from PermissionError: [WinError 32]
+        bundle.adjustment_reader.close() 
+
 
     return df
 
@@ -1506,6 +1517,10 @@ def get_bundle_adj(bundle_name = 'tquant'):
 
     df_adj.insert(2,'asset',df_adj['sid'].apply(lambda x: bundle.asset_finder.retrieve_asset(x)))
     df_adj.insert(2,'symbol',df_adj['asset'].apply(lambda x: x.symbol))
+
+    # prevent from PermissionError: [WinError 32]
+    bundle.adjustment_reader.close() 
+
 
     return df_adj
 
@@ -1711,22 +1726,163 @@ def most_recent_data(bundle_name, timestamp, environ=None):
             ),
         )
 
+## 20231211 HJK 新增slice method: MRQ, MRA, Daily
+_dt_to_period = [
+'MRQ',
+'MRA',
+'Daily',
+]
 
-class TQFDataLoader:
+SUPPORTED_SLICE_FREQUENCIES = frozenset(_dt_to_period)
+
+
+expect_slice_frequency = expect_element(
+    frequency=SUPPORTED_SLICE_FREQUENCIES,
+)
+from abc import ABC, abstractmethod
+from zipline.data.bundles.fundamentals import get_cached_columns
+
+
+class TQDataLoader(ABC):
+    @abstractmethod
+    def get_sqlite_script(self, fields):
+        pass
+
+
+    @abstractmethod
+    def retrieve_data(self, 
+                      fields:list = None,
+                    frequency = 'Daily',
+                    start_dt = '2013-01-01', 
+                    end_dt = pd.Timestamp.utcnow(),
+                    period_offset = 0,
+                    dataframeloaders = False):
+        pass
+
+class TQAltDataLoader(TQDataLoader):
+    def __init__(self) -> None:
+        pass
+
+    def create_index(self, connection, table_name = 'factor_table'):
+        check_index = f'''
+        SELECT name, sql
+        FROM sqlite_master
+        WHERE type = 'index'
+        AND tbl_name = '{table_name}';
+        '''
+        # Use a context manager for the database connection
+        # with sqlite3.connect(fundamentals_path) as conn:
+        index_data = pd.read_sql(check_index, connection)
+        # 建立 cursor
+        cursor = connection.cursor()
+        if len(index_data) == 0:
+            c_index_scripts = f'''
+                CREATE INDEX fin_index ON {table_name} (symbol, date);
+            '''
+            cursor.execute(c_index_scripts)
+            # conn.close()
+
+    def process_fields(self, fields:list):
+        default_fields = ['symbol', 'date']
+
+        if not fields:
+            return ','.join(default_fields)
+        
+        processed_fields = list(set(fields+default_fields))
+        return ','.join(processed_fields)
+
+    def get_sqlite_script(self, fields=None, peroid_offset = 0):
+
+        scripts = f'''SELECT {self.fields}
+                    FROM factor_table a
+                    where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
+                '''
+        return scripts
+    
+    
+    def retrieve_data(self, 
+                      fields: list = None, 
+                      frequency='Daily', 
+                      start_dt='2013-01-01', 
+                      end_dt=pd.Timestamp.utcnow(), 
+                      period_offset=0, 
+                      dataframeloaders=False):
+        
+        # transfer list to string
+        self.fields = self.process_fields(fields=fields)
+
+        # Adjust datetime format
+        self.start_dt =  pd.to_datetime(start_dt).strftime('%Y-%m-%d')
+        self.end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d')
+        self.dataframeloaders = dataframeloaders
+        
+        # get sql scripts
+        scripts = self.get_sqlite_script()
+        timestamp = pd.Timestamp.utcnow()
+        bundle_path = most_recent_data('fundamentals', timestamp)
+        fundamentals_path = f'{bundle_path}/factor_table.db'
+
+        # Use a context manager for the database connection
+        with sqlite3.connect(fundamentals_path) as conn:
+            # Create index for the table
+            self.create_index(conn)
+            data = pd.read_sql(scripts, conn, parse_dates=["fin_date", "mon_sales_date", "share_date"])
+        
+        # if fields == '*':
+        #     filled_columns = data.columns.tolist() 
+        #     filled_columns = [i for i in filled_columns if i != 'symbol']
+        #     # print(filled_columns)
+        # else:
+        #     filled_columns = set(fields)
+        #     filled_columns.update(['fin_date', 'lag_fin_date'])
+        #     filled_columns =  list(filled_columns)
+        
+        data = data.groupby('symbol', group_keys=False).apply(dask_api.fillna_multicolumns)
+
+
+        if self.dataframeloaders:
+            bundle_name = 'tquant'
+            tquant = bundles.load(bundle_name)
+            sids = tquant.asset_finder.equities_sids
+            assets = tquant.asset_finder.retrieve_all(sids)
+            symbol_mapping_sid = {i.symbol:i.sid for i in assets}
+            data.date = pd.to_datetime(data.date, utc =True)
+            # Drop duplicated rows
+            data = data.drop_duplicates(subset=['symbol', 'date'], keep='last')
+            data = data.set_index(['symbol', 'date']).unstack('symbol')
+            data = data.rename(columns = symbol_mapping_sid)
+        
+        conn.close()
+        
+        return data
+        
+
+class TQWSDataLoader(TQDataLoader):
+    pass
+
+
+
+class TQFDataLoader(TQDataLoader):
 
     def __init__(self, 
-                 frequency = 'Daily', 
+                #  frequency = 'Daily', 
                  **kwargs
                  ) -> None:
         
-        self.frequency = frequency
+        self.kwargs = kwargs
         
     def process_fields(self, fields):
         if fields == '*':
-            # 选择所有列，但排除 'symbol' 和 'date'
-            return 'a.*'
+            ts = pd.Timestamp.now()
+            ms = most_recent_data(bundle_name='fundamentals', timestamp=ts)
+            processed_fields = get_cached_columns(ms)
+            processed_fields = ['a.'+i for i in processed_fields]
+            processed_fields = ', '.join(processed_fields)
+            # 移除重複的 fin_date
+            processed_fields = processed_fields.replace(', a.fin_date', '')  
+            return processed_fields
         
-        specific_fields = ['symbol', 'date']
+        specific_fields = ['symbol', 'date', 'fin_order', 'lag_fin_date', 'fin_date']
         processed_fields = []
 
         for field in fields:
@@ -1734,49 +1890,101 @@ class TQFDataLoader:
                 processed_fields.append(f'a.{field}')
 
         processed_fields = ['a.symbol', 'a.date'] + processed_fields
+        processed_fields = list(set(processed_fields))
 
         return ', '.join(processed_fields)
 
-    def get_sqlite_script(self):
-        if self.frequency == 'Daily':
-            scripts = f'''SELECT {self.fields} FROM factor_table a
-                where date >= "{self.start_dt}" and strftime('%Y-%m-%d',date) <= "{self.end_dt}"
+    def get_sqlite_script(self, frequency = 'Daily' ,peroid_offset = 0):
+        if peroid_offset != 0:
+            if frequency == 'Daily':
+                scripts = f'''SELECT {self.fields}, a.fin_date,
+                ROW_NUMBER() OVER (PARTITION BY a.symbol, a.fin_date ORDER BY a.date) AS fin_order,
+                    datetime(a.date, '{peroid_offset} days') as lag_fin_date 
+                    FROM factor_table a
+                    left join factor_table b on a.symbol = b.symbol and datetime(a.date, '{peroid_offset} days') = b.fin_date
+                    where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
+                '''
+
+            elif frequency == 'MRA':
+                fields = set(self.fields.split(', ')) - set(['a.symbol', 'a.date', 'a.fin_order', 'a.lag_fin_date'])
+                fields = [field.replace('a.','b.') for field in fields if 'a.' in field]
+                fields = ','.join(fields)
+                if fields:
+                    fields = ','+fields
+                others = fields.replace('b.','a.')
+                scripts = f'''
+                with first_announce as (
+                select symbol, date, fin_date, fin_order, datetime(fin_date, '{peroid_offset} years') as lag_fin_date
+                    from (
+                        select symbol, fin_date, date,
+                        row_number () over (PARTITION by symbol, fin_date order by date) as fin_order
+                        from factor_table
+                    )tmp
+                    where fin_date is not NULL and fin_order = 1 and strftime('%m', fin_date)='12'
+                    
+                ), 
+                samll_factor_table as (
+                    select a.symbol, a.fin_date, b.lag_fin_date, b.fin_order {others}
+                    from factor_table a
+                    inner join first_announce b on a.date = b.date and a.symbol = b.symbol 
+                ),
+                year_fin_data as (
+                    select a.symbol, a.date, a.fin_date, a.lag_fin_date, a.fin_order {fields}
+                    from  first_announce a
+                    left join samll_factor_table b on a.symbol = b.symbol and a.lag_fin_date = b.fin_date
+
+                )
+
+                select a.symbol, a.date, b.fin_date, b.lag_fin_date, b.fin_order {fields}
+                from factor_table a
+                left join year_fin_data b on a.symbol = b.symbol and a.date = b.date
+                where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
+                '''
+                
+
+            else: 
+                fields = set(self.fields.split(', ')) - set(['a.symbol', 'a.date', 'a.fin_order', 'a.lag_fin_date'])
+                fields = [field.replace('a.','b.') for field in fields if 'a.' in field]
+                fields = ','.join(fields)
+                if fields:
+                    fields = ','+fields
+                others = fields.replace('b.','a.')
+                scripts = f'''
+                with first_announce as (
+                select symbol, date, fin_date, fin_order, datetime(fin_date, '{peroid_offset*3} months') as lag_fin_date
+                    from (
+                        select symbol, fin_date, date,
+                        row_number () over (PARTITION by symbol, fin_date order by date) as fin_order
+                        from factor_table
+                    )tmp
+                    where fin_date is not NULL and fin_order = 1
+                    
+                ), 
+                samll_factor_table as (
+                    select a.symbol, a.fin_date, b.lag_fin_date, b.fin_order {others}
+                    from factor_table a
+                    inner join first_announce b on a.date = b.date and a.symbol = b.symbol 
+                ),
+                month_fin_data as (
+                    select a.symbol, a.date, a.fin_date, a.lag_fin_date, a.fin_order {fields}
+                    from  first_announce a
+                    left join samll_factor_table b on a.symbol = b.symbol and a.lag_fin_date = b.fin_date
+
+                )
+
+                select a.symbol, a.date, b.fin_date, b.lag_fin_date, b.fin_order {fields}
+                from  factor_table a
+                left join month_fin_data b on a.symbol = b.symbol and a.date = b.date
+                where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
+                '''
+        else:
+            # if frequency == 'Daily':
+            scripts = f'''SELECT {self.fields}, a.fin_date,
+            ROW_NUMBER() OVER (PARTITION BY a.symbol, a.fin_date ORDER BY a.date) AS fin_order,
+                datetime(a.date, '{peroid_offset} days') as lag_fin_date 
+                FROM factor_table a
+                where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
             '''
-
-        elif self.frequency == 'MRA':
-            scripts = f'''with cte as (
-                        SELECT symbol, 
-                        fin_date, 
-                        date,
-                        ROW_NUMBER() OVER (PARTITION BY symbol, fin_date ORDER BY date) AS annd_date
-                        FROM
-                            factor_table
-                        where fin_date is not null and strftime('%m', fin_date)='12' 
-                        and date >= '{self.start_dt}' and strftime('%Y-%m-%d',date) <= '{self.end_dt}'
-                        )
-
-                        select {self.fields} from factor_table a
-                        inner join cte b on a.symbol=b.symbol and a.date = b.date
-                        where b.annd_date = 1
-            '''
-            
-
-        else: 
-            scripts = f'''with cte as (
-                        SELECT symbol, 
-                        fin_date, 
-                        date,
-                        ROW_NUMBER() OVER (PARTITION BY symbol, fin_date ORDER BY date) AS annd_date
-                        FROM
-                            factor_table
-                        where fin_date is not null and date >= '{self.start_dt}' and strftime('%Y-%m-%d',date) <= '{self.end_dt}'
-                        )
-
-                        select {self.fields} from factor_table a
-                        inner join cte b on a.symbol=b.symbol and a.date = b.date
-                        where b.annd_date = 1
-            '''
-
         return scripts
 
 
@@ -1799,20 +2007,25 @@ class TQFDataLoader:
             cursor.execute(c_index_scripts)
             # conn.close()
 
-
+    @expect_slice_frequency
     def retrieve_data(self, 
-                      fields:list = '*',
+                    fields:list = '*',
+                    frequency = 'Daily',
                     start_dt = '2013-01-01', 
                     end_dt = pd.Timestamp.utcnow(),
+                    period_offset = 0,
                     dataframeloaders = False):
+        
         # transfer list to string
         self.fields = self.process_fields(fields=fields)
+
         # Adjust datetime format
         self.start_dt =  pd.to_datetime(start_dt).strftime('%Y-%m-%d')
         self.end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d')
         self.dataframeloaders = dataframeloaders
         
-        scripts = self.get_sqlite_script()
+        # get sql scripts
+        scripts = self.get_sqlite_script(frequency = frequency, peroid_offset=period_offset)
         timestamp = pd.Timestamp.utcnow()
         bundle_path = most_recent_data('fundamentals', timestamp)
         fundamentals_path = f'{bundle_path}/factor_table.db'
@@ -1821,8 +2034,19 @@ class TQFDataLoader:
         with sqlite3.connect(fundamentals_path) as conn:
             # Create index for the table
             self.create_index(conn)
-            data = pd.read_sql(scripts, conn, parse_dates=["fin_date", "mon_sales_date", "share_date"])
-            
+            data = pd.read_sql(scripts, conn, parse_dates=["fin_date", "mon_sales_date", "share_date", 'lag_fin_date'])
+        
+        if fields == '*':
+            filled_columns = data.columns.tolist() 
+            filled_columns = [i for i in filled_columns if i != 'symbol']
+            # print(filled_columns)
+        else:
+            filled_columns = set(fields)
+            filled_columns.update(['fin_date', 'lag_fin_date'])
+            filled_columns =  list(filled_columns)
+        
+        data = data.groupby('symbol', group_keys=False).apply(dask_api.fillna_multicolumns)
+
 
         if self.dataframeloaders:
             bundle_name = 'tquant'
@@ -1831,64 +2055,56 @@ class TQFDataLoader:
             assets = tquant.asset_finder.retrieve_all(sids)
             symbol_mapping_sid = {i.symbol:i.sid for i in assets}
             data.date = pd.to_datetime(data.date, utc =True)
+            # Drop duplicated rows
+            data = data.drop_duplicates(subset=['symbol', 'date'], keep='last')
             data = data.set_index(['symbol', 'date']).unstack('symbol')
             data = data.rename(columns = symbol_mapping_sid)
-    
+
+        conn.close()
 
         return data
 
-
+# @expect_slice_frequency
 def get_fundamentals(bundle_name = 'fundamentals',
-                     fields:list = '*',
+                     fields:list = None,
                      start_dt = '2013-01-01' ,
                      end_dt = pd.Timestamp.utcnow(),
                      assets=None,
                      dataframeloaders = False,
-                     frequency:str = 'Daily'):
+                    #  frequency:str = 'Daily',
+                    #  period_offset:int = 0
+                     ):
+    
+    def process_fields(fields):
+        # Remove duplicates and exclude certain fields, if needed
+        unique_fields = set(fields) - {'symbol', 'date', '*'}
+        return ', '.join(unique_fields)
+
     
     if 'tquant' not in registered_bundle:
         raise ValueError('tquant尚未註冊，請先執行 !zipline ingest -b tquant')
     
     # Specify the full path to the database file
-    # timestamp = pd.Timestamp.utcnow()
-    # bundle_path = most_recent_data(bundle_name, timestamp)
-    # db_path = f'{bundle_path}/factor_table.db'
+    start_dt =  pd.to_datetime(start_dt).strftime('%Y-%m-%d')
+    end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d')
+    timestamp = pd.Timestamp.utcnow()
+    bundle_path = most_recent_data(bundle_name, timestamp)
+    db_path = f'{bundle_path}/factor_table.db'
+    if not fields:
+        scripts =  f'''
+        select * from factor_table
+        where date >= '{start_dt}' and  strftime('%Y-%m-%d', date) <= '{end_dt}'
+        '''
+    else:
+        processed_fields = process_fields(fields)
+        scripts =  f'''
+        select symbol, date, {processed_fields} from factor_table
+        where date >= '{start_dt}' and  strftime('%Y-%m-%d', date) <= '{end_dt}'
+        '''
+    
+    with sqlite3.connect(db_path) as conn:
+        # Create index for the table
+        data = pd.read_sql(scripts, conn, parse_dates=["fin_date", "mon_sales_date", "share_date"])
 
-    engine = TQFDataLoader(frequency=frequency)
-    data = engine.retrieve_data(
-        fields=fields,    
-        start_dt = start_dt,
-        end_dt = end_dt,
-        dataframeloaders = dataframeloaders
-    )
+    conn.close()
     return data
-    # # Connect to the SQLite database
-    # conn = sqlite3.connect(db_path)
-
-    # # # transfer list to string
-    # # fields_to_str = ', '.join(fields)
-
-    # # # Adjust datetime format
-    # # start_dt = pd.to_datetime(start_dt).strftime('%Y-%m-%d')
-    # # end_dt = pd.to_datetime(end_dt).strftime('%Y-%m-%d') 
-
-    # # Query to fetch data
-    # # query = f'''SELECT {fields_to_str} FROM factor_table
-    # #             where date >= '{start_dt}' and strftime('%Y-%m-%d',date) <= '{end_dt}'
-    # # '''
-
-    # # Use pd.read_sql to read data into a DataFrame
-    # data = pd.read_sql(query, conn)
-    # conn.close()
-
-    # if dataframeloaders:
-    #     bundle_name = 'tquant'
-    #     tquant = bundles.load(bundle_name)
-    #     sids = tquant.asset_finder.equities_sids
-    #     assets = tquant.asset_finder.retrieve_all(sids)
-    #     symbol_mapping_sid = {i.symbol:i.sid for i in assets}
-    #     data.date = pd.to_datetime(data.date, utc =True)
-    #     data = data.set_index(['symbol', 'date']).unstack('symbol')
-    #     data = data.rename(columns = symbol_mapping_sid)
-
-    # return data

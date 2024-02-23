@@ -14,6 +14,8 @@ from zipline.utils.input_validation import (
     validate_keys,
     optional
 )
+from zipline.utils.api_info import get_api_key_info
+
 from zipline.errors import (MultipleSymbolsFound,
                             SymbolNotFound,
                             IllegalValueException,
@@ -206,115 +208,6 @@ def get_history_data(ticker,
         raise ValueError(f'Error occurs while downloading data by func:`TejToolAPI.get_history_data` due to {e} .')
 
     return df
-
-#################
-### pipeline  ###
-#################
-@expect_types(df=pd.DataFrame,
-              bundle_name=str or type(None))  # FIXME use zipline.utils.input_validation.optional
-def to_dict(df, bundle_name='tquant'):
-
-    bundle = bundles.load(bundle_name)
-
-    dfs = {}
-    df['coid'] = df['coid'].astype(str)
-    df = df.set_index(['coid', 'mdate'])
-
-    for i in df.columns:
-        symbols = df.index.get_level_values(0).unique().tolist()
-        assets = bundle.asset_finder.lookup_symbols(symbols, as_of_date=None)
-        sids = pd.Int64Index([asset.sid for asset in assets])
-        symbol_map = dict(zip(symbols, sids))
-        dfs[i] = (df[i]
-                 .unstack('coid')
-                 .rename(columns=symbol_map)
-                 .tz_localize('UTC')
-                 )
-
-    return dfs
-
-@expect_types(dfs=dict,
-              bundle_name=str or type(None)          # FIXME use zipline.utils.input_validation.optional
-)
-def create_custom_loader(dfs, bundle_name='tquant'):
-
-    custom_loader = {}
-    column_names = []
-
-    bundle = bundles.load(bundle_name)
-    dataset = BUNDLE_INFO.get(bundle_name).get('DataSet')
-
-    for i in dataset.columns:
-        if i.name in list(dfs.keys()):
-            custom_loader.update({i:DataFrameLoader(i,dfs[i.name])})
-            column_names.append(i.name)
-
-    logger.info(
-                "\n `DataSet` used: {data},\n `Column` used: {Column},\n column names: {column_names}",
-                data=str(dataset),
-                Column=list(custom_loader.keys()),
-                column_names=column_names,
-                )
-
-    return custom_loader
-
-@expect_types(bundle_name=str or type(None),              # FIXME use zipline.utils.input_validation.optional
-              #to_db=type(None),
-              #db=type(None)
-)
-def create_custom_loader_for_algo(ticker,
-                                  columns,
-                                  start=None,
-                                  end=None,
-                                  fin_type=None,
-                                  include_self_acc=None,
-                                  bundle_name='tquant'):
-                                  #to_db=None,           # TODO:若db不存在，建db
-                                  #db=None):             # TODO:先從db撈資料，若fail再get_history_data()
-
-    raw = get_history_data(ticker,
-                           columns,
-                           start,
-                           end,
-                           fin_type,
-                           include_self_acc
-                           )
-
-    dfs = to_dict(raw, bundle_name)
-
-    custom_loader = create_custom_loader(dfs, bundle_name)
-
-    return raw, custom_loader
-
-
-@expect_types(custom_loader=dict,
-              bundle_name=str or type(None),     # FIXME use zipline.utils.input_validation.optional
-              pipeline=Pipeline
-)
-def run_pipeline(custom_loader, pipeline, start_date, end_date, bundle_name='tquant'):
-
-    bundle = bundles.load(bundle_name)
-    dataset = BUNDLE_INFO.get(bundle_name).get('DataSet')
-    calendar_name = BUNDLE_INFO.get(bundle_name).get('calendar_name')
-
-    pricing_loader = EquityPricingLoader.without_fx(bundle.equity_daily_bar_reader,
-                                                    bundle.adjustment_reader)
-
-    def choose_loader(column):
-        if column.name in EquityPricing._column_names:
-            return pricing_loader
-        elif column.name in dataset._column_names:
-            return custom_loader[column]
-        else:
-            raise Exception('Column: {} not available'.format(str(column.name)))
-
-    engine = SimplePipelineEngine(get_loader = choose_loader,
-                                  asset_finder = bundle.asset_finder,
-                                  default_domain = algo._DEFAULT_DOMAINS.get(calendar_name))
-
-    pipeline_output = engine.run_pipeline(pipeline, start_date, end_date)
-
-    return pipeline_output
 
 
 #####################
@@ -619,7 +512,7 @@ class PandasRequestsTEJ_API(object):
 #################
 ### Benchmark ###
 #################
-@expect_types(symbol=str or type(None))         # FIXME use zipline.utils.input_validation.optional
+@expect_types(symbol=optional(str))
 def get_Benchmark_Return(start,
                          end,
                          symbol='IR0001'):
@@ -633,26 +526,11 @@ def get_Benchmark_Return(start,
     
     # TODO:chk symbol是否為報酬指數(用coid前兩碼是否為IR來判定)
 
-    TEJ_Api_data_source=PandasRequestsTEJ_API(
-                            symbol_column = None,
-                            date_column = None,                                       
-                            date_format = None,
-                            trading_day = None,
-                            asset_finder= None,
-                            columns = ['roi'], # ['coid','mdate','roi']
-                            symbols = [symbol],
-                            timezone = None,
-                            start = start,
-                            end = end, 
-                            fin_type = None,
-                            include_self_acc = None,
-                            import_data = None, 
-                            country_code = None,
-                            data_frequency = None,
-                            pre_func = None,
-                            post_func = None)
-       
-    df = TEJ_Api_data_source.get_history_data()
+    df = tejapi.get('TWN/APIPRCD',
+                    coid = symbol,
+                    opts = {'columns':['coid','mdate','roi']},
+                    mdate = {'gte':start,'lte':end},
+                    paginate = True)
 
     if len(df)==0:
         raise EmptyOutputException(function = '"get_Benchmark_Return"',
@@ -666,6 +544,7 @@ def get_Benchmark_Return(start,
     if not ser.index.tz:
         ser = ser.tz_localize("utc")
 
+    get_api_key_info()
     return ser.sort_index(ascending=True)
 
 #################
@@ -822,6 +701,7 @@ def get_Treasury_Return(start,
     if not ser.index.tz:
         ser = ser.tz_localize("utc")
 
+    get_api_key_info()
     return ser.sort_index(ascending=True)
 
 
@@ -964,4 +844,5 @@ def get_universe(start,
             "function 'get_universe' return an empty 'list'."
         )
 
+    get_api_key_info()
     return sorted(lst)

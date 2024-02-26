@@ -143,10 +143,11 @@ def fetch_data_table(api_key, show_progress,  coid, mdate):
         
         metadata['date'] = metadata['mdate'].apply(lambda x : pd.Timestamp(x.strftime('%Y%m%d')) if not pd.isna(x) else pd.NaT)
         
-        metadata['out_pay'] = pd.to_datetime(metadata['out_pay'])
         # if out_pay is NaT then set default out_pay day = T+21
         metadata.loc[(metadata['ex-dividend'] != 0)&(metadata['out_pay'].isna()),'out_pay'] = metadata.loc[(metadata['ex-dividend'] != 0)&(metadata['out_pay'].isna())].apply(lambda x : (x['mdate'] + pd.Timedelta(days = 21))  ,axis= 1)
         
+        metadata['out_pay'] = pd.to_datetime(metadata['out_pay'])
+
         metadata['news_d'] = pd.to_datetime(metadata['news_d'])
         
         metadata['lastreg'] = pd.to_datetime(metadata['lastreg'])
@@ -290,14 +291,14 @@ def tej_bundle(
         raise ValueError(
             "Please set your TEJAPI_KEY environment variable and retry."
         )
-    source_csv = os.environ.get('raw_source')
-    csv_output_path = os.path.join(output_dir,'raw.csv')
+    source_paq = os.environ.get('raw_source')
+    paq_output_path = os.path.join(output_dir,'raw.parquet')
     raw_data = fetch_data_table(
         api_key, show_progress , coid , mdate
     )
-    if source_csv :
-        source_csv = os.path.join(source_csv,'raw.csv')
-        origin_raw = pd.read_csv(source_csv,dtype = {'symbol':str,})
+    if source_paq :
+        source_paq = os.path.join(source_paq,'raw.parquet')
+        origin_raw = pd.read_parquet(source_paq)
         origin_raw['out_pay'] = origin_raw['out_pay'].fillna(pd.NaT)
         origin_raw['news_d'] = origin_raw['news_d'].fillna(pd.NaT)
         origin_raw['lastreg'] = origin_raw['lastreg'].fillna(pd.NaT)
@@ -306,7 +307,7 @@ def tej_bundle(
         raw_data = raw_data.drop_duplicates(subset = ['symbol','date'])
         raw_data = raw_data.reset_index(drop = True)
 
-    raw_data.to_csv(csv_output_path,index = False)
+    raw_data.to_parquet(paq_output_path,index = False)
     
     asset_metadata = gen_asset_metadata(raw_data[["symbol","stk_name", "date"]], show_progress)
     

@@ -213,12 +213,27 @@ Options:
   --help                          Show this message and exit.
 
 ``` 
-#### New add tickers
+
+### Difference of tquant and fundamentals
+
+* Basically, `tquant` is the one that only contain OHLCV and cash dividend date. And `fundamentals` is the data that exclude from OHLCV, like EPS, gross margin, operating income, etc.
+
+* So in both fundamentals and tquant, we can add tickers as follow :
+
+#### Add tickers
 
 ```
 $ zipline add -t "<ticker_wants_to_add>"
 ```
 If tickers are more than 1 ticker, split them apart by " " or ","  or ";".
+
+#### [fundamentals only] Add fields
+
+```
+$ zipline add -f "<field_wants_to_add>"
+```
+
+* NOTICE that you `CAN'T` add field and ticker simultaneously.
 
 For more detail use **zipline add --help** .
 
@@ -238,17 +253,18 @@ Before using switch, use **zipline bundles** to get the timestamp of each folder
 $ zipline switch -t "<The_timestamp_of_the_folder_want_to_use>"
 ```
 
-Due to zipline only using the newest foler, switch can make previous folder become newest.
+Due to zipline only using the newest folder, switch can make previous folder become newest.
 
 For more detail use **zipline switch --help** .
 
 #### Update bundle
 
-```
-$ zipline update
-```
+* You can either update `tquant` or `fundamentals` by using -b to select which one you want to update the bundle information to newest date.[DEFAULT:tquant]
 
-To update the bundle information to newest date.
+```
+$ zipline update -b tquant
+$ zipline update -b fundamentals
+```
 
 For more detail use **zipline update --help** .
 

@@ -101,6 +101,8 @@ GI_e = ['M1100 Cement',
         'M2600 Shipping and Transportation',
         'M2700 Tourism',
         "M2900 Trading and Consumers' Goods",
+        'M3500 TSE Green Energy and Environmental Services', # !326 #229
+        'M3600 TSE Digital and Cloud Services', # !326 #229
         'M3700 TSE Sports and Leisure',
         'M3800 TSE Household',
         'M9700 Oil Gas, and Electricity',
@@ -123,6 +125,8 @@ GI_e = ['M1100 Cement',
         'OTC32 Cultural & Creative Industry',
         'OTC33 OTC Agricultural Science and Technology',
         'OTC34 OTC E-commerce',
+        'OTC35 OTC Green Energy and Environmental Services', # !326 #229
+        'OTC36 OTC Digital and Cloud Services', # !326 #229
         'OTC37 OTC Sports and Leisure',
         'OTC38 OTC Household',
         'OTC89 OTC Others',
@@ -145,6 +149,8 @@ GI_c = ['M1100 水泥工業',
         'M2600 航運業',
         'M2700 觀光餐旅',
         'M2900 貿易百貨',
+        'M3500 綠能環保', # !326 #229
+        'M3600 數位雲端', # !326 #229
         'M3700 運動休閒',
         'M3800 居家生活',
         'M9700 油電燃氣業',
@@ -167,6 +173,8 @@ GI_c = ['M1100 水泥工業',
         'OTC32 文化創意業',
         'OTC33 OTC 農業科技',
         'OTC34 OTC 電子商務',
+        'OTC35 OTC 綠能環保', # !326 #229
+        'OTC36 OTC 數位雲端', # !326 #229
         'OTC37 OTC 運動休閒',
         'OTC38 OTC 居家生活',
         'OTC89 OTC 其它',

@@ -1,13 +1,3 @@
-import warnings
-warnings.filterwarnings("always", category=FutureWarning, module=__name__.replace('.', r'\.'))
-warnings.warn(
-    "`zipline.pipeline.data.tejquant` will be deprecated in a future version, "
-    "which includes the removal of the `TQDataSet` class. "
-    "Please migrate to `zipline.pipeline.data.TQFundamentals` for accessing the equivalent classes: "
-    "`TQData`, `TQDataSet`, `TQAltData`, and `TQAltDataSet`. ",
-    FutureWarning
-)
-
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.domain import TW_EQUITIES
 

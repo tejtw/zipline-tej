@@ -1452,8 +1452,8 @@ def get_bundle_price(start_dt,
         # Concatenate the DataFrames with multi-level columns from dict
         df = pd.concat(merged_dict.values(), axis=1, keys=merged_dict.keys())
     
-        # prevent from PermissionError: [WinError 32]
-        bundle.adjustment_reader.close() 
+    # prevent from PermissionError: [WinError 32]
+    bundle.adjustment_reader.close() 
 
 
     return df

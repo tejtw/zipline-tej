@@ -397,7 +397,7 @@ dependencies:
   - ruamel_yaml=0.15.80
   - scikit-image=0.19.2
   - scikit-learn=1.0.2
-  - scipy=1.8.0
+  - scipy=1.10.0
   - scrapy=2.6.1
   - seaborn=0.11.2
   - seaborn-base=0.11.2

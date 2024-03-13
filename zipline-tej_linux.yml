@@ -102,7 +102,7 @@ dependencies:
   - libpng=1.6.39
   - libpq=12.15
   - libsodium=1.0.18
-  - libstdcxx-ng=11.2.0
+  - libstdcxx-ng>=12.0.0
   - libtiff=4.5.0
   - libuuid=1.41.5
   - libwebp=1.2.4
@@ -171,7 +171,7 @@ dependencies:
   - python=3.11.5
   - python-dateutil=2.8.2
   - python-fastjsonschema=2.16.2
-  - python_abi=3.8
+  - python_abi=3.11
   - pytz=2022.7
   - pyyaml=6.0
   - pyzmq=25.1.0

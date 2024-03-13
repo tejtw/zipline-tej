@@ -193,7 +193,7 @@ dependencies:
     - sqlalchemy==1.4.50
     - statsmodels==0.14.0
     - tej-exchange-calendars==1.0.0
-    - tej-tool-api==1.1.14
+    - tej-tool-api==1.1.1
     - tejapi==0.1.28
     - tenacity==8.2.3
     - terminado==0.18.0

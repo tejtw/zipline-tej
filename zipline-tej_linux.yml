@@ -63,7 +63,7 @@ dependencies:
   - importlib_resources=5.2.0
   - intel-openmp=2023.1.0
   - ipykernel=6.19.2
-  - ipython=8.12.0
+  - ipython=8.22.2
   - ipython_genutils=0.2.0
   - jedi=0.18.1
   - jinja2=3.1.2
@@ -139,7 +139,7 @@ dependencies:
   - numpy=1.22.3
   - openssl=3.0.9
   - packaging=23.0
-  - pandas=1.2.5
+  - pandas=1.5.3
   - pandas-datareader=0.10.0
   - pandocfilters=1.5.0
   - parso=0.8.3
@@ -160,7 +160,6 @@ dependencies:
   - ptyprocess=0.7.0
   - pure_eval=0.2.2
   - pycparser=2.21
-  - pyfolio-reloaded=0.9.4
   - pygments=2.15.1
   - pyluach=2.2.0
   - pyopenssl=23.0.0
@@ -169,7 +168,7 @@ dependencies:
   - pyqt5-sip=12.11.0
   - pyrsistent=0.18.0
   - pysocks=1.7.1
-  - python=3.8.17
+  - python=3.11.5
   - python-dateutil=2.8.2
   - python-fastjsonschema=2.16.2
   - python_abi=3.8
@@ -222,8 +221,9 @@ dependencies:
     - blosc2==2.0.0
     - click==8.1.4
     - et-xmlfile==1.1.0
+    - fastparquet==2024.2.0
     - greenlet==2.0.2
-    - h5py==3.9.0
+    - h5py==3.10.0
     - inflection==0.5.1
     - intervaltree==3.1.0
     - iso3166==2.0.2

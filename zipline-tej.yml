@@ -505,7 +505,7 @@ dependencies:
   - zope.interface=5.4.0
   - zstd=1.5.2
   - pip:
-    - alphalens-tej>=0.0.3
+    - alphalens-tej>=2.0.2
     - backtrader==1.9.76.123
     - cvxpy==1.2.0
     - ecos==2.0.10
@@ -515,9 +515,9 @@ dependencies:
     - pyportfolioopt==1.5.2
     - qdldl==0.1.5.post2
     - scs==3.2.0
-    - tej-tool-api>=1.0.15
+    - tej-tool-api>=1.1.1
     - tejapi>=0.1.28
-    - tej-exchange-calendars==0.0.7
-    - pyfolio-tej>=0.0.3
-    - zipline-tej>=0.0.51
+    - tej-exchange-calendars==1.0.0
+    - pyfolio-tej>=2.0.2
+    - zipline-tej>=2.0.0
 

@@ -606,7 +606,6 @@ class TargetPercentPipeAlgo(PipeAlgo):
                       tz_convert('utc'). # 2024-01-02 01:01:00+8
                       tz_localize(None) # 2024-01-02 01:01:00+0
                       )
-                print(self.get_datetime())
                 if self.rebalance_date_rule.should_trigger(dt):
                     self.rebalance(data)
 

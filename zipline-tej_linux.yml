@@ -135,7 +135,7 @@ dependencies:
   - notebook-shim=0.2.2
   - nspr=4.35
   - nss=3.89.1
-  - numba=0.53.0
+  - numba=0.58.0
   - numpy=1.22.3
   - openssl=3.0.9
   - packaging=23.0

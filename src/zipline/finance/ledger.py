@@ -56,6 +56,7 @@ class PositionTracker(object):
         self._dirty_stats = True
         self._stats = PositionStats.new()
 
+
     def update_position(
         self,
         asset,
@@ -63,6 +64,7 @@ class PositionTracker(object):
         last_sale_price=None,
         last_sale_date=None,
         cost_basis=None,
+        last_open_price=None
     ):
         self._dirty_stats = True
 
@@ -76,6 +78,12 @@ class PositionTracker(object):
             position.amount = amount
         if last_sale_price is not None:
             position.last_sale_price = last_sale_price
+
+        # !346 #113 for current bar backtesting
+        # (in order to caculate `portfolio.start_portfolio_value`)
+        if last_open_price is not None:
+            position.last_open_price= last_open_price
+
         if last_sale_date is not None:
             position.last_sale_date = last_sale_date
         if cost_basis is not None:
@@ -163,8 +171,8 @@ class PositionTracker(object):
                         ", cash_dividend amount: " + str(cash_dividend.amount) + \
                         ", pay_date: " + str(cash_dividend.pay_date.strftime('%Y-%m-%d')) + \
                         ", div_owed: " + str(div_owed['amount']))
-                        #20230525 (by MRC) 顯示股利發放訊息     
-                           
+                        # 20230525 (by MRC) 顯示股利發放訊息
+
             try:
                 self._unpaid_dividends[cash_dividend.pay_date].append(div_owed)
                              
@@ -187,8 +195,8 @@ class PositionTracker(object):
                 self._unpaid_stock_dividends[stock_dividend.pay_date] = [
                     div_owed,
                 ]
-				
-				
+
+
     def pay_dividends(self, next_trading_day):
         """
         Returns a cash payment based on the dividends that should be paid out
@@ -267,25 +275,26 @@ class PositionTracker(object):
         ]
 
     def sync_last_sale_prices(self, dt, data_portal, handle_non_market_minutes=False):
+        # !346 #113 for current_bar backtesting
+        #
+        #### Before the Change:
+        # The `partial` function was used to fix the `field` parameter to `"price"`,
+        # calling `get_adjusted_value` and `get_scalar_asset_spot_value` during non-market
+        # and market hours, respectively.
+        #
+        #### After the Change:
+        # In order to caculate `position.last_open_price`, we introduced a `lambda` function
+        # that allows the `field` parameter to be dynamically
+
         self._dirty_stats = True
 
-        if handle_non_market_minutes:
-            previous_minute = data_portal.trading_calendar.previous_minute(dt)
-            get_price = partial(
-                data_portal.get_adjusted_value,
-                field="price",
-                dt=previous_minute,
-                perspective_dt=dt,
-                data_frequency=self.data_frequency,
-            )
+        previous_minute = data_portal.trading_calendar.previous_minute(dt) if handle_non_market_minutes else dt
 
-        else:
-            get_price = partial(
-                data_portal.get_scalar_asset_spot_value,
-                field="price",
-                dt=dt,
-                data_frequency=self.data_frequency,
-            )
+        get_price = lambda asset, field='price': (
+            data_portal.get_adjusted_value(asset, field=field, dt=previous_minute, perspective_dt=dt, data_frequency=self.data_frequency)
+            if handle_non_market_minutes
+            else data_portal.get_scalar_asset_spot_value(asset, field=field, dt=dt, data_frequency=self.data_frequency)
+        )
 
         update_position_last_sale_prices(self.positions, get_price, dt)
 
@@ -683,6 +692,10 @@ class Ledger(object):
         position_stats = pt.stats
 
         portfolio.positions_value = position_value = position_stats.net_value
+
+        # !346 #113 for current bar backtesting(`order_percent` and `order_target_percent`)
+        portfolio.start_portfolio_value = portfolio.cash + position_stats.start_net_value
+
         portfolio.positions_exposure = position_stats.net_exposure
         self._cash_flow(self._get_payout_total(pt.positions))
 

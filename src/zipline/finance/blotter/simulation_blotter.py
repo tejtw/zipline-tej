@@ -40,6 +40,8 @@ warning_logger = Logger("AlgoWarning")
 
 @register(Blotter, "default")
 class SimulationBlotter(Blotter):
+    # !236 add trading_policy
+    # !338 !355 #113 add execution_price_type
     def __init__(
         self,
         equity_slippage=None,
@@ -47,12 +49,12 @@ class SimulationBlotter(Blotter):
         equity_commission=None,
         future_commission=None,
         cancel_policy=None,
-        # 20230807 add trading_policy
         trading_policy=None,
+        execution_price_type=None
     ):
         super().__init__(cancel_policy=cancel_policy,
-                         # 20230807 add trading_policy
-                         trading_policy=trading_policy)
+                         trading_policy=trading_policy,
+                         execution_price_type=execution_price_type)
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
@@ -73,8 +75,8 @@ class SimulationBlotter(Blotter):
             ),
         }
         self.commission_models = {
-            # (20231127) change default commission model for equities from PerShare()
-            # to Custom_TW_Commission().
+            # !238 change default commission model for equities from PerShare()
+            # to Custom_TW_Commission()
             Equity: equity_commission or Custom_TW_Commission(),
             Future: future_commission
             or PerContract(
@@ -82,6 +84,9 @@ class SimulationBlotter(Blotter):
                 exchange_fee=FUTURE_EXCHANGE_FEES_BY_SYMBOL,
             ),
         }
+
+        # !338 !355 #113 add execution_price_type
+        self.execution_price_type = execution_price_type or 'close'
 
     def __repr__(self):
         return """
@@ -402,9 +407,10 @@ class SimulationBlotter(Blotter):
             for asset, asset_orders in self.open_orders.items():
                 slippage = self.slippage_models[type(asset)]
 
-                #20230807 add trading_policy
+                # !236 add trading_policy 
+                # !338 !355 #113 add execution_price_type
                 for order, txn in slippage.simulate(
-                    bar_data, asset, asset_orders, self.trading_policy
+                    bar_data, asset, asset_orders, self.trading_policy, self.execution_price_type
                 ):
                     commission = self.commission_models[type(asset)]
                     additional_commission = commission.calculate(order, txn)

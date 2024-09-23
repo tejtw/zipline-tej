@@ -24,7 +24,11 @@ import numpy as np
 
 from itertools import chain, repeat
 
-from zipline.data.bcolz_daily_bars import ANNOTATION_CHINESE
+from zipline.data.bcolz_daily_bars import (
+    ANNOTATION_CHINESE,
+    OHLC
+)
+from zipline.data.data_portal import INVERSE_PRICE_MAPPING
 
 from zipline.utils.calendar_utils import get_calendar, days_at_time
 
@@ -52,6 +56,7 @@ from zipline.errors import (
     ZeroCapitalError,
     IllegalValueException,
     RegisterTradingPolicyPostInit,
+    RegisterExecutionPriceTypePostInit
 )
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.controls import (
@@ -101,6 +106,7 @@ from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
     error_keywords,
+    expect_element,
     expect_dtypes,
     expect_types,
     optional,
@@ -155,7 +161,7 @@ class NoBenchmark(ValueError):
         )
 
 
-# for treasury return column in perf(20230211)
+# for treasury return column in perf
 class NoTreasury(ValueError):
     def __init__(self):
         super(NoTreasury, self).__init__(
@@ -252,8 +258,9 @@ class TradingAlgorithm(object):
         cancel_policy=None,
         benchmark_sid=None,
         benchmark_returns=None,
-        treasury_sid=None,         # for treasury return column in perf (20230209)
-        treasury_returns=None,     # for treasury return column in perf (20230209)
+        # for treasury return column in perf
+        treasury_sid=None,
+        treasury_returns=None,
         platform="zipline",
         capital_changes=None,
         get_pipeline_loader=None,
@@ -266,7 +273,7 @@ class TradingAlgorithm(object):
         # List of account controls to be checked on each bar.
         self.account_controls = []
 
-        # for annotation(20230807)
+        # !113 #73 for annotation
         self.trading_policy = []
 
         # new added @20230926 (by Han)
@@ -302,7 +309,7 @@ class TradingAlgorithm(object):
             self.asset_finder = data_portal.asset_finder
 
         self.benchmark_returns = benchmark_returns
-        # for treasury return column in perf(20230209)
+        # for treasury return column in perf
         self.treasury_returns = treasury_returns
 
         # XXX: This is also a mess. We should remove all of this and only allow
@@ -347,6 +354,9 @@ class TradingAlgorithm(object):
             cancel_policy = cancel_policy or NeverCancel()
             blotter_class = blotter_class or SimulationBlotter
             self.blotter = blotter_class(cancel_policy=cancel_policy)
+
+        # !346 !355 #113  for opening price backtesting
+        self.blotter.execution_price_type = 'close'
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
@@ -426,7 +436,7 @@ class TradingAlgorithm(object):
         self.initialize_kwargs = initialize_kwargs or {}
 
         self.benchmark_sid = benchmark_sid
-        # for treasury return column in perf(20230209)
+        # for treasury return column in perf
         self.treasury_sid = treasury_sid
 
         # A dictionary of capital changes, keyed by timestamp, indicating the
@@ -553,7 +563,7 @@ class TradingAlgorithm(object):
 
         # Seems like the before_trading_start-function is hardcoded with "US/Eastern"-timezone. 
         # Changed this to local timezone("US/Eastern"->"Asia/Taipei").
-        # Otherwise, PIPELINE cannot operate correctly.(20230217)
+        # Otherwise, PIPELINE cannot operate correctly.
         before_trading_start_minutes = days_at_time(
             self.sim_params.sessions, time(8, 45), "Asia/Taipei"
         )
@@ -565,7 +575,7 @@ class TradingAlgorithm(object):
             before_trading_start_minutes,
             minute_emission=minutely_emission,
         )
-    
+
     def _create_benchmark_source(self):
         if self.benchmark_sid is not None:
             benchmark_asset = self.asset_finder.retrieve_asset(self.benchmark_sid)
@@ -584,7 +594,7 @@ class TradingAlgorithm(object):
         )
 
 
-    # for treasury return column in perf (20230209)
+    # for treasury return column in perf
     def _create_treasury_source(self):
         if self.treasury_sid is not None:
             treasury_asset = self.asset_finder.retrieve_asset(self.treasury_sid)
@@ -628,21 +638,23 @@ class TradingAlgorithm(object):
             self.initialized = True
 
         benchmark_source = self._create_benchmark_source()
-        # for treasury return column in perf (20230209)
+        # for treasury return column in perf
         treasury_source = self._create_treasury_source()
-        
+
         self.trading_client = AlgorithmSimulator(
             self,
             sim_params,
             self.data_portal,
             self._create_clock(),
             benchmark_source,
-            treasury_source,        # for treasury return column in perf 20230209
+            # for treasury return column in perf
+            treasury_source,
             self.restrictions,
         )
-        
+
         metrics_tracker.handle_start_of_simulation(benchmark_source=benchmark_source,
-                                                   treasury_source=treasury_source)   # for treasury return column in perf 20230209
+                                                   # for treasury return column in perf
+                                                   treasury_source=treasury_source)
 
         return self.trading_client.transform()
 
@@ -654,7 +666,7 @@ class TradingAlgorithm(object):
         for name, pipe in self._pipelines.items():
             if pipe.eager:
                 self.pipeline_output(name)
-            
+
 
     def get_generator(self):
         """
@@ -688,10 +700,10 @@ class TradingAlgorithm(object):
             perfs = []
             for perf in self.get_generator():
                 perfs.append(perf)
-                
+
             # convert perf dict to pandas dataframe
             daily_stats = self._create_daily_stats(perfs)
-            
+
             self.analyze(daily_stats)
         finally:
             self.data_portal = None
@@ -722,7 +734,7 @@ class TradingAlgorithm(object):
         # appearing unusual.
 
         # TODO This code should be modified in future release. Because this can cause 
-        # complications when using pyfolio.(20230213)
+        # complications when using pyfolio.
         daily_dts = daily_dts.tz_convert(tz=tz)
         # daily_dts = make_utc_aware(daily_dts)
 
@@ -734,7 +746,7 @@ class TradingAlgorithm(object):
         # to prevent the trading times from appearing unusual.
 
         # TODO This code should be modified in future release.Because this can cause complications
-        # when using pyfolio.(20230213)
+        # when using pyfolio
         daily_stats['period_open']=daily_stats['period_open'].array.tz_convert(tz=tz)
         daily_stats['period_close']=daily_stats['period_close'].array.tz_convert(tz=tz)
 
@@ -882,7 +894,7 @@ class TradingAlgorithm(object):
         **kwargs,
     ):
         """Fetch data from TEJ TOOL API and register the data so that it is
-        queryable from the ``data`` object using ``data.current``.(20230211)
+        queryable from the ``data`` object using ``data.current``.
 
         Parameters
         ----------
@@ -1166,7 +1178,7 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     @api_method
-    def set_benchmark(self, benchmark):   
+    def set_benchmark(self, benchmark):
         """Set the benchmark asset.
 
         Parameters
@@ -1182,7 +1194,7 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetBenchmarkOutsideInitialize()
 
-        self.benchmark_sid = benchmark    
+        self.benchmark_sid = benchmark
 
     @api_method
     @preprocess(root_symbol_str=ensure_upper_case)
@@ -1355,7 +1367,21 @@ class TradingAlgorithm(object):
                 " {1}.".format(asset.symbol, asset.end_date)
             )
         else:
-            last_price = self.trading_client.current_data.current(asset, "price")
+            # !343 !355 #113 for opening price and current_bar backtesting.
+            # If the scenario is a backtest using the `current_bar` and the
+            # purchase price(`execution_price_type`) of the stock is not `close`,
+            # then the `last_price` should be calculated using the `price` field
+            # corresponding to the `execution_price_type`.
+            #
+            # see also: INVERSE_PRICE_MAPPING
+
+
+            if (self.datetime.astimezone(tz).time() == time(8, 45)) & (self.blotter.execution_price_type!='close'):
+                field = INVERSE_PRICE_MAPPING[self.blotter.execution_price_type]
+            else:
+                field = 'price'
+
+            last_price = self.trading_client.current_data.current(asset, field)
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
@@ -1400,8 +1426,19 @@ class TradingAlgorithm(object):
         return True
 
 
+    # !343 !355 #113 for opening price backtesting
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    @expect_element(price_type=OHLC)
+    def set_execution_price_type(self, price_type='close'):
+
+        if self.initialized:
+            raise RegisterExecutionPriceTypePostInit()
+
+        self.blotter.execution_price_type = price_type
+
+
+    @api_method
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order(self, asset, amount, limit_price=None, stop_price=None, style=None):
         """Place an order for a fixed number of shares.
@@ -1532,7 +1569,7 @@ class TradingAlgorithm(object):
             return MarketOrder()
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_value(self, asset, value, limit_price=None, stop_price=None, style=None):
         """
@@ -1609,6 +1646,7 @@ class TradingAlgorithm(object):
                 self.data_portal,
             )
             self._last_sync_time = dt
+
     # new add for modify account info @20230926 (by Han)
     def _sync_account(self,dt = None) :
         """Sync the last sale prices and account on the metrics tracker to a given
@@ -1703,8 +1741,8 @@ class TradingAlgorithm(object):
         This function can only be called during
         :func:`~zipline.api.initialize`.
 
-        (20231127)
-        Change the parameter name from `us_equities` to `equities`, 
+
+        !239 Change the parameter name from `us_equities` to `equities`,
         and from `us_futures` to `futures`.
         Synchronize this change in `zipline.api.pyi`.
 
@@ -1750,8 +1788,7 @@ class TradingAlgorithm(object):
         :func:`~zipline.api.initialize`.
 
 
-        (20231127)
-        Change the parameter name from `us_equities` to `equities`, 
+        !239 Change the parameter name from `us_equities` to `equities`, 
         and from `us_futures` to `futures`.
         Synchronize this change in `zipline.api.pyi`.
 
@@ -1832,7 +1869,7 @@ class TradingAlgorithm(object):
         self.sim_params.data_frequency = value
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_percent(
         self, asset, percent, limit_price=None, stop_price=None, style=None
@@ -1883,11 +1920,23 @@ class TradingAlgorithm(object):
         )
 
     def _calculate_order_percent_amount(self, asset, percent):
-        value = self.portfolio.portfolio_value * percent
+
+        # !346 !355 #113 for current bar backtesting
+        # self.portfolio.start_portfolio_value: 
+        # the initial value of stock positions considering `ex-rights`,
+        # an opening price field(`last_open_price`) needs to be added
+        # to the class `Position`.
+
+        if (self.datetime.astimezone(tz).time() == time(8, 45)): #  & (self.blotter.execution_price_type!='close'):
+             value = self.portfolio.start_portfolio_value * percent
+        else:
+            value = self.portfolio.portfolio_value * percent
+        # value = self.portfolio.portfolio_value * percent
+
         return self._calculate_order_value_amount(asset, value)
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target(
         self, asset, target, limit_price=None, stop_price=None, style=None
@@ -1961,7 +2010,7 @@ class TradingAlgorithm(object):
         return target
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_value(
         self, asset, target, limit_price=None, stop_price=None, style=None
@@ -2030,7 +2079,7 @@ class TradingAlgorithm(object):
         )
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_percent(
         self, asset, target, limit_price=None, stop_price=None, style=None
@@ -2102,10 +2151,10 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
-    # 20240130 為了支援instant_fill（!293）
+    # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def calculate_order_target_percent_amount(self, asset, target):
-        """Calculate order target percent amount (20230831)
+        """!131 Calculate order target percent amount 
         Parameters
         ----------
         asset : Asset
@@ -2414,7 +2463,7 @@ class TradingAlgorithm(object):
     ##################
     # Trading Policy #
     ##################
-    # 20230804 (by MRC) 新增Trading Policy功能
+    # !114 #73 add Trading Policy
     def register_trading_policy(self, trading_policy):
         """
         Register a new TradingPolicy to be checked prior to transcation and order calls.

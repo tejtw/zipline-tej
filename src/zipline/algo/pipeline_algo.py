@@ -1,11 +1,13 @@
 import numpy as np
 import logbook
 
+from zipline.data.data_portal import INVERSE_PRICE_MAPPING
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.input_validation import (
     expect_types,
     optional,
-    expect_strictly_bounded
+    expect_strictly_bounded,
+    expect_bounded
 )
 from zipline.utils.events import (
     date_rules,
@@ -13,7 +15,7 @@ from zipline.utils.events import (
     EventRule
 )
 
-from zipline.pipeline.data import (USEquityPricing, 
+from zipline.pipeline.data import (USEquityPricing,
                                    TQDataSet,
                                    # EquityPricing,
                                    TQAltDataSet
@@ -58,7 +60,8 @@ class PipeAlgo(BasicAlgo):
                  pipeline,
                  liquidity_risk_management_rule,
                  order_filling_policy='next_bar',
-                 benchmark = 'IR0001'):
+                 price_type='close',
+                 benchmark='IR0001'):
 
         super().__init__(bundle_name = bundle_name,
                          start_session = start_session,
@@ -81,7 +84,9 @@ class PipeAlgo(BasicAlgo):
                          commission_model = commission_model,
                          get_pipeline_loader = self.choose_loader,
                          liquidity_risk_management_rule = liquidity_risk_management_rule,
-                         order_filling_policy = order_filling_policy)
+                         order_filling_policy = order_filling_policy,
+                         price_type = price_type,
+                         )
 
         self.custom_loader = custom_loader
         self.symbol_mapping_sid = {i.symbol:i.sid for i in self.assets}
@@ -138,7 +143,11 @@ class TargetPercentPipeAlgo(PipeAlgo):
     This algorithm uses the buy and sell lists provided by the pipeline, places
     orders using the `order_target_percent` method, and rebalances periodically.
     """
-    @expect_strictly_bounded(max_leverage=(0, None),)
+    @expect_strictly_bounded(max_leverage=(0, None),
+                             )
+    @expect_bounded(min_long_count=(0, None),
+                    min_short_count=(0, None)
+                    )
     @expect_types(rebalance_date_rule=optional(EventRule),
                   max_leverage=(float, int),
                   limit_buy_multiplier=optional(float),
@@ -147,6 +156,8 @@ class TargetPercentPipeAlgo(PipeAlgo):
                   cancel_datedelta=optional(int),
                   custom_weight=bool,
                   get_transaction_detail=bool,
+                  min_long_count=optional(int),
+                  min_short_count=optional(int)
                   )
     def __init__(self,
                  bundle_name='tquant',
@@ -178,7 +189,10 @@ class TargetPercentPipeAlgo(PipeAlgo):
                  get_record_vars=False,
                  get_transaction_detail=False,
                  liquidity_risk_management_rule=None,
-                 order_filling_policy='next_bar'):
+                 order_filling_policy='next_bar',
+                 price_type='close',
+                 min_long_count=0,
+                 min_short_count=0):
 
         self.rebalance_date_rule = rebalance_date_rule
         if self.rebalance_date_rule:
@@ -190,10 +204,15 @@ class TargetPercentPipeAlgo(PipeAlgo):
         self.adjust_amount = adjust_amount
         self.limit_buy_multiplier = limit_buy_multiplier
         self.limit_sell_multiplier = limit_sell_multiplier
-        self.allow_short = allow_short
+        # self.allow_short = allow_short
+        self.min_long_count = min_long_count
+        self.min_short_count = min_short_count
         self.custom_weight = custom_weight
         self.cancel_datedelta = cancel_datedelta
         self.user_defined_analyze = analyze
+
+        self.allow_long = False
+        self.allow_short = False
 
         super().__init__(
                          bundle_name=bundle_name,
@@ -218,7 +237,8 @@ class TargetPercentPipeAlgo(PipeAlgo):
                          slippage_model = slippage_model,
                          commission_model = commission_model,
                          liquidity_risk_management_rule = liquidity_risk_management_rule,
-                         order_filling_policy = order_filling_policy
+                         order_filling_policy = order_filling_policy,
+                         price_type=price_type,
                         )
 
 
@@ -237,13 +257,17 @@ class TargetPercentPipeAlgo(PipeAlgo):
     zero treasury returns or not（if "True" then treasury returns = 0）= {zero_treasury_returns},
     max_leverage = {max_leverage},
     slippage model used = {slippage_model},
-    commission_model = {commission_model},
+    commission model used = {commission_model},
     liquidity_risk_management_rule = {liquidity_risk_management_rule},
     order_filling_policy = {order_filling_policy},
+    price_type = {price_type},
     adjust amount or not = {adjust_amount},
     limit_buy_multiplier = {limit_buy_multiplier},
     limit_sell_multiplier = {limit_sell_multiplier},
-    allow short or not（if "False" then long only）= {allow_short},
+    allow long or not = {allow_long},
+    allow short or not = {allow_short},
+    min_long_count = {min_long_count},
+    min_short_count = {min_short_count},
     use custom weight or not（if not then "equal weighted"）= {custom_weight},
     cancel_datedelta（if "None" then cancel open orders at next rebalance date）= {cancel_datedelta},
     stocklist = {stocklist},
@@ -254,27 +278,31 @@ class TargetPercentPipeAlgo(PipeAlgo):
     blotter = {blotter},
     recorded_vars = {recorded_vars})
 """.strip().format(class_name=self.__class__.__name__,
-                           sim_params=self.sim_params,
-                           benchmark=self.benchmark,
-                           zero_treasury_returns = self.zero_treasury_returns,
-                           max_leverage=self.max_leverage,
-                           slippage_model=self.slippage_model,
-                           commission_model=self.commission_model,
-                           liquidity_risk_management_rule=self.liquidity_risk_management_rule,
-                           order_filling_policy=self. order_filling_policy,
-                           adjust_amount=self.adjust_amount,
-                           limit_buy_multiplier=self.limit_buy_multiplier,
-                           limit_sell_multiplier=self.limit_sell_multiplier,
-                           allow_short=self.allow_short,
-                           custom_weight=self.custom_weight,
-                           cancel_datedelta=self.cancel_datedelta,
-                           stocklist=sorted(self.stocklist),
-                           tradeday=self.tradeday,
-                           rebalance_date_rule=self.rebalance_date_rule,
-                           get_transaction_detail=self.get_transaction_detail,
-                           blotter=repr(self.blotter),
-                           recorded_vars=repr(self.recorded_vars),
-                          )
+                   sim_params=self.sim_params,
+                   benchmark=self.benchmark,
+                   zero_treasury_returns = self.zero_treasury_returns,
+                   max_leverage=self.max_leverage,
+                   slippage_model=self.slippage_model,
+                   commission_model=self.commission_model,
+                   liquidity_risk_management_rule=self.liquidity_risk_management_rule,
+                   order_filling_policy=self. order_filling_policy,
+                   price_type=self.price_type,
+                   adjust_amount=self.adjust_amount,
+                   limit_buy_multiplier=self.limit_buy_multiplier,
+                   limit_sell_multiplier=self.limit_sell_multiplier,
+                   allow_long=self.allow_long,
+                   allow_short=self.allow_short,
+                   min_long_count=self.min_long_count,
+                   min_short_count=self.min_short_count,
+                   custom_weight=self.custom_weight,
+                   cancel_datedelta=self.cancel_datedelta,
+                   stocklist=sorted(self.stocklist),
+                   tradeday=self.tradeday,
+                   rebalance_date_rule=self.rebalance_date_rule,
+                   get_transaction_detail=self.get_transaction_detail,
+                   blotter=repr(self.blotter),
+                   recorded_vars=repr(self.recorded_vars),
+                   )
 
 
     def get_target_amount(self, asset, count, max_leverage, weight_columns):
@@ -314,9 +342,9 @@ class TargetPercentPipeAlgo(PipeAlgo):
         4. Finally, the function returns the calculated `limit_price`.
         """
         if amount > 0:
-            limit_price = data.current(asset, 'price') * self.limit_buy_multiplier
+            limit_price = data.current(asset, INVERSE_PRICE_MAPPING[self.price_type]) * self.limit_buy_multiplier
         elif amount < 0:
-            limit_price = data.current(asset, 'price') * self.limit_sell_multiplier
+            limit_price = data.current(asset, INVERSE_PRICE_MAPPING[self.price_type]) * self.limit_sell_multiplier
         else:
             limit_price = None
 
@@ -372,19 +400,23 @@ class TargetPercentPipeAlgo(PipeAlgo):
 #         pipeline
         self.attach_pipeline(self.pipeline, 'signals')
 
-#         chk long
-        if 'longs' not in self.pipeline.columns:
-            raise ValueError('No PipelineLoader registered for column "longs", check func："pipeline"')
+#         chk 'longs' and 'shorts'
+        if ('longs' not in self.pipeline.columns) & ('shorts' not in self.pipeline.columns):
+            raise ValueError('No PipelineLoader registered for both column "longs" and "shorts", check func: "pipeline"')
 
-#         chk allow_short
-        if (self.allow_short==True) & ('shorts' not in self.pipeline.columns):
-            raise ValueError('No PipelineLoader registered for column "shorts", set "allow_short = False" instead or check func："pipeline"')
+#         'allow_long' and 'allow_short'
+        if ('longs' in self.pipeline.columns):
+            self.allow_long=True
+
+        if ('shorts' in self.pipeline.columns):
+            self.allow_short=True
 
 #         chk weights
-        if ('long_weights' not in self.pipeline.columns) & (self.custom_weight==True):
-            raise ValueError('No PipelineLoader registered for column "long_weights", set "custom_weight = False" instead or check func："pipeline"')
-        elif (self.allow_short==True) & ('short_weights' not in self.pipeline.columns) & (self.custom_weight==True):
-            raise ValueError('No PipelineLoader registered for column "short_weights", set "custom_weight = False" instead or check func："pipeline"')
+        if (self.custom_weight==True):
+            if (self.allow_long==True) & ('long_weights' not in self.pipeline.columns):
+                raise ValueError('No PipelineLoader registered for column "long_weights", set "custom_weight = False" instead or check func："pipeline"')
+            elif (self.allow_short==True) & ('short_weights' not in self.pipeline.columns):
+                raise ValueError('No PipelineLoader registered for column "short_weights", set "custom_weight = False" instead or check func："pipeline"')
 
 
     def exec_trades(self, data, asset, count, long_short):
@@ -536,7 +568,10 @@ class TargetPercentPipeAlgo(PipeAlgo):
                                 )
 
             # 建立買進清單
-            self.list_longs = list(set(self.output.loc[self.output['longs']==True].index.to_list()))
+            if self.allow_long:
+                self.list_longs = list(set(self.output.loc[self.output['longs']==True].index.to_list()))
+            else:
+                self.list_longs = []
 
             # 建立放空清單
             if self.allow_short:
@@ -551,19 +586,24 @@ class TargetPercentPipeAlgo(PipeAlgo):
             N = len(self.list_longs)
             N_S = len(self.list_shorts)
 
-
+            # 至少要有1檔股票，才執行再平衡，否則前期股票會繼續持有。
+            # if (N >= self.min_long_count) | (N_S >= self.min_short_count):
             if (N > 0) | (N_S > 0):
 
                 try:
                     for i in self.divest:
                         self.order_target(i, 0)
 
-                    for i in self.list_longs:
-                        self.exec_trades(data, i, N, 'long')
+                    # 至少要有1檔，且要>=min_long_count
+                    if (N >= self.min_long_count) & (N > 0):
+                        for i in self.list_longs:
+                            self.exec_trades(data, i, N, 'long')
 
-                    for i in self.list_shorts:
-                        self.exec_trades(data, i, N_S, 'short') 
-                        
+                    # 至少要有1檔，且要>=min_short_count
+                    if (N_S >= self.min_short_count) & (N_S > 0):
+                        for i in self.list_shorts:
+                            self.exec_trades(data, i, N_S, 'short')
+
                 except Exception as e:
                     log.warn('{} {}'.format(self.get_datetime().date(), e))
 

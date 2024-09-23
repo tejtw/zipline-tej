@@ -24,16 +24,26 @@ cpdef update_position_last_sale_prices(positions, get_price, dt):
     """
     cdef InnerPosition inner_position
     cdef np.float64_t last_sale_price
+    cdef np.float64_t last_open_price
 
     for outer_position in positions.values():
         inner_position = outer_position.inner_position
 
         last_sale_price = get_price(inner_position.asset)
+        # !346 #113 for current bar backtesting
+        # In order to calculate the initial value of stock positions considering
+        # `ex-rights`, an opening price field(`last_open_price`) needs to be added
+        # to the class `Position`.
+        last_open_price = get_price(inner_position.asset, field='open_price')
 
         # inline ~isnan because this gets called once per position per minute
         if last_sale_price == last_sale_price:
             inner_position.last_sale_price = last_sale_price
             inner_position.last_sale_date = dt
+
+        # !346 #113 for current bar backtesting
+        if last_open_price == last_open_price:
+            inner_position.last_open_price = last_open_price
 
 
 @cython.final
@@ -85,10 +95,13 @@ cdef class PositionStats:
     cdef readonly np.float64_t gross_value
     cdef readonly np.float64_t long_exposure
     cdef readonly np.float64_t long_value
+    cdef readonly np.float64_t start_long_value      # !346 #113 for current bar backtesting
     cdef readonly np.float64_t net_exposure
     cdef readonly np.float64_t net_value
+    cdef readonly np.float64_t start_net_value       # !346 #113 for current bar backtesting
     cdef readonly np.float64_t short_exposure
     cdef readonly np.float64_t short_value
+    cdef readonly np.float64_t start_short_value     # !346 #113 for current bar backtesting
     cdef readonly np.uint64_t longs_count
     cdef readonly np.uint64_t shorts_count
     cdef readonly object position_exposure_array
@@ -135,11 +148,15 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
 
     cdef np.float64_t value
     cdef np.float64_t exposure
+    cdef np.float64_t start_value
 
     cdef np.float64_t net_value
+    cdef np.float64_t start_net_value            # !346 #113 for current bar backtesting
     cdef np.float64_t gross_value
     cdef np.float64_t long_value = 0.0
+    cdef np.float64_t start_long_value = 0.0     # !346 #113 for current bar backtesting
     cdef np.float64_t short_value = 0.0
+    cdef np.float64_t start_short_value = 0.0    # !346 #113 for current bar backtesting
 
     cdef np.float64_t net_exposure
     cdef np.float64_t gross_exposure
@@ -219,6 +236,14 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
             short_value += value
             short_exposure += exposure
 
+        # !346 #113 for current bar backtesting
+        start_value = position.amount * position.last_open_price
+
+        if start_value > 0:
+            start_long_value += start_value
+        elif start_value < 0:
+            start_short_value += start_value
+
         with cython.boundscheck(False), cython.wraparound(False):
             index[ix] = position.asset.sid
             position_exposure[ix] = exposure
@@ -226,6 +251,10 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
         ix += 1
 
     net_value = long_value + short_value
+
+    # !346 #113 for current bar backtesting
+    start_net_value = start_long_value + start_short_value
+
     gross_value = long_value - short_value
 
     net_exposure = long_exposure + short_exposure
@@ -238,6 +267,13 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
     stats.longs_count = longs_count
     stats.net_exposure = net_exposure
     stats.net_value = net_value
+
+    # !346 #113 for current bar backtesting
+    # see also:
+    # class: zipline.finance.ledger.PositionTracker
+    # func: sync_last_sale_price
+    stats.start_net_value = start_net_value
+
     stats.short_exposure = short_exposure
     stats.short_value = short_value
     stats.shorts_count = shorts_count

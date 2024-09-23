@@ -89,10 +89,13 @@ BASE_FIELDS = frozenset(
         "close",
         "volume",
         "price",
+        "open_price", # !343 #113 for opening price backtesting
+        "high_price", # !343 #113 for opening price backtesting
+        "low_price",  # !343 #113 for opening price backtesting
         "contract",
         "sid",
         "last_traded",
-        "annotation",# 20230914 add annotation
+        "annotation", # 20230914 add annotation
     ]
 )
 
@@ -103,6 +106,12 @@ OHLCV_ADJ_FIELDS = frozenset(["open_adj", "high_adj", "low_adj", "close_adj", "v
 OHLCV_ADJ_FIELDS_LIST = ["open_adj", "high_adj", "low_adj", "close_adj", "volume_adj"]
 
 OHLCVP_FIELDS = frozenset(["open", "high", "low", "close", "volume", "price"])
+
+PRICE_MAPPING = {'price':'close',
+                 'open_price':'open',
+                 'high_price':'high',
+                 'low_price':'low'}
+INVERSE_PRICE_MAPPING = {v: k for k, v in PRICE_MAPPING.items()}
 
 HISTORY_FREQUENCIES = set(["1m", "1d"])
 
@@ -495,7 +504,8 @@ class DataPortal(object):
         assets : Asset, ContinuousFuture, or iterable of same.
             The asset or assets whose data is desired.
         field : {'open', 'high', 'low', 'close', 'volume',
-                 'price', 'last_traded'}
+                 'open_price', 'high_price', 'low_price', 'price',
+                 'last_traded'}
             The desired field of the asset.
         dt : pd.Timestamp
             The timestamp for the desired value.
@@ -508,9 +518,10 @@ class DataPortal(object):
         value : float, int, or pd.Timestamp
             The spot value of ``field`` for ``asset`` The return type is based
             on the ``field`` requested. If the field is one of 'open', 'high',
-            'low', 'close', or 'price', the value will be a float. If the
-            ``field`` is 'volume' the value will be a int. If the ``field`` is
-            'last_traded' the value will be a Timestamp.
+            'low', 'close', 'open_price', 'high_price', 'low_price' or 'price', 
+            the value will be a float. If the ``field`` is 'volume' the value 
+            will be a int. If the ``field`` is 'last_traded' the value will be
+            a Timestamp.
         """
         assets_is_scalar = False
         if isinstance(assets, (AssetConvertible, PricingDataAssociable)):
@@ -559,7 +570,8 @@ class DataPortal(object):
             The asset or assets whose data is desired. This cannot be
             an arbitrary AssetConvertible.
         field : {'open', 'high', 'low', 'close', 'volume',
-                 'price', 'last_traded'}
+                 'open_price', 'high_price', 'low_price', 'price',
+                 'last_traded'}
             The desired field of the asset.
         dt : pd.Timestamp
             The timestamp for the desired value.
@@ -572,9 +584,10 @@ class DataPortal(object):
         value : float, int, or pd.Timestamp
             The spot value of ``field`` for ``asset`` The return type is based
             on the ``field`` requested. If the field is one of 'open', 'high',
-            'low', 'close', or 'price', the value will be a float. If the
-            ``field`` is 'volume' the value will be a int. If the ``field`` is
-            'last_traded' the value will be a Timestamp.
+            'low', 'close', 'open_price', 'high_price', 'low_price' or 'price', 
+            the value will be a float. If the ``field`` is 'volume' the value 
+            will be a int. If the ``field`` is 'last_traded' the value will be
+            a Timestamp.
         """
         return self._get_single_asset_value(
             self.trading_calendar.minute_to_session_label(dt),
@@ -593,8 +606,9 @@ class DataPortal(object):
         ----------
         assets : list of type Asset, or Asset
             The asset, or assets whose adjustments are desired.
-        field : {'open', 'high', 'low', 'close', 'volume', \
-                 'price', 'last_traded'}
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'open_price', 'high_price', 'low_price', 'price',
+                 'last_traded'}
             The desired field of the asset.
         dt : pd.Timestamp
             The timestamp for the desired value.
@@ -662,8 +676,9 @@ class DataPortal(object):
         ----------
         asset : Asset
             The asset whose data is desired.
-        field : {'open', 'high', 'low', 'close', 'volume', \
-                 'price', 'last_traded'}
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'open_price', 'high_price', 'low_price', 'price',
+                 'last_traded'}
             The desired field of the asset.
         dt : pd.Timestamp
             The timestamp for the desired value.
@@ -678,10 +693,10 @@ class DataPortal(object):
         value : float, int, or pd.Timestamp
             The value of the given ``field`` for ``asset`` at ``dt`` with any
             adjustments known by ``perspective_dt`` applied. The return type is
-            based on the ``field`` requested. If the field is one of 'open',
-            'high', 'low', 'close', or 'price', the value will be a float. If
-            the ``field`` is 'volume' the value will be a int. If the ``field``
-            is 'last_traded' the value will be a Timestamp.
+            based on the ``field`` requested. If the field is one of 'open', 'high',
+            'low', 'close', 'open_price', 'high_price', 'low_price' or 'price',
+            the value will be a float. If the ``field`` is 'volume' the value will
+            be a int. If the ``field`` is 'last_traded' the value will be a Timestamp.
         """
         if spot_value is None:
             # if this a fetcher field, we want to use perspective_dt (not dt)
@@ -759,11 +774,12 @@ class DataPortal(object):
                 return reader.get_value(asset, dt, column)
             except NoDataOnDate:
                 return np.nan
-        elif column == "price":
+        # !343 #113 for opening price backtesting: `PRICE_MAPPING.keys()` and `PRICE_MAPPING[column]`
+        elif column in PRICE_MAPPING.keys():
             found_dt = dt
             while True:
                 try:
-                    value = reader.get_value(asset, found_dt, "close")
+                    value = reader.get_value(asset, found_dt, PRICE_MAPPING[column])
                     if not isnull(value):
                         if dt == found_dt:
                             return value
@@ -773,6 +789,7 @@ class DataPortal(object):
                                 asset, column, found_dt, dt, "minute", spot_value=value
                             )
                     else:
+                        # forward fill
                         found_dt -= self.trading_calendar.day
                 except NoDataOnDate:
                     return np.nan
@@ -1659,6 +1676,7 @@ def get_annotation(start_dt,
         df['disp_fg'] = np.where(df['annotation'].str.contains("處置股票"), 'Y', '')
         df['full_fg'] = np.where(df['annotation'].str.contains("全額交割股票"), 'Y', '')
         df['sbadt_fg'] = np.where(df['annotation'].str.contains("暫停當沖先賣後買"), 'Y', '')
+        df['ssadt_fg'] = np.where(df['annotation'].str.contains("暫停當沖先買後賣"), 'Y', '')
         df['limo_fg'] = np.where(df['annotation'].str.contains("開盤即鎖死"), 'Y', '')
 
         df['limit_fg'] = ''

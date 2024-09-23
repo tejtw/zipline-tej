@@ -14,6 +14,8 @@
 # limitations under the License.
 from distutils.version import StrictVersion
 import os
+if os.getenv('TEJAPI_BASE') is None :
+    os.environ['TEJAPI_BASE'] = 'https://api.tej.com.tw'
 import numpy as np
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
@@ -27,7 +29,7 @@ from . import utils
 from .utils.numpy_utils import numpy_version
 from .utils.pandas_utils import new_pandas
 from .utils.run_algo import run_algorithm
-						 
+
 # These need to happen after the other imports.
 from .algorithm import TradingAlgorithm
 from . import api
@@ -50,10 +52,7 @@ if global_calendar_dispatcher._calendars:
 del global_calendar_dispatcher
 
 try :
-    from ._version import get_versions  # noqa 402
-
-    __version__ = get_versions()["version"]
-    del get_versions
+    from ._version import __version__  # noqa 402
 except :
     __version__ = '2.2.0'
     

@@ -9,8 +9,10 @@ from zipline._protocol import handle_non_market_minutes
 from zipline.sources.TEJ_Api_Data import get_Treasury_Return
 
 from zipline.data import bundles
-from zipline.data.data_portal import DataPortal
-
+from zipline.data.data_portal import  (
+    DataPortal,
+    INVERSE_PRICE_MAPPING
+)
 from zipline.utils.run_algo import  (
     get_transaction_detail,
     get_record_vars,
@@ -51,7 +53,8 @@ class BasicAlgo(TradingAlgorithm):
                   #get_pipeline_loader=,
                   benchmark=optional(str),
                   liquidity_risk_management_rule=optional(list),
-                  order_filling_policy=str
+                  order_filling_policy=str,
+                  price_type=str
                   )
     def __init__(self,
                  bundle_name,
@@ -75,6 +78,7 @@ class BasicAlgo(TradingAlgorithm):
                  get_pipeline_loader,
                  liquidity_risk_management_rule,
                  order_filling_policy='next_bar',
+                 price_type='close',
                  benchmark = 'IR0001'):
 
         self.bundle_name = bundle_name
@@ -124,8 +128,11 @@ class BasicAlgo(TradingAlgorithm):
 
         if stocklist:
             self.stocklist = stocklist
+            self.universe = [self.bundle.asset_finder.lookup_symbol(i, as_of_date = None) for i in self.stocklist]
         else:
             self.stocklist = list(set([i.symbol for i in self.assets]) - set(benchmark))
+            self.universe = self.assets
+
 
         # class:`zipline.algorithm.TradingAlgorithm`
         # property:`benchmark_sid`and `benchmark_returns`
@@ -158,11 +165,13 @@ class BasicAlgo(TradingAlgorithm):
         self._record_vars = record_vars
         self.get_record_vars = get_record_vars
         self.get_transaction_detail = get_transaction_detail
+
         self.slippage_model = slippage_model
         self.commission_model = commission_model
 
         self.liquidity_risk_management_rule = liquidity_risk_management_rule
         self.order_filling_policy = order_filling_policy
+        self.price_type = price_type
 
 
     @staticmethod
@@ -206,7 +215,7 @@ class BasicAlgo(TradingAlgorithm):
         """
         # 預計成交時價格
         transaction_price = self.data_portal.get_spot_value(assets = asset,
-                                                            field = 'close',
+                                                            field = self.price_type,
                                                             dt = self.calculate_next_trading_date(self.trading_calendar,
                                                                                                   self.get_datetime().strftime('%Y-%m-%d'),
                                                                                                   1),
@@ -214,7 +223,7 @@ class BasicAlgo(TradingAlgorithm):
 
         if np.isnan(transaction_price)==False:
             # 前一筆價格
-            order_price = data.current(asset, "price")
+            order_price = data.current(asset, INVERSE_PRICE_MAPPING[self.price_type])
 
             # 價格變化
             chg = transaction_price / order_price
@@ -260,10 +269,13 @@ class BasicAlgo(TradingAlgorithm):
 
             self.set_commission(self.commission_model)
 
-            self.universe = [self.symbol(i) for i in self.stocklist]
+            # self.universe = [self.symbol(i) for i in self.stocklist]
 
             if self.liquidity_risk_management_rule:
                 self.set_liquidity_risk_management_rule(rules=self.liquidity_risk_management_rule, log=True)
+
+            if self.price_type!='close':
+                self.set_execution_price_type(price_type=self.price_type)
 
             """
             這邊理論上不可用self._initialize(self, *args, **kwargs)，因為這是在底層類別下定義的

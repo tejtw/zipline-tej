@@ -164,13 +164,24 @@ You attempted to set an account control outside of `initialize`. \
 Account controls may only be set in your initialize method.
 """.strip()
 
-# 20230804 (by MRC) see also：func`zipline.algorithm.register_trading_control`
+
+# see also：func`zipline.algorithm.register_trading_control`
 class RegisterTradingPolicyPostInit(ZiplineError):
     # Raised if a user's script register's a trading policy after initialize
     # has been run.
     msg = """
 You attempted to set an trading policy outside of `initialize`. \
 Trading policy may only be set in your initialize method.
+""".strip()
+
+
+# !338 !355 #113 add execution_price_type
+class RegisterExecutionPriceTypePostInit(ZiplineError):
+    # Raised if a user's script register's a execution price after initialize
+    # has been run.
+    msg = """
+You attempted to set an execution price outside of `initialize`. \
+Execution price may only be set in your initialize method.
 """.strip()
 
 

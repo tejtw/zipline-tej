@@ -547,6 +547,7 @@ class TQAltData(DataSetFamily):
     Market_Board_Eng = Column(object)
     Security_Type_Chinese = Column(object)
     Suspension_of_Buy_After_Day_Trading_Fg = Column(object)
+    Suspension_of_Sell_After_Day_Trading_Fg = Column(object)
     Limit_Up_or_Down = Column(object)
     Component_Stock_of_TPEx200_Fg = Column(object)
     Disposition_Stock_Fg = Column(object)

@@ -45,7 +45,13 @@ class Position(object):
     __slots__ = "inner_position", "protocol_position"
 
     def __init__(
-        self, asset, amount=0, cost_basis=0.0, last_sale_price=0.0, last_sale_date=None
+        self,
+        asset,
+        amount=0,
+        cost_basis=0.0,
+        last_sale_price=0.0,
+        last_sale_date=None,
+        last_open_price=0.0
     ):
         inner = zp.InnerPosition(
             asset=asset,
@@ -53,6 +59,8 @@ class Position(object):
             cost_basis=cost_basis,
             last_sale_price=last_sale_price,
             last_sale_date=last_sale_date,
+            # !346 #113 for current bar backtesting
+            last_open_price=last_open_price
         )
         object.__setattr__(self, "inner_position", inner)
         object.__setattr__(self, "protocol_position", zp.Position(inner))
@@ -148,6 +156,8 @@ class Position(object):
             # best data we have so far
             if self.last_sale_date is None or txn.dt > self.last_sale_date:
                 self.last_sale_price = txn.price
+                # !346 #113 for current bar backtesting
+                self.last_open_price = txn.price
                 self.last_sale_date = txn.dt
 
         self.amount = total_shares
@@ -200,7 +210,7 @@ last_sale_price: {last_sale_price}"
             asset=self.asset,
             amount=self.amount,
             cost_basis=self.cost_basis,
-            last_sale_price=self.last_sale_price,
+            last_sale_price=self.last_sale_price
         )
 
     def to_dict(self):

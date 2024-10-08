@@ -788,7 +788,15 @@ sa.Column("English_Abbreviation", sa.String),  # You can adjust the length accor
 sa.Column("Exchange_Industry_Code", sa.String),  # You can adjust the length according to your data
 sa.Column("Unified_Identification_Number", sa.String),  # You can adjust the length according to your data
 sa.Column("Security_Full_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("Delisting_Date", sa.DateTime)
+sa.Column("Delisting_Date", sa.DateTime),
+
+# 董監持股
+sa.Column("Director_and_Supervisor_Holdings_Percentage", sa.Float),
+sa.Column("Manager_Holdings_Percentage", sa.Float),
+sa.Column("Major_Shareholder_Holdings_Percentage_TSE", sa.Float),
+sa.Column("Total_Director_and_Supervisor_Holdings_Percentage", sa.Float),
+sa.Column("Managers_Total_Holdings_Percentage", sa.Float),
+sa.Column("Major_Shareholder_Total_Holdings_Percentage_TSE", sa.Float)
 
 )
 

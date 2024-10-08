@@ -670,6 +670,14 @@ class TQAltData(DataSetFamily):
     QoQ_Accu_Sales_3M = Column(float)
     Sales_Monthly_LastYear = Column(float)
 
+    # 董監持股
+    Director_and_Supervisor_Holdings_Percentage = Column(float)
+    Manager_Holdings_Percentage = Column(float)
+    Major_Shareholder_Holdings_Percentage_TSE = Column(float)
+    Total_Director_and_Supervisor_Holdings_Percentage = Column(float)
+    Managers_Total_Holdings_Percentage = Column(float)
+    Major_Shareholder_Total_Holdings_Percentage_TSE = Column(float)
+
     mon_sales_date = Column('datetime64[ns]')
     share_date = Column('datetime64[ns]')
 

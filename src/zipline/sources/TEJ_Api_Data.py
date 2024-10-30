@@ -63,7 +63,8 @@ LIQUIDITY_RISK_COLUMNS = {'Full_Delivery':'Full_Delivery_Stock_Fg',
                           'Disposition':'Disposition_Stock_Fg',
                           #'Suspended':'Suspended_Trading_Stock_Fg',
                           'Limit_Up_or_Down_in_Opening':'Limit_Up_or_Down_in_Opening_Fg',
-                          'Suspension_of_Buy_After_Day_Trading':'Suspension_of_Buy_After_Day_Trading_Fg'
+                          'Suspension_of_Buy_After_Day_Trading':'Suspension_of_Buy_After_Day_Trading_Fg',
+                          'Suspension_of_Sell_After_Day_Trading':'Suspension_of_Sell_After_Day_Trading_Fg'
 }
 
 # Map bundle name to DataSet and calendar_name.

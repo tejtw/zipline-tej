@@ -28,6 +28,7 @@ from .finance.slippage import (
     FixedSlippage,
     FixedBasisPointsSlippage,
     VolumeShareSlippage,
+    PctSlippage
 )
 from .utils import math_utils, events
 from .utils.events import calendars, date_rules, time_rules
@@ -38,6 +39,7 @@ __all__ = [
     "FixedBasisPointsSlippage",
     "NeverCancel",
     "VolumeShareSlippage",
+    "PctSlippage",
     "Restriction",
     "StaticRestrictions",
     "HistoricalRestrictions",

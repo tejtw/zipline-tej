@@ -55,7 +55,7 @@ def load_data_table(file, index_col, show_progress=False):
     )
     return data_table
 def parse_annotation(data) :
-    data['mch_prd'].fillna(0,inplace=  True)
+    data.fillna({'mch_prd':0},inplace=  True)
     data['annotation'] = '1'
     data['annotation'] +=data.apply(lambda x : '1' if x['atten_fg'] == "Y" else "0",axis=1)
     data['annotation'] +=data.apply(lambda x : '1' if x['disp_fg'] == "Y" else "0",axis=1)
@@ -137,7 +137,7 @@ def fetch_data_table(api_key, show_progress,  coid, mdate):
         
         metadata = metadata.rename({'coid':'ticker','open_d':'open','low_d':'low','high_d':'high','close_d':'close','vol':'volume','div':'ex-dividend'},axis =1)
         
-        metadata["ex-dividend"].fillna(0,inplace= True)
+        metadata.fillna({"ex-dividend":0}, inplace= True)
         
         metadata.loc[first_list,'ex-dividend'] = 0
         

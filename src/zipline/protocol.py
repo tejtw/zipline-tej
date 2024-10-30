@@ -141,6 +141,10 @@ class Portfolio(object):
         self_.cash_flow = 0.0
         self_.starting_cash = capital_base
         self_.portfolio_value = capital_base
+
+        # !346 #113 for current bar backtesting
+        self_.start_portfolio_value = capital_base
+
         self_.pnl = 0.0
         self_.returns = 0.0
         self_.cash = capital_base
@@ -260,6 +264,7 @@ class Position(object):
                 "cost_basis",
                 "last_sale_price",
                 "last_sale_date",
+                "last_open_price" # !346 #113 for current bar backtesting
             )
         }
 

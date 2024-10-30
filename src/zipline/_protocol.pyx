@@ -203,7 +203,8 @@ cdef class BarData:
             The asset(s) for which data is requested.
         fields : str or iterable[str].
             Requested data field(s). Valid field names are: "price",
-            "last_traded", "open", "high", "low", "close", and "volume".
+            "open_price", "high_price", "low_price", "last_traded",
+            "open", "high", "low", "close", and "volume".
 
         Returns
         -------
@@ -231,7 +232,8 @@ cdef class BarData:
 
         The values produced for ``fields`` are as follows:
 
-        - Requesting "price" produces the last known close price for the asset,
+        - Requesting "price"/"open_price"/"high_price"/"low_price"
+          produces the last known "close"/"open"/"high"/"low" for the asset,
           forward-filled from an earlier minute if there is no trade this
           minute. If there is no last known value (either because the asset
           has never traded, or because it has delisted) NaN is returned. If a
@@ -708,22 +710,30 @@ cdef class InnerPosition:
                  amount=0,
                  cost_basis=0.0,
                  last_sale_price=0.0,
-                 last_sale_date=None):
+                 last_sale_date=None,
+                 last_open_price=0.0
+                 ):
         self.asset = asset
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
         self.last_sale_date = last_sale_date
 
+        # !346 #113 for current bar backtesting
+        # In order to calculate the initial value of stock.(`portfolio.start_portfolio_value`)
+        self.last_open_price = last_open_price
+
+
     def __repr__(self):
         return (
                 '%s(asset=%r, amount=%r, cost_basis=%r,'
-                ' last_sale_price=%r, last_sale_date=%r)' % (
+                ' last_sale_price=%r, last_sale_date=%r, last_open_price=%r)' % (
                     type(self).__name__,
                     self.asset,
                     self.amount,
                     self.cost_basis,
                     self.last_sale_price,
                     self.last_sale_date,
+                    self.last_open_price,
                 )
         )

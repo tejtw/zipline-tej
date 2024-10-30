@@ -160,7 +160,16 @@ class SlippageModel(metaclass=FinancialModelMeta):
         """
         raise NotImplementedError("process_order")
 
-    def simulate(self, data, asset, orders_for_asset, trading_policy):   #20230804 (by MRC)新增trading_policy功能
+    # !236 add trading_policy 
+    # !338 !355 #113 add execution_price_type
+    def simulate(self,
+                 data,
+                 asset,
+                 orders_for_asset,
+                 trading_policy,
+                 execution_price_type
+                 ):
+
         self._volume_for_bar = 0
         volume = data.current(asset, "volume")
 
@@ -169,7 +178,10 @@ class SlippageModel(metaclass=FinancialModelMeta):
 
         # can use the close price, since we verified there's volume in this
         # bar.
-        price = data.current(asset, "close")
+
+        # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
+        # price = data.current(asset, "close")
+        price = data.current(asset, execution_price_type)
 
         # BEGIN
         #
@@ -180,14 +192,14 @@ class SlippageModel(metaclass=FinancialModelMeta):
         # END
         dt = data.current_dt
 
-        # 20230804 (by MRC) 新增trading_policy判斷，當trading_policy.validate為False時不交易。
+        # !236 新增trading_policy判斷，當trading_policy.validate為False時不交易。
         if trading_policy is not None:
             for i in trading_policy:
                 if not i.validate(asset, dt, data):
                     return
                 else:
                     continue
-					
+
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
@@ -199,8 +211,9 @@ class SlippageModel(metaclass=FinancialModelMeta):
             txn = None
 
             try:
+                # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
                 execution_price, execution_volume = self.process_order(
-                    data, order
+                    data, order, execution_price_type
                 )
 
                 if execution_price is not None:
@@ -232,13 +245,14 @@ class NoSlippage(SlippageModel):
     """
 
     @staticmethod
-    def process_order(data, order):
+    def process_order(data, order, execution_price_type):
         return (
-            data.current(order.asset, "close"),
+            # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
+            # data.current(order.asset, "close"),
+            data.current(order.asset, execution_price_type),
             order.amount,
         )
-
-
+    
 class EquitySlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
     """
     Base class for slippage models which only support equities.
@@ -304,7 +318,9 @@ class VolumeShareSlippage(SlippageModel):
             price_impact=self.price_impact,
         )
 
-    def process_order(self, data, order):
+    # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
+    def process_order(self, data, order, execution_price_type):
+
         volume = data.current(order.asset, "volume")
 
         max_volume = self.volume_limit * volume
@@ -329,7 +345,10 @@ class VolumeShareSlippage(SlippageModel):
 
         volume_share = min(total_volume / volume, self.volume_limit)
 
-        price = data.current(order.asset, "close")
+        # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
+        # price = data.current(order.asset, "close")
+        price = data.current(order.asset, execution_price_type)
+
 
         # BEGIN
         #
@@ -381,45 +400,177 @@ class FixedSlippage(SlippageModel):
             spread=self.spread,
         )
 
-    def process_order(self, data, order):
-        price = data.current(order.asset, "close")
+    def process_order(self, data, order, execution_price_type):
+
+        # !338 !355 #113 add execution_price_type
+        # price = data.current(order.asset, "close")
+        price = data.current(order.asset, execution_price_type)
+
 
         return (price + (self.spread / 2.0 * order.direction), order.amount)
+    
+class TW_Slippage(SlippageModel):
+    """
+    Simple custom model for Taiwan Market.
 
+    Parameters
+    ----------
+    spread : float, optional
+        Size of the assumed spread for all assets.
+        Orders to buy will be filled at either limit_up price or ``execute_price + (spread * tick_diff)``.
+        Orders to sell will be filled at either limit_down price or ``execute_price - (spread * tick_diff)``.
+    volume_limit : float, optional
+        Maximum percent of historical volume that can fill in each bar. 0.5
+        means 50% of historical volume. 1.0 means 100%. Default is 0.025 (i.e.,
+        2.5%).
+    """
+
+    def __init__(self, spread=0.0 , volume_limit = DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT):
+        super(TW_Slippage, self).__init__()
+        self.spread = spread
+        self.volume_limit = volume_limit
+        
+
+
+    def __repr__(self):
+        return "{class_name}(spread={spread}, volume_limit={volume_limit})".format(
+            class_name=self.__class__.__name__,
+            spread=self.spread,
+            volume_limit = self.volume_limit
+        )
+    
+    def process_order(self, data, order, execution_price_type):
+
+        volume = data.current(order.asset, "volume")
+
+        txn_amount = order.open_amount
+        
+        if order.direction > 0 and  volume * self.volume_limit < order.open_amount :
+
+            txn_amount = volume * self.volume_limit
+        
+        if order.direction < 0 and  -1 * volume * self.volume_limit > order.open_amount :
+
+            txn_amount = volume * self.volume_limit * -1
+
+        close_t1 = data.history(order.asset, fields='close', bar_count=2, frequency='1d')[-2]
+
+        if np.isnan(close_t1):
+            
+            close_t1 = data.current(order.asset, 'close')
+
+        price = data.current(order.asset, execution_price_type)
+
+        times = self.spread
+
+        buy_limit = close_t1 * 1.1
+
+        sell_limit = close_t1 * 0.9
+
+        while (times > 0 ) :
+            if order.direction > 0:
+                if price < 10 :
+                    tick = 0.01 
+                elif price >= 10 and price < 50 :
+                    tick = 0.05 
+                elif price >= 50 and price < 100 :
+                    tick = 0.1 
+                elif price >= 100 and price < 500 :
+                    tick = 0.5
+                elif price >= 500 and price < 1000 :
+                    tick = 1 
+                elif price >= 1000 :
+                    tick = 5 
+                price += tick
+            else :
+                if price <= 10 :
+                    tick = 0.01 
+                elif price > 10 and price <= 50 :
+                    tick = 0.05 
+                elif price > 50 and price <= 100 :
+                    tick = 0.1 
+                elif price > 100 and price <= 500 :
+                    tick = 0.5
+                elif price > 500 and price <= 1000 :
+                    tick = 1 
+                elif price > 1000 :
+                    tick = 5 
+                price -= tick
+            times -= 1 
+
+        if buy_limit < 10 :
+            buy_limit = (buy_limit // 0.01) * 0.01
+        elif buy_limit >= 10 and buy_limit < 50 :
+            buy_limit = (buy_limit // 0.05 ) * 0.05
+        elif buy_limit >= 50 and buy_limit < 100 :
+            buy_limit = (buy_limit // 0.1) * 0.1
+        elif buy_limit >= 100 and buy_limit < 500 :
+            buy_limit = (buy_limit // 0.5) * 0.5
+        elif buy_limit >= 500 and buy_limit < 1000 :
+            buy_limit = (buy_limit // 1 ) * 1
+        elif buy_limit > 1000 :
+            buy_limit = (buy_limit // 5) * 5
+        
+        if sell_limit < 10 :
+            sell_limit = math.ceil(sell_limit / 0.01) * 0.01
+        elif sell_limit >= 10 and sell_limit < 50 :
+            sell_limit = math.ceil(sell_limit / 0.05 ) * 0.05
+        elif sell_limit >= 50 and sell_limit < 100 :
+            sell_limit = math.ceil(sell_limit / 0.1) * 0.1
+        elif sell_limit >= 100 and sell_limit < 500 :
+            sell_limit = math.ceil(sell_limit / 0.5) * 0.5
+        elif sell_limit >= 500 and sell_limit < 1000 :
+            sell_limit = math.ceil(sell_limit / 1 ) * 1
+        elif sell_limit > 1000 :
+            sell_limit = math.ceil(sell_limit / 5) * 5
+            
+        if order.direction > 0:
+
+            order_price = min(buy_limit, price )
+
+        else:
+
+            order_price = max(sell_limit, price )
+
+        return (order_price, txn_amount)
+
+    
 class PctSlippage(SlippageModel):
- 
+
     def __init__(self, spread=0.0):
         super(PctSlippage, self).__init__()
         self.spread = spread
         #self.price_type = price_type
- 
+
     def __repr__(self):
         return "{class_name}(spread={spread})".format(
             class_name=self.__class__.__name__,
             spread=self.spread,
         )
- 
-    def process_order(self, data, order):
+
+    def process_order(self, data, order, execution_price_type):
         close_t1 = data.history(order.asset, fields='close', bar_count=2, frequency='1d')[-2]
 
         if np.isnan(close_t1):
             close_t1 = data.current(order.asset, 'close')
 
-        close = data.current(order.asset, 'close')
- 
+        # !338 !355 #113 add execution_price_type
+        # close = data.current(order.asset, "close")
+        price = data.current(order.asset, execution_price_type)
+
         buy_limit = close_t1 * 1.1
         sell_limit = close_t1 * 0.9
- 
+
         if order.direction > 0:
- 
-            order_price = min(buy_limit, close * (1 + self.spread))
- 
+
+            order_price = min(buy_limit, price * (1 + self.spread))
+
         else:
- 
-            order_price = max(sell_limit, close * (1 - self.spread))
- 
+
+            order_price = max(sell_limit, price * (1 - self.spread))
+
         return (order_price, order.amount)
-    
+
 
 class MarketImpactBase(SlippageModel):
     """
@@ -725,11 +876,14 @@ class FixedBasisPointsSlippage(SlippageModel):
             volume_limit=self.volume_limit,
         )
 
-    def process_order(self, data, order):
+    def process_order(self, data, order, execution_price_type):
         volume = data.current(order.asset, "volume")
         max_volume = int(self.volume_limit * volume)
 
-        price = data.current(order.asset, "close")
+        # !338 !355 #113 add execution_price_type，讓使用者選擇交易價格。
+        # price = data.current(order.asset, "close")
+        price = data.current(order.asset, execution_price_type)
+
         shares_to_fill = min(
             abs(order.open_amount), max_volume - self.volume_for_bar
         )

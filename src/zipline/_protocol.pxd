@@ -15,3 +15,7 @@ cdef class InnerPosition:
     cdef public np.float64_t cost_basis
     cdef public np.float64_t last_sale_price
     cdef public object last_sale_date
+
+    # !346 #113 for current bar backtesting
+    # In order to calculate the initial value of stock.(`portfolio.start_portfolio_value`)
+    cdef public np.float64_t last_open_price

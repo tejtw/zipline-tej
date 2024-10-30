@@ -72,7 +72,8 @@ ANNOTATION_CHINESE = ['注意股票(Attention_Securities)',
                       '漲停股票(Limit_Up)',
                       '跌停股票(Limit_Down)',
                       '開盤即鎖死(Limited_Whole_Day)',
-                      '暫停當沖先賣後買(Suspend_Day-Trade_Short_First)'
+                      '暫停當沖先賣後買(Suspend_Day-Trade_Short_First)',
+                      '暫停當沖先買後賣(Suspend_Day-Trade_Long_First)'
         ]
 
 UINT32_MAX = iinfo(np.uint32).max
@@ -163,7 +164,7 @@ class BcolzDailyBarWriter(object):
         "low": float64_dtype,
         "close": float64_dtype,
         "volume": float64_dtype,
-        "annotation" : uint32_dtype ,
+        "annotation" : uint64_dtype ,
     }
 
     def __init__(self, filename, calendar, start_session, end_session):
@@ -387,7 +388,7 @@ class BcolzDailyBarWriter(object):
         processed["day"] = dates.astype("uint64")                            #20230706 (by MRC) 成交量溢位問題，uint32->uint64
         processed["volume"] = raw_data.volume.astype("uint64")               #20230706 (by MRC) 成交量溢位問題，uint32->uint64
         if "annotation" in raw_data.columns :                                #20230920 ，(Han) in case no ingest with no annotation
-            processed["annotation"] = raw_data.annotation.astype("uint32")   
+            processed["annotation"] = raw_data.annotation.astype("uint64")   
         
         return ctable.fromdataframe(processed)
 

@@ -101,6 +101,7 @@ jobs:
         with:
           pattern: my-artifacts-*
           merge-multiple: true
+          path: dist
 
       # - name: publish to testpypi
       #   uses: pypa/gh-action-pypi-publish@release/v1

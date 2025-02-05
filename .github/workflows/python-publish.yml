@@ -90,7 +90,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: base-env
+          name: my-artifacts-base
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -99,8 +99,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: artifact
-          path: dist
+          pattern: my-artifacts-*
+          merge-multiple: true
 
       # - name: publish to testpypi
       #   uses: pypa/gh-action-pypi-publish@release/v1

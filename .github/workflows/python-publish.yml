@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest, macos-latest, ubuntu-latest ]
-        python: [ "cp38", "cp39", "cp310", "cp311", "cp312" ]
+        python: [ "cp38", "cp39", "cp310", "cp311" ]
         arch: [ auto64 ]
 
     steps:
@@ -66,6 +66,7 @@ jobs:
       - name: Store artifacts
         uses: actions/upload-artifact@v4
         with:
+          name: my-artifacts-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
 
@@ -89,6 +90,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: my-artifacts-base
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -97,7 +99,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: my-artifacts-*
+          merge-multiple: true
           path: dist
 
       # - name: publish to testpypi

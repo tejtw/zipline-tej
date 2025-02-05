@@ -66,6 +66,7 @@ jobs:
       - name: Store artifacts
         uses: actions/upload-artifact@v4
         with:
+          name: my-artifacts-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
 
@@ -89,6 +90,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: base-env
           path: dist/*.tar.gz
 
   upload_pypi:

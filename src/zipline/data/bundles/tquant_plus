@@ -496,6 +496,8 @@ def tej_bundle(
     data = pd.concat([data , future_data])
     data = data[columns]
 
+    data = data.drop_duplicates(subset = ["date" , "symbol"])
+
     data.fillna({"ex_dividend" : 0 , "split_ratio" : 1} , inplace = True)
     data.set_index(["date", "symbol"], inplace=True)
 

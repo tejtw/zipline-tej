@@ -4,7 +4,7 @@ from . import csvdir  # noqa
 from . import tquant  #20230303 
 from . import fundamentals # 20230823
 from . import morning_txf #20230921
-
+from . import tquant_plus
 from .core import (
     UnknownBundle,
     bundles,

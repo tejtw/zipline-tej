@@ -498,7 +498,11 @@ def tej_bundle(
 
     data = data.drop_duplicates(subset = ["date" , "symbol"])
 
-    data.fillna({"ex_dividend" : 0 , "split_ratio" : 1} , inplace = True)
+    data.fillna({"ex_dividend" : 0 , "split_ratio" : 1 , "div_percent" : 0} , inplace = True)
+    data['ex_dividend'] = data['ex_dividend'].astype(float)
+    data['split_ratio'] = data['split_ratio'].astype(float)
+    data['div_percent'] = data['div_percent'].astype(float)
+
     data.set_index(["date", "symbol"], inplace=True)
 
     daily_bar_writer.write(
@@ -540,7 +544,7 @@ def tej_bundle(
 
 
 register(
-name = 'tquant_plus',
+name = 'tquant_future',
 f = tej_bundle,
 calendar_name='TEJ_morning_future',
 start_session = None,
@@ -550,4 +554,4 @@ create_writers = True,
 )
 
 
-register_calendar_alias("tquant_plus", "TEJ_morning_future")
+register_calendar_alias("tquant_future", "TEJ_morning_future")

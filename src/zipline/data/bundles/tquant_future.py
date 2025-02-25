@@ -195,7 +195,7 @@ def fetch_future_data(futures, mdate):
         _range.columns = ['underlying_id' , 'coid' , 'min' , 'max']
 
         def between(source , target) :
-            return target.loc[(target['mdate'] >= source['min']) & (target['mdate'] <= source['max'])]['mdate'].values
+            return set(target.loc[(target['mdate'] >= source['min']) & (target['mdate'] <= source['max'])]['mdate'].values)
         
         _range['mdate'] = _range.apply(lambda x : between(x[['min' , 'max']] , cash_return) , axis= 1)
 

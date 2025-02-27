@@ -291,8 +291,10 @@ def gen_future_asset_metadata(data):
         multiplier_dict.update(stock_multiplier_dict)
     except :
         pass
-    name_dict = dict(set(zip(data["symbol"] ,data["asset_name"])))
-    data = data.groupby(by=["symbol","code","expiration_date",]).agg({"date": [np.min, np.max]})
+    temp = data.loc[data['asset_name'] != '' ,["symbol","asset_name"]].dropna()
+    name_dict = dict(set(zip(temp["symbol"] ,temp["asset_name"])))
+    
+    data = data.groupby(by=["symbol","code"]).agg({"date": [np.min, np.max]})
     cols = data.date.columns
     data.reset_index(inplace=True)
     data["start_date"] = data.date[cols[0]]
@@ -308,7 +310,7 @@ def gen_future_asset_metadata(data):
     data.columns = data.columns.get_level_values(0)
     data["exchange"] = "TEJ_morning_future"
     data["auto_close_date"] = data["end_date"].values + pd.Timedelta(days=1)
-
+    data["expiration_date"] = data["end_date"].values
     return data
 
 def gen_equity_asset_metadata(data):

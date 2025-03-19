@@ -162,6 +162,28 @@ def future_symbol(symbol):
         Raised when no contract named 'symbol' is found.
     """
 
+def set_auto_close_percent(profit , loss ) :
+    """Set auto close while meeting profit or loss percent.
+
+    Parameters
+    ----------
+    profit : float
+        The value to close while meeting profit.
+    loss : float
+        The value to close while meeting loss.
+    """
+
+def set_auto_close_amount(profit , loss ) :
+    """Set auto close while meeting profit or loss amount.
+
+    Parameters
+    ----------
+    profit : float
+        The value to close while meeting profit.
+    loss : float
+        The value to close while meeting loss.
+    """
+
 def get_datetime(tz=None):
     """Returns the current simulation datetime.
 

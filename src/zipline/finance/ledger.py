@@ -215,6 +215,10 @@ class PositionTracker(object):
         # representing the fact that we're required to reimburse the owner of
         # the stock for any dividends paid while borrowing.
         for payment in payments:
+            asset = payment.get('asset')
+            if isinstance(asset , Future) :
+                if (self.positions.get(asset)) is None  :
+                    continue
             net_cash_payment += payment["amount"]
 
         # Add stock for any stock dividends paid.  Again, the values here may
@@ -404,7 +408,7 @@ class Ledger(object):
         # calculation is done, but the last sale price either before the period
         # start, or when the price at execution.
         self._payout_last_sale_prices = {}
-
+        self.available_cash = self.portfolio.portfolio_value
     @property
     def todays_returns(self):
         # compute today's returns in returns space instead of portfolio-value
@@ -496,8 +500,44 @@ class Ledger(object):
                 else:
                     self._payout_last_sale_prices[asset] = price
         else:
+            # 保證金控制
+            positions = self.position_tracker.positions
+            if positions.get(asset) :
+                position = positions.get(asset)
+                pos_cost = position.cost_basis
+                pos_amount = position.amount
+                tran_amount = transaction.amount
+                # 有多頭部位 
+                if (pos_amount > 0 ) :
+                    # 加碼，正常付錢
+                    if (tran_amount > 0 ) :
+                        pass
+                    # 賣出且轉放空
+                    elif ( tran_amount < 0 and abs(tran_amount) > pos_amount) :
+                        self.preserved_cash += abs((transaction.price * (pos_amount + tran_amount ))) * 2
+                    # 賣出，正常收錢
+                    else :
+                        pass
+                # 有空頭部位
+                else :
+                    # 加空，繼續付錢
+                    if (tran_amount < 0 ) :
+                        self.preserved_cash += abs((transaction.price * transaction.amount)) * 2
+                    # 回補且做多
+                    elif (tran_amount > 0 and tran_amount > abs(pos_amount)) :
+                        self.preserved_cash -= abs(pos_cost * pos_amount) * 2
+                    # 回補結算
+                    else :
+                        self.preserved_cash -= abs(pos_cost * transaction.amount) * 2
+            else :
+                if (transaction.amount) > 0 :
+                    pass
+                else :
+                    self.preserved_cash += abs(transaction.price * transaction.amount) * 2
             self._cash_flow(-(transaction.price * transaction.amount))
-
+        portfolio = self._portfolio
+        portfolio.preserved_cash = self.preserved_cash
+        portfolio.available_cash = portfolio.cash - self.preserved_cash
         self.position_tracker.execute_transaction(transaction)
 
         # we only ever want the dict form from now on
@@ -703,7 +743,7 @@ class Ledger(object):
 
         # update the new starting value
         portfolio.portfolio_value = end_value = portfolio.cash + position_value
-
+        
         pnl = end_value - start_value
         if start_value != 0:
             returns = pnl / start_value
@@ -750,21 +790,26 @@ class Ledger(object):
         initial_margin_requirement = 0 
         maintenance_margin_requirement = 0 
         
-        # 
         for asset , pos  in portfolio.positions.items() :
             if isinstance(asset , Future) :
                 if (dt , asset) in margin_table.index :
                     current_margin_table = margin_table.loc[(dt,asset)]
                 else :
                     continue
-                initial_margin_requirement += current_margin_table['initial_margin_requirement'] * pos.amount
-                maintenance_margin_requirement += current_margin_table['maintenance_margin_requirement'] * pos.amount
+                initial_margin_requirement += current_margin_table['initial_margin_requirement'] * abs(pos.amount)
+                maintenance_margin_requirement += current_margin_table['maintenance_margin_requirement'] * abs(pos.amount)
+        initial_margin_requirement = initial_margin_requirement
+        maintenance_margin_requirement = maintenance_margin_requirement
         self.override_account_fields(initial_margin_requirement = initial_margin_requirement ,
-                                     maintenance_margin_requirement = maintenance_margin_requirement
+                                     maintenance_margin_requirement = maintenance_margin_requirement ,
+                                     available_cash = self.available_cash , 
+                                     preserved_cash=self.preserved_cash , 
                                       )
+                                      
     def override_account_fields(
         self,
         settled_cash=not_overridden,
+        preserved_cash = not_overridden,
         accrued_interest=not_overridden,
         buying_power=not_overridden,
         equity_with_loan=not_overridden,
@@ -781,6 +826,7 @@ class Ledger(object):
         leverage=not_overridden,
         net_leverage=not_overridden,
         net_liquidation=not_overridden,
+        available_cash = not_overridden,
     ):
         """Override fields on ``self.account``."""
         # mark that the portfolio is dirty to override the fields again
@@ -802,7 +848,7 @@ class Ledger(object):
             # existing value. For instance, a broker may provide updates to
             # these attributes. In this case we do not want to over write the
             # broker values with the default values.
-            account.settled_cash = portfolio.cash
+            account.settled_cash = self.available_cash
             account.accrued_interest = 0.0
             account.buying_power = np.inf
             account.equity_with_loan = portfolio.portfolio_value

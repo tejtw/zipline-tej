@@ -739,7 +739,29 @@ class Ledger(object):
             net_leverage = position_stats.net_exposure / portfolio_value
 
         return portfolio_value, gross_leverage, net_leverage
+    
+    def update_account_margin(self , dt , margin_table):
+        """Force a computation of the margin state."""
 
+        portfolio = self._portfolio
+        pt = self.position_tracker
+
+        portfolio.positions = pt.get_positions()
+        initial_margin_requirement = 0 
+        maintenance_margin_requirement = 0 
+        
+        # 
+        for asset , pos  in portfolio.positions.items() :
+            if isinstance(asset , Future) :
+                if (dt , asset) in margin_table.index :
+                    current_margin_table = margin_table.loc[(dt,asset)]
+                else :
+                    continue
+                initial_margin_requirement += current_margin_table['initial_margin_requirement'] * pos.amount
+                maintenance_margin_requirement += current_margin_table['maintenance_margin_requirement'] * pos.amount
+        self.override_account_fields(initial_margin_requirement = initial_margin_requirement ,
+                                     maintenance_margin_requirement = maintenance_margin_requirement
+                                      )
     def override_account_fields(
         self,
         settled_cash=not_overridden,

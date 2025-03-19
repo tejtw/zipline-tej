@@ -144,7 +144,6 @@ class Portfolio(object):
 
         # !346 #113 for current bar backtesting
         self_.start_portfolio_value = capital_base
-
         self_.pnl = 0.0
         self_.returns = 0.0
         self_.cash = capital_base
@@ -152,7 +151,7 @@ class Portfolio(object):
         self_.start_date = start_date
         self_.positions_value = 0.0
         self_.positions_exposure = 0.0
-
+        
     @property
     def capital_used(self):
         return self.cash_flow
@@ -196,6 +195,7 @@ class Account(object):
     def __init__(self):
         self_ = MutableView(self)
         self_.settled_cash = 0.0
+        self_.preserved_cash = 0.0
         self_.accrued_interest = 0.0
         self_.buying_power = float("inf")
         self_.equity_with_loan = 0.0

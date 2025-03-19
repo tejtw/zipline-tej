@@ -381,7 +381,7 @@ class Ledger(object):
         self.daily_returns_array = self.daily_returns_series.values
 
         self._previous_total_returns = 0
-
+        self.preserved_cash = 0
         # this is a component of the cache key for the account
         self._position_stats = None
 

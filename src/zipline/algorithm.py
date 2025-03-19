@@ -357,7 +357,14 @@ class TradingAlgorithm(object):
 
         # !346 !355 #113  for opening price backtesting
         self.blotter.execution_price_type = 'close'
-
+        
+        # new add @ 20241128 for future margin
+        self.margin_table = None
+        # 20241212 for auto_close
+        self.auto_close_profit_percent = None 
+        self.auto_close_loss_percent = None 
+        self.auto_close_profit_amount = None 
+        self.auto_close_loss_amount = None 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
@@ -474,6 +481,29 @@ class TradingAlgorithm(object):
 
     def before_trading_start(self, data):
         self.compute_eager_pipelines()
+        # 20241212 add for check auto_close
+        old_execution_price_type = self.blotter.execution_price_type
+        self.blotter.execution_price_type = 'open'
+        if (self.auto_close_profit_amount is not None) or (self.auto_close_loss_amount is not None) :
+            positions = self.portfolio.positions
+            for pos in positions :
+                holdings = positions.get(pos)
+                return_amt = holdings.amount * (holdings.last_sale_price - holdings.cost_basis)
+                if (return_amt > self.auto_close_profit_amount) :
+                    self.order_target (asset = pos , target = 0)
+                if (return_amt < self.auto_close_loss_amount) :
+                    self.order_target (asset = pos , target = 0)
+        if (self.auto_close_profit_percent is not None) or (self.auto_close_loss_percent is not None) :
+            positions = self.portfolio.positions
+            for pos in positions :
+                holdings = positions.get(pos)
+                return_percent = (holdings.last_sale_price - holdings.cost_basis) / holdings.cost_basis
+                if (return_percent > self.auto_close_profit_percent) :
+                    self.order_target (asset = pos , target = 0)
+                if (return_percent < self.auto_close_loss_percent) :
+                    self.order_target (asset = pos , target = 0)
+
+        self.blotter.execution_price_type = old_execution_price_type
 
         if self._before_trading_start is None:
             return
@@ -1436,7 +1466,19 @@ class TradingAlgorithm(object):
 
         self.blotter.execution_price_type = price_type
 
-
+    @api_method
+    def set_auto_close_percent(self, profit , loss ) :
+        if self.initialized:
+            raise RegisterExecutionPriceTypePostInit()
+        self.auto_close_profit_percent = profit 
+        self.auto_close_loss_percent = loss 
+    @api_method
+    def set_auto_close_amount(self, profit , loss ) :
+        if self.initialized:
+            raise RegisterExecutionPriceTypePostInit()
+        self.auto_close_profit_amount = profit 
+        self.auto_close_loss_amount = loss 
+        
     @api_method
     # !293 為了支援instant_fill刪除disallowed_in_before_trading_start
     # @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1664,17 +1706,13 @@ class TradingAlgorithm(object):
         """
         if dt is None:
             dt = self.datetime
-            
+        if self.margin_table is not None :
+            self.metrics_tracker.update_account_margin(
+                dt ,
+                self.margin_table
+            )
         if dt != self._last_sync_time:
-            self.metrics_tracker.sync_last_sale_prices(
-                dt,
-                self.data_portal,
-            )
             self._last_sync_time = dt
-        if self.account_revise is not None :
-            self.metrics_tracker.override_account_fields(
-            ** self.account_revise
-            )
     @property
     def portfolio(self):
         self._sync_last_sale_prices()

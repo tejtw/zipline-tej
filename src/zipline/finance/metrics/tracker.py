@@ -185,6 +185,11 @@ class MetricsTracker(object):
             cost_basis,
         )
 
+    
+    # new add for future margin @ 20241128
+    def update_account_margin(self, dt , margin_table ) :
+        self._ledger.update_account_margin(dt , margin_table)
+
     def override_account_fields(self, **kwargs):
         self._ledger.override_account_fields(**kwargs)
 

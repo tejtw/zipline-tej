@@ -18,6 +18,7 @@ from zipline.utils.numpy_utils import (
     uint32_dtype,
     uint64_dtype,
 )
+from zipline.assets.assets import Future
 from zipline.utils.pandas_utils import empty_dataframe
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from ._adjustments import load_adjustments_from_sqlite
@@ -211,6 +212,8 @@ class SQLiteAdjustmentReader(object):
         ]
 
     def get_adjustments_for_sid(self, table_name, sid):
+        if isinstance(sid , Future) :
+            sid = sid.sid
         t = (sid,)
         c = self.conn.cursor()
         adjustments_for_sid = c.execute(
@@ -618,6 +621,7 @@ class SQLiteAdjustmentWriter(object):
 
         # Second from the dividend payouts, calculate ratios.
         dividend_ratios = self.calc_dividend_ratios(dividends)
+
         self.write_frame("dividends", dividend_ratios)
 
     def write(self, splits=None, mergers=None, dividends=None, stock_dividends=None):

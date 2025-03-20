@@ -512,9 +512,9 @@ def tej_bundle(
         show_progress=show_progress,
     )
     
+    symbol_map_dict = dict(zip(symbol_map , symbol_map.index))
     data.reset_index(inplace=True)
-    data["symbol"] = data["symbol"].astype("category")
-    data["sid"] = data.symbol.cat.codes
+    data["sid"] = data.symbol.map(symbol_map_dict)
 
     adjustment_writer.write(
         splits=parse_splits(

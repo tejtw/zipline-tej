@@ -218,6 +218,7 @@ def fetch_future_data(futures, mdate):
         cash_add['out_pay'] = cash_add[['last_tradedate','x_sub_l']].apply(lambda x : x['last_tradedate'] if x['last_tradedate'] <= x['x_sub_l'] else x['x_sub_l'] , axis =1)
         del cash_add['underlying_id'] , cash_add['last_tradedate'] , cash_add['x_sub_l']
         cash_add = cash_add.dropna()
+        cash_add['mdate'] = cash_add['out_pay']
         metadata = metadata.set_index(['coid' , 'mdate']).join(cash_add.set_index(['coid' , 'mdate']) , how= 'left').reset_index()
         metadata.fillna({'ex_dividend' : 0 } , inplace= True)
         metadata['out_pay'] = metadata['out_pay'].fillna(metadata['mdate'])

@@ -168,7 +168,7 @@ def fetch_future_data(futures, mdate):
         metadata = metadata.loc[(metadata['YM'].notna()) & (metadata['YM'].str.len() == 6)]
         coid = metadata['underlying_id'].unique().tolist()
         # join dividends
-        dividends = tejapi.fastget('TWN/APIMT1' , coid = coid , mdate = mdate , opts = {'columns' : ['coid' , 'q1ex_date' ,  'q1mt_div' , 'q2ex_date' ,  'q2mt_div' , 'q3ex_date' ,  'q3mt_div' , 'q4ex_date' ,  'q4mt_div', 'mt_mer' , 'mex_date']} , paginate=True)
+        dividends = tejapi.fastget('TWN/APIMT1' , coid = coid , opts = {'columns' : ['coid' , 'q1ex_date' ,  'q1mt_div' , 'q2ex_date' ,  'q2mt_div' , 'q3ex_date' ,  'q3mt_div' , 'q4ex_date' ,  'q4mt_div', 'mt_mer' , 'mex_date']} , paginate=True)
         cols = {'q1ex_date' : 'q1mt_div' , 'q2ex_date' : 'q2mt_div' , 'q3ex_date' : 'q3mt_div' , 'q4ex_date' : 'q4mt_div' , 'mex_date' :'mt_mer'}
         res = []
 

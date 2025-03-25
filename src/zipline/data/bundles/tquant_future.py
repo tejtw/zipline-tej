@@ -185,10 +185,10 @@ def fetch_future_data(futures, mdate):
         metadata = metadata.sort_values(by = ['coid' , 'mdate']).reset_index(drop =  True)
 
         # join cash return or cash add
-        cash = tejapi.fastget('TWN/APISTK1' , coid = coid , mdate = mdate ,opts = {'columns' :  ['coid', 'mdate' ,'x_sub_l' ,'pct_cash1' ,'buy_price','ashback' , 'pct_dec1']} ).rename({'coid' : 'underlying_id'} , axis= 1)
+        cash = tejapi.fastget('TWN/APISTK1' , coid = coid , mdate = mdate ,opts = {'columns' :  ['coid', 'mdate' ,'x_sub_l','x_issue2' ,'pct_cash1' ,'buy_price','ashback' , 'pct_dec1']} ).rename({'coid' : 'underlying_id'} , axis= 1)
         cash.fillna({'x_sub_l':pd.NaT  , 'pct_cash1' : 0 , 'buy_price' : 0 , 'ashback' : 0 , 'pct_dec1' :0 } , inplace=True)
-        cash_return = cash[['underlying_id' , 'mdate' , 'ashback' , 'pct_dec1']]
-
+        cash_return = cash[['underlying_id' , 'mdate' , 'ashback' , 'pct_dec1','x_issue2']]
+        cash_return = cash_return[cash_return['x_issue2'].notna()]
         # handle with no trade on cash return or cash add day
         _range = metadata.groupby(['underlying_id','coid']).agg({'mdate' : [min] , 'last_tradedate' : [max]}).reset_index()
 
@@ -246,7 +246,8 @@ def fetch_future_data(futures, mdate):
         del metadata['temp_ex_dividend'] , metadata['temp_stock_dividends']
         
         metadata['sell_stock_revenue'] = metadata['next_open_price'] * (metadata['stock_dividends'] / 10)
-        metadata.loc[metadata['sell_stock_revenue'] < 0 , 'sell_stock_revenue'] = 0 
+        # cash return need to pay money to stay same stock future quantity, so sell stock_revenue may be negative.
+        # metadata.loc[metadata['sell_stock_revenue'] < 0 , 'sell_stock_revenue'] = 0 
         metadata['ex_dividend'] += metadata['sell_stock_revenue']
         
         del metadata['sell_stock_revenue']
@@ -259,6 +260,8 @@ def fetch_future_data(futures, mdate):
         metadata['last_tradedate'] = metadata.groupby('coid')['last_tradedate'].ffill()
         metadata['last_tradedate'] = metadata['last_tradedate'].astype('datetime64[ns]')
         metadata.loc[metadata['vol_d'].isna() , 'close_d'] = pd.NA
+        metadata.loc[metadata['x_issue2'].notna() , 'out_pay'] = metadata.loc[metadata['x_issue2'].notna() , 'x_issue2']
+        
         metadata = metadata.rename({'coid':'symbol',"mdate":"date",'open_d':'open','low_d':'low','high_d':'high','close_d':'close','vol_d':'volume','underlying_name':'asset_name','last_tradedate':'expiration_date'},axis =1)
     except Exception as e  :
         raise ValueError(f'Error occurs while downloading metadata due to {e} .')

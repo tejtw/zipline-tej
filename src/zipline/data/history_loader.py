@@ -239,6 +239,21 @@ class ContinuousFutureAdjustmentReader(object):
         end = normalize_date(dts[-1])
         current_sid = rf.get_contract_center(cf.root_symbol , start , cf.offset)
         execute_history = {}
+        splits = self._adjustments_reader.get_adjustments_for_sid("splits", current_sid)
+        for s in splits:
+            dt = s[0]
+            if start < dt <= end:
+                if execute_history.get(dt) :
+                    continue
+                ratio = s[1]
+                execute_history[dt] = ratio
+                end_loc = dts.searchsorted(dt)
+                adj_loc = end_loc
+                mult = Float64Multiply(0, end_loc - 1, 0, 0, ratio)
+                try:
+                    adjs[adj_loc].append(mult)
+                except KeyError:
+                    adjs[adj_loc] = [mult]
         for d in dts :
             next_sid = rf.get_contract_center(cf.root_symbol , d , cf.offset)
             

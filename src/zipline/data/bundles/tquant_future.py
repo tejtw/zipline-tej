@@ -238,6 +238,7 @@ def fetch_future_data(futures, mdate):
         metadata['close_d'] = metadata.groupby('coid')['close_d'].ffill().bfill()
         
         metadata['split_ratio'] =  1 / ((metadata['settle'] - metadata['ex_dividend'])/(1 + (metadata['stock_dividends'] / 10))  / metadata['settle'])
+        metadata['split_ratio'] = metadata.groupby(['coid'])['split_ratio'].shift(-1).values
         
         metadata['temp_ex_dividend'] = metadata.groupby(['coid'])['ex_dividend'].shift(-1).fillna(0)
         metadata['temp_stock_dividends'] = metadata.groupby(['coid'])['stock_dividends'].shift(-1).fillna(0)

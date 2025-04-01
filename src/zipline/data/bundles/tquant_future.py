@@ -209,7 +209,7 @@ def fetch_future_data(futures, mdate):
         metadata['ex_dividend'] += metadata['ashback']
         
         metadata['stock_dividends'] -= (metadata['pct_dec1'] /10)
-        del metadata['ashback'] , metadata['pct_dec1']
+        
 
         # join back cash add data
         cash_add = cash[['underlying_id' , 'mdate' , 'x_sub_l' , 'pct_cash1' , 'buy_price']]
@@ -222,6 +222,8 @@ def fetch_future_data(futures, mdate):
         metadata = metadata.set_index(['coid' , 'mdate']).join(cash_add.set_index(['coid' , 'mdate']) , how= 'left').reset_index()
         metadata.fillna({'ex_dividend' : 0 } , inplace= True)
         metadata['out_pay'] = metadata['out_pay'].fillna(metadata['mdate'])
+        metadata.loc[(metadata['x_issue2'].notna()) & (metadata['ashback'] != 0) , 'out_pay'] = metadata.loc[(metadata['x_issue2'].notna()) & (metadata['ashback'] != 0) , 'x_issue2']
+        del metadata['ashback'] , metadata['pct_dec1']
         metadata = metadata.sort_values(by = ['coid' , 'mdate'])
         
         metadata['earn'] = np.floor(10 * metadata['pct_cash1'] * (metadata['wclose_d'] - metadata['buy_price'])) / 1000
@@ -261,7 +263,6 @@ def fetch_future_data(futures, mdate):
         metadata['last_tradedate'] = metadata.groupby('coid')['last_tradedate'].ffill()
         metadata['last_tradedate'] = metadata['last_tradedate'].astype('datetime64[ns]')
         metadata.loc[metadata['vol_d'].isna() , 'close_d'] = pd.NA
-        metadata.loc[metadata['x_issue2'].notna() , 'out_pay'] = metadata.loc[metadata['x_issue2'].notna() , 'x_issue2']
         
         metadata = metadata.rename({'coid':'symbol',"mdate":"date",'open_d':'open','low_d':'low','high_d':'high','close_d':'close','vol_d':'volume','underlying_name':'asset_name','last_tradedate':'expiration_date'},axis =1)
     except Exception as e  :

@@ -1,4 +1,6 @@
 import re
+import numpy as np
+import tejapi
 import pandas as pd
 from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
@@ -82,14 +84,6 @@ class RequestFutInstitutions:
             return processed_data.loc[processed_data.sid.isin(root_symbol)].reset_index(drop=True).rename(columns={'sid':'root_symbol'})
         return processed_data.reset_index(drop=True).rename(columns={'sid':'root_symbol'})
 
-institution_future_data = RequestFutInstitutions('2025-01-02', pd.Timestamp.now().date().isoformat())
-
-
-
-import pandas as pd
-import numpy as np
-import tejapi
-
 # 中文欄位名稱與英文欄位名稱映射
 cn_col_name = ['期貨名稱', '日期', '到期月', '全市場未沖銷部位', '前五大買方未沖銷部位-交易人', '前五大賣方未沖銷部位-交易人',
                '前十大買方未沖銷部位-交易人', '前十大賣方未沖銷部位-交易人', '前五大買方未沖銷部位%-交易人',
@@ -172,11 +166,7 @@ class RequestFutReportableTrader:
         
         rtsymbol_to_tick = RequestFutReportableTrader.get_taifex_rootsymbol_mapping()
 
-        #mask = df['coid'].astype(str).str.startswith('Z')
-        #df.loc[mask, 'symbol'] = df.loc[mask, 'coid'].str.strip('Z').str[:-2]
-        
         df['underlying'] = df['root_symbol'].map(rtsymbol_to_tick)
-        #df.loc[mask, 'symbol'] = df.loc[mask, 'root_symbol'].map(rtsymbol_to_tick)
 
         return df
     
@@ -208,4 +198,7 @@ class RequestFutReportableTrader:
     
         return data.reset_index(drop=True)#.set_index(['mdate', 'coid'])
 
+institution_future_data = RequestFutInstitutions('2025-01-02', pd.Timestamp.now().date().isoformat())
+
 rept_trader_future_data = RequestFutReportableTrader('2025-01-01',pd.Timestamp.now().date().isoformat())
+

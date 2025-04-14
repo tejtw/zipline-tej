@@ -225,8 +225,10 @@ class Order(object):
 
         # new_share_amount = old_share_amount / ratio
         # new_price = old_price * ratio
-
-        self.amount = max(int(1) , int(self.amount / ratio))
+        if self.amount > 0 :
+            self.amount = max(int(1) , int(self.amount / ratio))
+        elif self.amount < 0 :
+            self.amount = min(int(-1) , int(self.amount / ratio))
 
         if self.limit is not None:
             self.limit = round(self.limit * ratio, 2)

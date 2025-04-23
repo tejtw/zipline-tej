@@ -476,7 +476,7 @@ class DataPortal(object):
             else:
                 return self._get_daily_spot_value(
                     asset,
-                    field,
+                    field, # fix no open_price , high_price , low_price error
                     session_label,
                 )
         else:
@@ -491,8 +491,32 @@ class DataPortal(object):
                 )
             elif field == "contract":
                 return self._get_current_contract(asset, dt)
+            elif field == 'open_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "open",
+                    dt,
+                    ffill=True,
+                )
+            elif field == 'high_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "high",
+                    dt,
+                    ffill=True,
+                )
+            elif field == 'low_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "low",
+                    dt,
+                    ffill=True,
+                )
             else:
-                return self._get_minute_spot_value(asset, field, dt)
+                return self._get_minute_spot_value(
+                    asset ,
+                    field ,
+                    dt)
 
     def get_spot_value(self, assets, field, dt, data_frequency):
         """

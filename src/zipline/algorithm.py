@@ -711,6 +711,7 @@ class TradingAlgorithm(object):
         # HACK: I don't think we really want to support passing a data portal
         # this late in the long term, but this is needed for now for backwards
         # compat downstream.
+
         if data_portal is not None:
             self.data_portal = data_portal
             self.asset_finder = data_portal.asset_finder
@@ -730,17 +731,70 @@ class TradingAlgorithm(object):
             perfs = []
             for perf in self.get_generator():
                 perfs.append(perf)
-
             # convert perf dict to pandas dataframe
-            daily_stats = self._create_daily_stats(perfs)
-
-            self.analyze(daily_stats)
+            if self.data_frequency == 'daily' :
+                daily_stats = self._create_daily_stats(perfs)
+                self.analyze(daily_stats)
+            elif self.data_frequency == 'minute' :
+                minute_stats = self._create_minute_stats(perfs)
+                self.analyze(minute_stats)
         finally:
             self.data_portal = None
             self.metrics_tracker = None
+        if self.data_frequency == 'daily' :
+            return daily_stats
+        elif self.data_frequency == 'minute' :
+            return minute_stats
+    # added for minute stat
+    def _create_minute_stats(self, perfs) :
+        # create daily and cumulative stats dataframe
+        minute_perfs = []
+        # TODO: the loop here could overwrite expected properties
+        # of daily_perf. Could potentially raise or log a
+        # warning.
+        for perf in perfs:
+            if "minute_perf" in perf:
+                perf["minute_perf"].update(perf["minute_perf"].pop("recorded_vars"))
+                perf["minute_perf"].update(perf["cumulative_risk_metrics"])
+                minute_perfs.append(perf["minute_perf"])
+            else:
+                self.risk_report = perf
+                
+        minute_dts = pd.DatetimeIndex([p["period_close"] for p in minute_perfs])
 
-        return daily_stats
+        # Since the timezone displayed on perf(zipline.TradingAlgorithm.run()) is 'UTC'.
+        # In the following code, we convert the timezone of DatetimeIndex from UTC to
+        # local timezone('Asia/Taipei'), in order to prevent the trading times from 
+        # appearing unusual.
 
+        # TODO This code should be modified in future release. Because this can cause 
+        # complications when using pyfolio.
+        minute_dts = minute_dts.tz_convert(tz=tz)
+        # daily_dts = make_utc_aware(daily_dts)
+
+        minute_stats = pd.DataFrame(minute_perfs, index=minute_dts)
+
+        # Since the timezone displayed on perf(zipline.TradingAlgorithm.run()) is 'UTC'.
+        # In the following code, we convert UTC to local timezone('Asia/Taipei').
+        # This adjustment only modifies the 'dt' and 'created' of orders and the 'dt' of transactions,
+        # to prevent the trading times from appearing unusual.
+
+        # TODO This code should be modified in future release.Because this can cause complications
+        # when using pyfolio
+        minute_stats['period_open']=minute_stats['period_open'].array.tz_convert(tz=tz)
+        minute_stats['period_close']=minute_stats['period_close'].array.tz_convert(tz=tz)
+
+        for row in minute_stats['orders']:
+          for item in row:
+           item['dt'] = item['dt'].astimezone(tz)
+           item['created'] = item['created'].astimezone(tz)
+
+        for row in minute_stats['transactions']:
+          for item in row:
+           item['dt'] = item['dt'].astimezone(tz)
+
+        return minute_stats
+    
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
         daily_perfs = []
@@ -1297,7 +1351,6 @@ class TradingAlgorithm(object):
             if self._symbol_lookup_date is not None
             else self.sim_params.end_session
         )
-
         return self.asset_finder.lookup_symbol(
             symbol_str,
             as_of_date=_lookup_date,
@@ -2678,7 +2731,7 @@ class TradingAlgorithm(object):
 
         # Load data starting from the previous trading day...
         start_date_loc = sessions.get_loc(start_session)
-
+        
         # ...continuing until either the day before the simulation end, or
         # until chunksize days of data have been loaded.
         sim_end_session = self.sim_params.end_session

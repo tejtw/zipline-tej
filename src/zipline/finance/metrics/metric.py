@@ -174,15 +174,15 @@ class BenchmarkReturnsAndVolatility(object):
         else:
             open_ = trading_calendar.session_open(sessions[0])
             close = trading_calendar.session_close(sessions[-1])
-            returns = benchmark_source.get_range(open_, close)
-            self._minute_cumulative_returns = (1 + returns).cumprod() - 1
+            self.returns = benchmark_source.get_range(open_, close)
+            self._minute_cumulative_returns = (1 + self.returns).cumprod() - 1
             self._minute_annual_volatility = pd.Series(
                 minute_annual_volatility(
-                    returns.index.normalize().view("int64"),
-                    returns.values,
+                    self.returns.index.normalize().view("int64"),
+                    self.returns.values,
                     daily_returns_array,
                 ),
-                index=returns.index,
+                index=self.returns.index,
             )
 
     def end_of_bar(self, packet, ledger, dt, session_ix, data_portal):
@@ -201,7 +201,7 @@ class BenchmarkReturnsAndVolatility(object):
         else:
            packet["cumulative_risk_metrics"]["excess_return"] = ledger.portfolio.returns-r  #20230210 (by MRC) for excess return in perf
         
-        packet["daily_perf"]["benchmark_return"] = s                                                          #20230211 (by MRC) for benchmark_return in perf
+        packet["minute_perf"]["benchmark_return"] = s                                                          #20230211 (by MRC) for benchmark_return in perf
         
         v = self._minute_annual_volatility[dt]
         if np.isnan(v):
@@ -265,8 +265,8 @@ class TreasuryReturns(object):
         else:
             open_ = trading_calendar.session_open(sessions[0])
             close = trading_calendar.session_close(sessions[-1])
-            returns = treasury_source.get_range(open_, close)
-            self._minute_cumulative_returns = (1 + returns).cumprod() - 1   #skipna=True
+            self.returns = treasury_source.get_range(open_, close)
+            self._minute_cumulative_returns = (1 + self.returns).cumprod() - 1   #skipna=True
             
 
 
@@ -281,7 +281,7 @@ class TreasuryReturns(object):
             
         packet["cumulative_risk_metrics"]["treasury_period_return"] = r		
         #packet["cumulative_risk_metrics"]["excess_return(relative_to_treasury)"]=ledger.portfolio.returns-r  #20230210 (by MRC)    
-        packet["daily_perf"]["treasury_return"] = s                                                           #20230211 (by MRC)
+        packet["minute_perf"]["treasury_return"] = s                                                           #20230211 (by MRC)
 
         
         '''

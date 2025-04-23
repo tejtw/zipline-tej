@@ -121,7 +121,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
         return self._volume_for_bar
 
     @abstractmethod
-    def process_order(self, data, order):
+    def process_order(self, data, order, execution_price_type):
         """
         Compute the number of shares and price to fill for ``order`` in the
         current minute.
@@ -199,7 +199,6 @@ class SlippageModel(metaclass=FinancialModelMeta):
                     return
                 else:
                     continue
-
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
@@ -226,7 +225,6 @@ class SlippageModel(metaclass=FinancialModelMeta):
 
             except LiquidityExceeded:
                 break
-
             if txn:
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
@@ -444,7 +442,7 @@ class TW_Slippage(SlippageModel):
         volume = data.current(order.asset, "volume")
 
         txn_amount = order.open_amount
-        
+
         if order.direction > 0 and  volume * self.volume_limit < order.open_amount :
 
             txn_amount = volume * self.volume_limit
@@ -452,9 +450,9 @@ class TW_Slippage(SlippageModel):
         if order.direction < 0 and  -1 * volume * self.volume_limit > order.open_amount :
 
             txn_amount = volume * self.volume_limit * -1
-
+            
         close_t1 = data.history(order.asset, fields='close', bar_count=2, frequency='1d')[-2]
-
+        
         if np.isnan(close_t1):
             
             close_t1 = data.current(order.asset, 'close')

@@ -697,7 +697,10 @@ cdef class BarData:
             return self._trading_calendar.minutes_for_session(
                 self.current_session
             )
-
+    @property
+    def _data_portal(self, ):
+        return self.data_portal
+    
 cdef class InnerPosition:
     """The real values of a position.
 

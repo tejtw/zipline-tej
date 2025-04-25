@@ -456,7 +456,7 @@ class TW_Slippage(SlippageModel):
             assets = order.asset , 
             field = 'price' , 
             dt = last_day , 
-            data_frequency = '1d'
+            data_frequency = 'daily'
             )
         
         price = data.current(order.asset, execution_price_type)

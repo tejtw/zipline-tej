@@ -1370,7 +1370,76 @@ class NumExprFactor(NumericalExpression, Factor):
     """
 
     pass
+class BooleanFactor(SingleInputMixin, Factor):
+    """
+    Factor that casts a Filter of booleans to 1s and 0s.
 
+    - Default Inputs: None
+    - Default Window Length: 0
+
+    TODO: This factor can be created via Filter.as_factor().
+
+    Parameters
+    ----------
+    filter : zipline.pipeline.Filter
+        Filter producing the boolean array which will be converted to 1s and 0s.
+
+    Example
+    ---
+    BooleanFactor(EquityPricing.close > 0)  # Returns 1.0 for True, 0.0 for False
+    """
+    window_length = 0
+    dtype = float64_dtype
+
+    # @validate_call(config=dict(arbitrary_types_allowed=True))
+    def __new__(cls, filter: Filter):
+        return super(BooleanFactor, cls).__new__(
+            cls,
+            inputs=(filter,),
+            mask=filter.mask,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        return (data & mask).astype(float)
+
+
+class CategoricalFactor(SingleInputMixin, Factor):
+    """
+    Factor that casts a Classifier’s categorical labels into numeric factor outputs:
+    any label < 0 is set to NaN, labels ≥ 0 are preserved as floats.
+
+    - Default Inputs: None
+    - Default Window Length: 0
+
+    TODO: This factor can be created via Classifier.as_factor().
+
+    Parameters
+    ----------
+    classifier : zipline.pipeline.Classifier
+        Classifier producing integer category labels. Negative labels will be
+        treated as missing (NaN), non-negative labels are kept.
+
+    Example
+    ---
+    CategoricalFactor(EquityPricing.close.quantiles(5)) + CategoricalFactor(EquityPricing.high.quantiles(5))
+    """
+    window_length = 0
+    dtype = float64_dtype
+
+    # @validate_call(config=dict(arbitrary_types_allowed=True))
+    def __new__(cls, classifier: Classifier):
+        return super(CategoricalFactor, cls).__new__(
+            cls,
+            inputs=(classifier,),
+            mask=classifier.mask,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+
+        data = arrays[0]
+        result = where(data >= 0, data, nan)
+        return result.astype(float)
 
 class GroupedRowTransform(Factor):
     """

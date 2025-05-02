@@ -1370,28 +1370,33 @@ class NumExprFactor(NumericalExpression, Factor):
     """
 
     pass
+
+
 class BooleanFactor(SingleInputMixin, Factor):
     """
-    Factor that casts a Filter of booleans to 1s and 0s.
+    Converts a boolean Filter into numeric outputs of 1.0 and 0.0.
 
-    - Default Inputs: None
-    - Default Window Length: 0
+    This factor interprets True as 1.0 and False as 0.0.
 
-    TODO: This factor can be created via Filter.as_factor().
+    **Default Inputs**: None  
+    **Default Window Length**: 0
+
+    TODO:
+      - Allow creation via Filter.as_factor().
 
     Parameters
     ----------
     filter : zipline.pipeline.Filter
-        Filter producing the boolean array which will be converted to 1s and 0s.
+        A boolean Filter whose True/False values will be mapped to 1.0/0.0.
 
-    Example
-    ---
-    BooleanFactor(EquityPricing.close > 0)  # Returns 1.0 for True, 0.0 for False
+    Examples
+    --------
+    >>> # Produces 1.0 when close > 0, otherwise 0.0
+    >>> BooleanFactor(EquityPricing.close > 0)
     """
     window_length = 0
     dtype = float64_dtype
 
-    # @validate_call(config=dict(arbitrary_types_allowed=True))
     def __new__(cls, filter: Filter):
         return super(BooleanFactor, cls).__new__(
             cls,
@@ -1409,8 +1414,8 @@ class CategoricalFactor(SingleInputMixin, Factor):
     Factor that casts a Classifier’s categorical labels into numeric factor outputs:
     any label < 0 is set to NaN, labels ≥ 0 are preserved as floats.
 
-    - Default Inputs: None
-    - Default Window Length: 0
+    **Default Inputs**: None
+    **Default Window Length**: 0
 
     TODO: This factor can be created via Classifier.as_factor().
 
@@ -1420,14 +1425,13 @@ class CategoricalFactor(SingleInputMixin, Factor):
         Classifier producing integer category labels. Negative labels will be
         treated as missing (NaN), non-negative labels are kept.
 
-    Example
+    Examples
     ---
-    CategoricalFactor(EquityPricing.close.quantiles(5)) + CategoricalFactor(EquityPricing.high.quantiles(5))
+    >>> CategoricalFactor(EquityPricing.close.quantiles(5)) + CategoricalFactor(EquityPricing.high.quantiles(5))
     """
     window_length = 0
     dtype = float64_dtype
 
-    # @validate_call(config=dict(arbitrary_types_allowed=True))
     def __new__(cls, classifier: Classifier):
         return super(CategoricalFactor, cls).__new__(
             cls,
@@ -1440,6 +1444,7 @@ class CategoricalFactor(SingleInputMixin, Factor):
         data = arrays[0]
         result = where(data >= 0, data, nan)
         return result.astype(float)
+
 
 class GroupedRowTransform(Factor):
     """

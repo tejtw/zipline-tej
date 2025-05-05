@@ -1381,9 +1381,6 @@ class BooleanFactor(SingleInputMixin, Factor):
     **Default Inputs**: None  
     **Default Window Length**: 0
 
-    TODO:
-      - Allow creation via Filter.as_factor().
-
     Parameters
     ----------
     filter : zipline.pipeline.Filter
@@ -1416,8 +1413,6 @@ class CategoricalFactor(SingleInputMixin, Factor):
 
     **Default Inputs**: None
     **Default Window Length**: 0
-
-    TODO: This factor can be created via Classifier.as_factor().
 
     Parameters
     ----------

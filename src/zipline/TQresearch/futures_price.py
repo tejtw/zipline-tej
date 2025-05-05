@@ -91,7 +91,7 @@ def get_continues_futures_price(root_symbol='TX',offset=0,roll_style='calendar',
                                     end_dt = trading_calendar.all_sessions[end_loc],
                                     bar_count = bar_count+5,
                                     frequency = '1d',
-                                    field = 'close',
+                                    field = field,
                                     data_frequency = 'daily')
 
 def get_futures_information(futures, rt =None):

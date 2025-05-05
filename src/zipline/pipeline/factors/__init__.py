@@ -20,6 +20,7 @@ from .basic import (
     SimpleMovingAverage,
     VWAP,
     WeightedAverageValue,
+    Shift
 )
 from .events import (
     BusinessDaysSincePreviousEvent,

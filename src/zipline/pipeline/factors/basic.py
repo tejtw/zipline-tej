@@ -35,7 +35,7 @@ from .factor import CustomFactor
 from ..mixins import SingleInputMixin
 
 
-class Shift(SingleInputMixin, Factor):
+class Shift(CustomFactor):
     """
     A Factor that delays its input by a given number of periods.
 
@@ -45,32 +45,16 @@ class Shift(SingleInputMixin, Factor):
 
     **Default Window Length**: None
 
-    TODO:
-      - Offer creation via Factor.shift(N).
-      - Also add shift capability to Filters and Classifiers.
-
-    Parameters
-    ----------
-    inputs : BoundColumn
-        The column or expression to offset.
-
-    window_length : int >= 2
-        The size of the lookback window. For example, a window_length of 2
-        yields a one-period forward shift of the input.
-
-    mask : zipline.pipeline.Filter, optional
-        An optional Filter indicating which (date, asset) pairs to include.
-        Entries where `mask` is False will be skipped.
-
     Examples
     --------
     >>> # To shift the closing price forward by one day:
     >>> Shift(inputs=[EquityPricing.close], window_length=2)
     """
     window_safe = True
+    dtype = float64_dtype
 
     def _validate(self):
-        super()._validate()
+        super(Shift, self)._validate()
         if self.window_length < 2:
             raise ValueError(
                 f"'Shift' requires window_length >= 2, but got {self.window_length}. "

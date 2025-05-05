@@ -1389,7 +1389,7 @@ class BooleanFactor(SingleInputMixin, Factor):
     Examples
     --------
     >>> # Produces 1.0 when close > 0, otherwise 0.0
-    >>> BooleanFactor(EquityPricing.close > 0)
+    >>> BooleanFactor(EquityPricing.close.latest > 20)
     """
     window_length = 0
     dtype = float64_dtype
@@ -1422,7 +1422,7 @@ class CategoricalFactor(SingleInputMixin, Factor):
 
     Examples
     ---
-    >>> CategoricalFactor(EquityPricing.close.quantiles(5)) + CategoricalFactor(EquityPricing.high.quantiles(5))
+    >>> CategoricalFactor(EquityPricing.close.latest.quantiles(5)) + CategoricalFactor(EquityPricing.high.latest.quantiles(5))
     """
     window_length = 0
     dtype = float64_dtype

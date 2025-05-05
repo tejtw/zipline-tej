@@ -2,7 +2,7 @@ from .factor import (
     CustomFactor,
     Factor,
     Latest,
-    RecarrayField,
+    RecarrayField
 )
 from .basic import (
     AnnualizedVolatility,
@@ -44,6 +44,7 @@ from .technical import (
     RateOfChangePercentage,
     RSI,
     TrueRange,
+    AverageTrueRange,
 )
 
 __all__ = [
@@ -81,6 +82,8 @@ __all__ = [
     "SimpleBeta",
     "SimpleMovingAverage",
     "TrueRange",
+    "AverageTrueRange",
     "VWAP",
     "WeightedAverageValue",
+    "Shift"
 ]

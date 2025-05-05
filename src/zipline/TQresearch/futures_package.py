@@ -44,3 +44,25 @@ def retail_long_short_ratio(root_symbol='TX', st='2013-01-01', et=None):
     )
 
     return df_retail_ratio
+    
+    
+def get_stock_futures_universe(st=None,et=None): 
+    if st is None:
+        st='2025-01-01'
+    if et is None:
+        et = pd.Timestamp.now().date().isoformat()
+        
+    metadata = tejapi.fastget('TWN/AFUTR', mdate = {'gte':st,'lte':et},opts = {'columns': ['mdate','coid','underlying_id' ,'underlying_name']}, paginate=True)
+    metadata['root_symbol'] = metadata['coid'].str.replace('[^a-zA-Z]', '', regex=True)
+    metadata = metadata[(metadata['underlying_id'].astype(str).str.match(r'^[1-9]\d{3}$')) & (metadata['root_symbol'].astype(str).str.len() == 3)]
+    stockfut_univ = metadata[['underlying_id','root_symbol']].set_index('underlying_id').to_dict()['root_symbol']
+ 
+    stk_universe = list(stockfut_univ.keys())
+    fut_universe = list(stockfut_univ.values())
+ 
+    return stk_universe,fut_universe
+      
+    
+
+
+

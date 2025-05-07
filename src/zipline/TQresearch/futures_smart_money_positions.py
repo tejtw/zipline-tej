@@ -170,7 +170,7 @@ class RequestFutReportableTrader:
 
         return df
     
-    def get_futures_oi_trader_data(self, root_symbol=None,contact_code=None,st=None,et=None):
+    def get_futures_oi_trader_data(self, root_symbol=None,contract_code=None,st=None,et=None):
         """ 取得期貨未沖銷部位數據 """
         data = self.request_data_from_api(coid=self.coid, start_date=st, end_date=et)
         
@@ -182,11 +182,11 @@ class RequestFutReportableTrader:
         if 'mdate' in data.columns:
             data['mdate'] = pd.to_datetime(data['mdate']).dt.tz_localize('UTC')
         
-        if not contact_code:
-            contact_code = 'N'
-        contact_code = '_'+contact_code    
+        if not contract_code:
+            contract_code = 'N'
+        contract_code = '_'+contract_code    
         
-        data = data[data.coid.str.endswith(contact_code)]
+        data = data[data.coid.str.endswith(contract_code)]
         
         for col in data.columns[-2:][::-1]:  # 逆序處理，避免 index 變動影響
             data.insert(2, col, data.pop(col))  #   

@@ -489,18 +489,18 @@ class TradingAlgorithm(object):
             for pos in positions :
                 holdings = positions.get(pos)
                 return_amt = holdings.amount * (holdings.last_sale_price - holdings.cost_basis)
-                if (return_amt > self.auto_close_profit_amount) :
+                if (self.auto_close_profit_amount is not None and return_amt > self.auto_close_profit_amount) :
                     self.order_target (asset = pos , target = 0)
-                if (return_amt < self.auto_close_loss_amount) :
+                if (self.auto_close_loss_amount is not None and return_amt < self.auto_close_loss_amount) :
                     self.order_target (asset = pos , target = 0)
         if (self.auto_close_profit_percent is not None) or (self.auto_close_loss_percent is not None) :
             positions = self.portfolio.positions
             for pos in positions :
                 holdings = positions.get(pos)
                 return_percent = (holdings.last_sale_price - holdings.cost_basis) / holdings.cost_basis
-                if (return_percent > self.auto_close_profit_percent) :
+                if (self.auto_close_profit_percent is not None and return_percent > self.auto_close_profit_percent) :
                     self.order_target (asset = pos , target = 0)
-                if (return_percent < self.auto_close_loss_percent) :
+                if (self.auto_close_loss_percent is not None and return_percent < self.auto_close_loss_percent) :
                     self.order_target (asset = pos , target = 0)
 
         self.blotter.execution_price_type = old_execution_price_type

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logbook
-
+import pandas as pd
 from ..ledger import Ledger
 from zipline.utils.exploding_object import NamedExplodingObject
 
@@ -185,6 +185,11 @@ class MetricsTracker(object):
             cost_basis,
         )
 
+    
+    # new add for future margin @ 20241128
+    def update_account_margin(self, dt , margin_table ) :
+        self._ledger.update_account_margin(dt , margin_table)
+
     def override_account_fields(self, **kwargs):
         self._ledger.override_account_fields(**kwargs)
 
@@ -227,13 +232,13 @@ class MetricsTracker(object):
         A minute perf packet.
         """
         self.sync_last_sale_prices(dt, data_portal)
-
+        
         packet = {
             "period_start": self._first_session,
             "period_end": self._last_session,
             "capital_base": self._capital_base,
             "minute_perf": {
-                "period_open": self._market_open,
+                "period_open": dt - pd.Timedelta(minutes=1),
                 "period_close": dt,
             },
             "cumulative_perf": {

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import logbook
 
 from zipline.data.data_portal import INVERSE_PRICE_MAPPING
@@ -512,6 +513,9 @@ class TargetPercentPipeAlgo(PipeAlgo):
                                                                          i.created.strftime('%Y-%m-%d'),
                                                                          self.cancel_datedelta)
 
+                    if pd.isna(next_trading_date):
+                        continue
+                    
                     if self.get_datetime().strftime('%Y-%m-%d')>=next_trading_date.strftime('%Y-%m-%d'):
 
                         self.cancel_order(i)

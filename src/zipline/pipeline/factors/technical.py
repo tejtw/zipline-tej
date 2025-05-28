@@ -308,6 +308,114 @@ class TrueRange(CustomFactor):
         )
 
 
+class AverageTrueRange(CustomFactor):
+    """
+    Average True Range (ATR) Factor.
+
+    Computes three outputs based on the True Range over a lookback window:
+    1. TR: the most recent True Range,
+    2. SMA_ATR: the simple moving average of True Range over the window,
+    3. EMA_ATR: the exponential moving average of True Range.
+
+    True Range is defined per J. Welles Wilder, Jr. as the maximum of:
+      - high − low
+      - |high − previous close|
+      - |low − previous close|
+
+    **Default Inputs:**
+      - zipline.pipeline.data.EquityPricing.high
+      - zipline.pipeline.data.EquityPricing.low
+      - zipline.pipeline.data.EquityPricing.close
+
+    **Default Window Length:** 15
+
+    **Outputs:**
+      - TR        : float64  Most recent True Range
+      - SMA_ATR   : float64  Simple moving average of TR over window_length − 1 periods
+      - EMA_ATR   : float64  Exponential moving average of TR
+
+    TODO:
+      - Consider vectorizing per-asset EMA calculation for performance.
+
+    Examples
+    ---
+    >>> AverageTrueRange(inputs = [EquityPricing.high, EquityPricing.low, EquityPricing.close])
+    """
+    inputs = (
+        EquityPricing.high,
+        EquityPricing.low,
+        EquityPricing.close,
+    )
+
+    window_length = 15
+
+    outputs = ["TR", "SMA_ATR", "EMA_ATR"]
+
+    def compute(self, today, assets, out, highs, lows, closes):
+        """
+        Notes
+        -----
+        - We drop the first row of each window to compare current high/low to prior close.
+        - SMA_ATR is computed as the mean of True Range over the full window.
+        - EMA_ATR uses the Wilder smoothing formula:
+            ATRₙ = (ATRₙ₋₁ * (n−1) + TRₙ) / n
+          with the first ATR initialized to a simple average.
+        """
+        # 給EMA ATR用，暫存前一期ATR
+        if not hasattr(self, 'prior_atr'):
+            self.prior_atr = {}
+
+        # Compute True Range excluding the first row (no previous close)
+        # high_to_low: current high − current low
+        #
+        # TR (follow func:zipline.pipeline.factors.TrueRange)
+        high_to_low = highs[1:] - lows[1:]
+        high_to_prev_close = abs(highs[1:] - closes[:-1])
+        low_to_prev_close = abs(lows[1:] - closes[:-1])
+        tr_current = nanmax(
+            dstack(
+                (
+                    high_to_low,
+                    high_to_prev_close,
+                    low_to_prev_close,
+                )
+            ),
+            2,
+        )
+
+        # EMA ATR
+        atr_values = full(len(assets), nan)
+
+        # 每檔股票非齊頭，所以先用迴圈
+        for i, asset in enumerate(assets):
+
+            # TR非NA個數 < self.window_length-1就不計算
+            if count_nonzero(~isnan(tr_current[:,i]), axis=0) < self.window_length-1:
+                # 暫停交易情況下沒股價的時候，就先刪除暫存ATR，等恢復交易後再重新用np.mean(tr_current[:,i])計算當期ATR
+                # EX：1213 2019/04/08-2019/09/24
+                if asset in self.prior_atr.keys():
+                    del self.prior_atr[asset]
+                continue
+
+            # 第一期用簡單平均計算ATR(n)：（TR(1)+TR(2)+...TR(n)）/ n
+            if asset not in self.prior_atr.keys():
+                self.prior_atr[asset] = mean(tr_current[:,i])
+            else:
+                # 其餘ATR計算：ATR(n)：ATR(n-1) * (n-1) / n + TR(n) / n
+                numerator = (self.prior_atr[asset] * (self.window_length-2) + tr_current[-1,i])
+                denominator = (self.window_length-1)
+                self.prior_atr[asset] =  numerator / denominator
+
+            atr_values[i] = self.prior_atr[asset]
+
+        # SMA ATR
+        sma_atr_values = mean(tr_current, axis=0)
+
+        out.TR = tr_current[-1]
+        out.EMA_ATR = atr_values
+        out.SMA_ATR = sma_atr_values
+
+
 class MovingAverageConvergenceDivergenceSignal(CustomFactor):
     """
     Moving Average Convergence/Divergence (MACD) Signal line

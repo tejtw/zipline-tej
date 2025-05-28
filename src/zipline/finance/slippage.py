@@ -17,7 +17,7 @@ import math
 import numpy as np
 from pandas import isnull
 from toolz import merge
-
+import pandas as pd
 from zipline.assets import Equity, Future
 from zipline.errors import HistoryWindowStartsBeforeData
 from zipline.finance.constants import ROOT_SYMBOL_TO_ETA, DEFAULT_ETA
@@ -121,7 +121,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
         return self._volume_for_bar
 
     @abstractmethod
-    def process_order(self, data, order):
+    def process_order(self, data, order, execution_price_type):
         """
         Compute the number of shares and price to fill for ``order`` in the
         current minute.
@@ -199,7 +199,6 @@ class SlippageModel(metaclass=FinancialModelMeta):
                     return
                 else:
                     continue
-
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
@@ -215,7 +214,6 @@ class SlippageModel(metaclass=FinancialModelMeta):
                 execution_price, execution_volume = self.process_order(
                     data, order, execution_price_type
                 )
-
                 if execution_price is not None:
                     txn = create_transaction(
                         order,
@@ -226,7 +224,6 @@ class SlippageModel(metaclass=FinancialModelMeta):
 
             except LiquidityExceeded:
                 break
-
             if txn:
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
@@ -444,22 +441,28 @@ class TW_Slippage(SlippageModel):
         volume = data.current(order.asset, "volume")
 
         txn_amount = order.open_amount
-        
+
         if order.direction > 0 and  volume * self.volume_limit < order.open_amount :
 
-            txn_amount = volume * self.volume_limit
+            txn_amount = max(int(volume * self.volume_limit),1)
         
         if order.direction < 0 and  -1 * volume * self.volume_limit > order.open_amount :
 
-            txn_amount = volume * self.volume_limit * -1
-
-        close_t1 = data.history(order.asset, fields='close', bar_count=2, frequency='1d')[-2]
-
-        if np.isnan(close_t1):
+            txn_amount = min(int(volume * self.volume_limit * -1),-1)
             
-            close_t1 = data.current(order.asset, 'close')
+        last_day = data.current_dt.normalize() - pd.Timedelta(days = 1)
 
+        close_t1 = data._data_portal.get_spot_value(
+            assets = order.asset , 
+            field = 'price' , 
+            dt = last_day , 
+            data_frequency = 'daily'
+            )
+        
         price = data.current(order.asset, execution_price_type)
+        
+        if np.isnan(close_t1):
+            return (price, txn_amount)
 
         times = self.spread
 
@@ -531,7 +534,7 @@ class TW_Slippage(SlippageModel):
         else:
 
             order_price = max(sell_limit, price )
-
+        
         return (order_price, txn_amount)
 
     

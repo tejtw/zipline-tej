@@ -77,9 +77,9 @@ repository = 'https://github.com/tejtw/zipline-tej'
 [build-system]
 requires = [
     'setuptools>=42.0.0 , < 68',
-    "setuptools_scm[toml]==8.0.4",
+    "setuptools_scm[toml]==8.1.0",
     'wheel>=0.36.0',
-    'Cython>=0.29.21,<3',
+    'Cython>=0.29.21 , < 3.1.0',
     'oldest-supported-numpy; python_version>="3.8"',
 ]
 build-backend = 'setuptools.build_meta'
@@ -134,7 +134,7 @@ exclude = ['tests*']
 
 [tool.setuptools_scm]
 write_to = "src/zipline/_version.py"
-version_scheme = 'no-guess-dev'
+version_scheme = 'only-version'
 local_scheme = 'no-local-version'
 
 

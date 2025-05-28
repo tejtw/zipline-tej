@@ -410,7 +410,7 @@ class Custom_TW_Commission(EquityCommissionModel):
         """
         self.minimun_cost = float(min_trade_cost)
         self.discount = float(discount)
-        self.tax = float(CUSTOM_DEFAULT_TAX)
+        self.tax = float(tax)
     def __repr__(self):
         return "{class_name}(min_trade_cost={min_trade_cost})".format(
             class_name=self.__class__.__name__, min_trade_cost=self.minimun_cost

@@ -59,6 +59,8 @@ class SimulationParameters(object):
         self._emission_rate = emission_rate
         self._data_frequency = data_frequency
 
+        # trial: make emission rate equals to data_frequency
+        self._emission_rate = data_frequency
         # copied to algorithm's environment for runtime access
         self._arena = arena
 

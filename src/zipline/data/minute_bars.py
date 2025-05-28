@@ -230,8 +230,8 @@ class BcolzMinuteBarMetadata(object):
                 end_session = pd.Timestamp(raw_data["end_session"], tz="UTC")
             else:
                 # No calendar info included in older versions, so
-                # default to NYSE.
-                calendar = get_calendar("XNYS")
+                # default to TEJ_XTAI.
+                calendar = get_calendar("TEJ_XTAI")
 
                 start_session = pd.Timestamp(raw_data["first_trading_day"], tz="UTC")
                 end_session = calendar.minute_to_session_label(
@@ -341,7 +341,7 @@ class BcolzMinuteBarWriter(object):
         correspond with the market opens.
     minutes_per_day : int
         The number of minutes per each period. Defaults to 390, the mode
-        of minutes in NYSE trading days.
+        of minutes in TEJ_XTAI trading days.
     start_session : datetime
         The first trading session in the data set.
     end_session : datetime

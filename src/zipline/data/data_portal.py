@@ -476,7 +476,7 @@ class DataPortal(object):
             else:
                 return self._get_daily_spot_value(
                     asset,
-                    field,
+                    field, # fix no open_price , high_price , low_price error
                     session_label,
                 )
         else:
@@ -491,8 +491,32 @@ class DataPortal(object):
                 )
             elif field == "contract":
                 return self._get_current_contract(asset, dt)
+            elif field == 'open_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "open",
+                    dt,
+                    ffill=True,
+                )
+            elif field == 'high_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "high",
+                    dt,
+                    ffill=True,
+                )
+            elif field == 'low_price' :
+                return self._get_minute_spot_value(
+                    asset,
+                    "low",
+                    dt,
+                    ffill=True,
+                )
             else:
-                return self._get_minute_spot_value(asset, field, dt)
+                return self._get_minute_spot_value(
+                    asset ,
+                    field ,
+                    dt)
 
     def get_spot_value(self, assets, field, dt, data_frequency):
         """
@@ -709,7 +733,7 @@ class DataPortal(object):
             else:
                 spot_value = self.get_spot_value(asset, field, dt, data_frequency)
 
-        if isinstance(asset, Equity):
+        if isinstance(asset, (Equity , Future)):
             ratio = self.get_adjustments(asset, field, dt, perspective_dt)[0]
             spot_value *= ratio
 
@@ -1326,7 +1350,7 @@ def get_bundle_price(start_dt,
     frequency: string, optional
         "1d"
     data_frequency: string, optional
-        The frequency of the data to query; i.e. 'daily'
+        The frequency of the data to query; i.e. 'daily' or 'minute'
     assets : list of `zipline.data.Asset objects`, optional
         The assets whose data is desired.
     transform : bool, optional
@@ -1361,25 +1385,36 @@ def get_bundle_price(start_dt,
     non_adj_field = [i for i in fields if not i.endswith('_adj')]
     # Removes the last 4 characters '_adj'
     adj_field = [i[:-4] for i in fields if i.endswith('_adj')]
-
+    if bundle_name == 'tquant_minutes' :
+        frequency = '1m'
+        data_frequency = 'minute'
     # 避免get_bundle出來的日期與start_dt及end_dt不一致 (#215 20240202)
+    
     if not get_calendar(calendar_name).is_session(end_dt):
         end_dt = get_calendar(calendar_name).previous_close(end_dt).normalize()
     
-    def get_history(adj, fields, transform=False):
+    def get_history(bundle , end_dt , adj, fields, frequency  , data_frequency , N_tradate , transform=False ):
 
         if adj:
             adjustment_reader=bundle.adjustment_reader
         else:
             adjustment_reader=None
-
-        Portal = DataPortal(asset_finder=bundle.asset_finder,
-                            trading_calendar=get_calendar(calendar_name),
-                            first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
-                            # equity_minute_reader=bundle.equity_minute_bar_reader,
-                            equity_daily_reader=bundle.equity_daily_bar_reader,
-                            adjustment_reader=adjustment_reader
-                            )
+        if data_frequency == 'daily' :
+            Portal = DataPortal(asset_finder=bundle.asset_finder,
+                                trading_calendar=get_calendar(calendar_name),
+                                first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
+                                # equity_minute_reader=bundle.equity_minute_bar_reader,
+                                equity_daily_reader=bundle.equity_daily_bar_reader,
+                                adjustment_reader=adjustment_reader
+                                )
+        elif data_frequency == 'minute' :
+            Portal = DataPortal(asset_finder=bundle.asset_finder,
+                                trading_calendar=get_calendar(calendar_name),
+                                first_trading_day=bundle.equity_minute_bar_reader.first_trading_day,
+                                equity_minute_reader=bundle.equity_minute_bar_reader,
+                                # equity_daily_reader=bundle.equity_daily_bar_reader,
+                                adjustment_reader=adjustment_reader
+                                )
         if not transform:
             Bar = BarData(data_portal=Portal,
                          simulation_dt_func=lambda: end_dt,
@@ -1426,18 +1461,21 @@ def get_bundle_price(start_dt,
             return dict
 
     # N_tradate： number of trading days
-    dt = get_calendar(calendar_name).sessions_in_range(start_dt,end_dt)
+    if data_frequency == 'daily' :
+        dt = get_calendar(calendar_name).sessions_in_range(start_dt,end_dt)
+    elif data_frequency == 'minute' :
+        dt = get_calendar(calendar_name).minutes_for_sessions_in_range(start_dt,end_dt)
     N_tradate = len(dt)
 
     # post-adjustment
     if adj_field:
-        bundle_price_adj = get_history(True, adj_field, transform)
+        bundle_price_adj = get_history(bundle ,end_dt , True, adj_field , frequency , data_frequency , N_tradate , transform)
     else:
         bundle_price_adj = None
 
     # pre-adjustment
     if non_adj_field:
-        bundle_price = get_history(False, non_adj_field, transform)
+        bundle_price = get_history(bundle ,end_dt , False, non_adj_field , frequency ,data_frequency , N_tradate , transform)
     else:
         bundle_price = None
 

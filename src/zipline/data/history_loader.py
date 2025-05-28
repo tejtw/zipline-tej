@@ -145,12 +145,14 @@ class ContinuousFutureAdjustmentReader(object):
 
     def __init__(
         self,
+        adjustment_reader,
         trading_calendar,
         asset_finder,
         bar_reader,
         roll_finders,
         frequency,
     ):
+        self._adjustments_reader = adjustment_reader
         self._trading_calendar = trading_calendar
         self._asset_finder = asset_finder
         self._bar_reader = bar_reader
@@ -192,9 +194,8 @@ class ContinuousFutureAdjustmentReader(object):
             return {}
         rf = self._roll_finders[cf.roll_style]
         partitions = []
-
+        
         rolls = rf.get_rolls(cf.root_symbol, dts[0], dts[-1], cf.offset)
-
         tc = self._trading_calendar
 
         adjs = {}
@@ -207,6 +208,7 @@ class ContinuousFutureAdjustmentReader(object):
                 dt = tc.open_and_close_for_session(dt)[1]
                 roll_dt = tc.open_and_close_for_session(roll_dt)[0]
             partitions.append((front_sid, back_sid, dt, roll_dt))
+
         for partition in partitions:
             front_sid, back_sid, dt, roll_dt = partition
             last_front_dt = self._bar_reader.get_last_traded_dt(
@@ -232,6 +234,48 @@ class ContinuousFutureAdjustmentReader(object):
                 adjs[adj_loc].append(adj)
             except KeyError:
                 adjs[adj_loc] = [adj]
+
+        start = normalize_date(dts[0])
+        end = normalize_date(dts[-1])
+        current_sid = rf.get_contract_center(cf.root_symbol , start , cf.offset)
+        execute_history = {}
+        splits = self._adjustments_reader.get_adjustments_for_sid("splits", current_sid)
+        for s in splits:
+            dt = s[0]
+            if start < dt <= end:
+                if execute_history.get(dt) :
+                    continue
+                ratio = s[1]
+                execute_history[dt] = ratio
+                end_loc = dts.searchsorted(dt)
+                adj_loc = end_loc
+                mult = Float64Multiply(0, end_loc - 1, 0, 0, ratio)
+                try:
+                    adjs[adj_loc].append(mult)
+                except KeyError:
+                    adjs[adj_loc] = [mult]
+        for d in dts :
+            next_sid = rf.get_contract_center(cf.root_symbol , d , cf.offset)
+            
+            if current_sid == next_sid :
+                continue
+            current_sid = next_sid
+            
+            splits = self._adjustments_reader.get_adjustments_for_sid("splits", current_sid)
+            for s in splits:
+                dt = s[0]
+                if start < dt <= end:
+                    if execute_history.get(dt) :
+                        continue
+                    ratio = s[1]
+                    execute_history[dt] = ratio
+                    end_loc = dts.searchsorted(dt)
+                    adj_loc = end_loc
+                    mult = Float64Multiply(0, end_loc - 1, 0, 0, ratio)
+                    try:
+                        adjs[adj_loc].append(mult)
+                    except KeyError:
+                        adjs[adj_loc] = [mult]
         return adjs
 
 
@@ -309,10 +353,11 @@ class HistoryLoader(metaclass=ABCMeta):
             ] = HistoryCompatibleUSEquityAdjustmentReader(
                 equity_adjustment_reader
             )
-        if roll_finders:
+        if roll_finders and equity_adjustment_reader is not None:
             self._adjustment_readers[
                 ContinuousFuture
             ] = ContinuousFutureAdjustmentReader(
+                equity_adjustment_reader,
                 trading_calendar,
                 asset_finder,
                 reader,

@@ -35,6 +35,36 @@ from .factor import CustomFactor
 from ..mixins import SingleInputMixin
 
 
+class Shift(CustomFactor):
+    """
+    A Factor that delays its input by a given number of periods.
+
+    This factor returns the input series moved forward by (window_length - 1) steps.
+
+    **Default Inputs**: None
+
+    **Default Window Length**: None
+
+    Examples
+    --------
+    >>> # To shift the closing price forward by one day:
+    >>> Shift(inputs=[EquityPricing.close], window_length=2)
+    """
+    window_safe = True
+    dtype = float64_dtype
+
+    def _validate(self):
+        super(Shift, self)._validate()
+        if self.window_length < 2:
+            raise ValueError(
+                f"'Shift' requires window_length >= 2, but got {self.window_length}. "
+                "Use window_length=2 to shift by one period."
+            )
+
+    def compute(self, today, assets, out, values):
+        out[:] = values[0]
+
+
 class Returns(CustomFactor):
     """
     Calculates the percent change in close price over the given window_length.

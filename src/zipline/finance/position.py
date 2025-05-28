@@ -76,7 +76,9 @@ class Position(object):
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        return {"amount": self.amount * dividend.amount}
+        if isinstance(self.asset, Future):
+            return {"amount": self.amount * dividend.amount * self.asset.price_multiplier , "asset" : self.asset}
+        return {"amount": self.amount * dividend.amount , "asset" : self.asset}
 
     def earn_stock_dividend(self, stock_dividend):
         """
@@ -117,6 +119,10 @@ class Position(object):
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
         self.cost_basis = new_cost_basis
+
+        if isinstance(self.asset  , Future) :
+            return 0 
+        
         self.amount = full_share_count
 
         return_cash = round(float(fractional_share_count * new_cost_basis), 2)

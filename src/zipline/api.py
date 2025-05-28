@@ -25,7 +25,7 @@ from .finance.asset_restrictions import (
 from .finance import commission, execution, slippage, cancel_policy
 from .finance.cancel_policy import NeverCancel, EODCancel
 from .finance.slippage import (
-    TW_Slippage
+    TW_Slippage,
     FixedSlippage,
     FixedBasisPointsSlippage,
     VolumeShareSlippage,

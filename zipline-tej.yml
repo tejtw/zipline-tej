@@ -210,4 +210,4 @@ dependencies:
     - widgetsnbextension==4.0.9
     - xlrd==2.0.1
     - yfinance==0.2.33
-    - zipline-tej==2.1.0
+    - zipline-tej==2.2.0

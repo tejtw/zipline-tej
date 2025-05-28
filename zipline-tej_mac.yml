@@ -212,5 +212,5 @@ dependencies:
       - xlrd==2.0.1
       - yfinance==0.2.37
       - zict==3.0.0
-      - zipline-tej==2.1.0
+      - zipline-tej==2.2.0
       - zipp==3.18.0

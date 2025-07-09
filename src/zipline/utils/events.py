@@ -583,21 +583,21 @@ class NMonthTradingDayRule(StatelessRule, metaclass=ABCMeta):
             self.td_delta = n
 
     def should_trigger(self, dt):
-        # 檢查當前市場分鐘是否在執行期間值列表中
+        # 檢查當前時間是否式可交易的時間
         value = self.cal.minute_to_session_label(dt, direction="none").value
         return value in self.execution_period_values
 
     @lazyval
     def execution_period_values(self):
-        # 計算符合條件的期間列表
+        # 所有交易日
         sessions = self.cal.all_sessions
 
-        # 創建一個 DataFrame 來處理 N 個月的分組
+        # 建立一個 DataFrame 來處理 N 個月的分組
         df = pd.DataFrame({'session': sessions})
         df['year'] = sessions.year
         df['month'] = sessions.month
 
-        # 創建 N 個月的週期分組
+        # 建立 N 個月的週期分組
         # 使用起始日期作為基準點
         start_date = sessions[0]
         df['period'] = ((df['year'] - start_date.year) * 12 + 

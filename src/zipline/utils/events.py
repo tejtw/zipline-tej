@@ -44,6 +44,8 @@ __all__ = [
     "NDaysBeforeLastTradingDayOfWeek",
     "NthTradingDayOfMonth",
     "NDaysBeforeLastTradingDayOfMonth",
+    "NMonthTradingDayRule",
+    "NDaysBeforeLastTradingDayOfNMonth",
     "StatefulRule",
     "OncePerDay",
     # Factory API
@@ -560,6 +562,63 @@ class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
         super(NDaysBeforeLastTradingDayOfMonth, self).__init__(n, invert=True)
 
 
+class NMonthTradingDayRule(StatelessRule, metaclass=ABCMeta):
+    """
+    A rule that triggers on specific trading days within N-month periods.
+    """
+    @preprocess(
+        n=lossless_float_to_int("NMonthTradingDayRule"),
+        period_months=lossless_float_to_int("NMonthTradingDayRule")
+    )
+    def __init__(self, n, period_months, invert):
+        if not 0 <= n < MAX_MONTH_RANGE:
+            raise _out_of_range_error(MAX_MONTH_RANGE)
+        if period_months < 1:
+            raise ValueError("period_months must be at least 1")
+
+        self.period_months = period_months
+        if invert:
+            self.td_delta = -n - 1
+        else:
+            self.td_delta = n
+
+    def should_trigger(self, dt):
+        # 檢查當前市場分鐘是否在執行期間值列表中
+        value = self.cal.minute_to_session_label(dt, direction="none").value
+        return value in self.execution_period_values
+
+    @lazyval
+    def execution_period_values(self):
+        # 計算符合條件的期間列表
+        sessions = self.cal.all_sessions
+
+        # 創建一個 DataFrame 來處理 N 個月的分組
+        df = pd.DataFrame({'session': sessions})
+        df['year'] = sessions.year
+        df['month'] = sessions.month
+
+        # 創建 N 個月的週期分組
+        # 使用起始日期作為基準點
+        start_date = sessions[0]
+        df['period'] = ((df['year'] - start_date.year) * 12 + 
+                       (df['month'] - start_date.month)) // self.period_months
+        
+        # 按週期分組並選擇第 td_delta 天
+        result = (df.groupby('period')['session']
+                    .apply(lambda x: x.iloc[self.td_delta] if len(x) > abs(self.td_delta) else pd.NaT)
+                    .dropna()
+                    .astype(np.int64))
+        return set(result)
+
+
+class NDaysBeforeLastTradingDayOfNMonth(NMonthTradingDayRule):
+    """
+    A rule that triggers n days before the last trading day of every N months.
+    """
+    def __init__(self, n, period_months):
+        super(NDaysBeforeLastTradingDayOfNMonth, self).__init__(n, period_months, invert=True)
+
+
 # Stateful rules
 
 
@@ -694,6 +753,36 @@ class date_rules(object):
             i.e., trigger on the last trading day of the week.
         """
         return NDaysBeforeLastTradingDayOfWeek(n=days_offset)
+
+    @staticmethod
+    def n_month_end(period_months, days_offset=0):
+        """
+        Create a rule that triggers a fixed number of trading days before the
+        end of every N months.
+
+        Parameters
+        ----------
+        period_months : int
+            Number of months in each period. For example, if period_months=5,
+            the rule will trigger every 5 months.
+        days_offset : int, optional
+            Number of trading days prior to the end of each N-month period
+            to trigger. Default is 0, i.e., trigger on the last trading day
+            of each N-month period.
+
+        Returns
+        -------
+        rule : zipline.utils.events.EventRule
+
+        Examples
+        --------
+        >>> # 每 5 個月最後一個交易日觸發
+        >>> rule = date_rules.n_month_end(5)
+        >>> 
+        >>> # 每 3 個月最後一個交易日前 2 天觸發
+        >>> rule = date_rules.n_month_end(3, days_offset=2)
+        """
+        return NDaysBeforeLastTradingDayOfNMonth(n=days_offset, period_months=period_months)
 
 
 class time_rules(object):

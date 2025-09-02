@@ -8,7 +8,7 @@ dependencies:
   - blosc=1.21.5
   - bzip2=1.0.8
   - c-ares=1.27.0
-  - c-blosc2=2.13.2
+  - c-blosc2 =2.14.4
   - ca-certificates=2024.2.2
   - hdf5=1.14.3
   - importlib-metadata=7.0.2
@@ -19,7 +19,7 @@ dependencies:
   - libaec=1.1.2
   - libblas=3.9.0
   - libcblas=3.9.0
-  - libcurl=8.5.0
+  - libcurl=8.8.0
   - libcxx=16.0.6
   - libedit=3.1.20191231
   - libev=4.33

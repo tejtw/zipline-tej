@@ -193,7 +193,7 @@ dependencies:
       - statsmodels==0.14.1
       - tblib==3.0.0
       - tej-exchange-calendars==1.0.0
-      - tej-tool-api==1.1.1
+      - tej-tool-api==1.2.5
       - tejapi==0.1.28
       - terminado==0.18.1
       - threadpoolctl==3.3.0

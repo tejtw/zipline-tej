@@ -2,7 +2,7 @@
 
 ## Used packages and environment
 * Main package: Zipline
-* Python 3.8 or above (currently support up to 3.12)
+* Python 3.9 or above (currently support up to 3.12)
 * Microsoft Windows OS or macOS or Linux
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars, etc.
 
@@ -45,7 +45,7 @@ Also, if you are familiar with Python enough, you can create a virtual environme
 
 ```
 # create virtual env
-$ conda create -n <env_name> python=3.10
+$ conda create -n <env_name> python=3.11
 
 # activate virtual env
 $ conda activate <env_name>

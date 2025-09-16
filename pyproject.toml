@@ -66,7 +66,7 @@ dependencies = [
     'tejapi >= 0.1.28',
     'Logbook >= 1.5.3',
     'openpyxl >= 3.0.9',
-    'tej-tool-api >= 1.2.9',
+    'tej-tool-api >= 1.2.11',
     'alphalens-tej >= 2.0.3',
     'pyfolio-tej >= 2.0.4',
 ]

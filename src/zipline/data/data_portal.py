@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
+
 from operator import mul
 
 from pandas.core.api import Timestamp as Timestamp
@@ -24,6 +26,7 @@ from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
 
+import re
 from toolz import curry, complement, take
 import errno
 import os
@@ -74,7 +77,6 @@ from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.input_validation import expect_element
 import zipline.utils.paths as pth
-from TejToolAPI import Map_Dask_API as dask_api
 
 from zipline.errors import HistoryWindowStartsBeforeData
 
@@ -99,13 +101,14 @@ BASE_FIELDS = frozenset(
     ]
 )
 
-OHLCV_FIELDS = frozenset(["open", "high", "low", "close", "volume"])
 OHLCV_FIELDS_LIST = ["open", "high", "low", "close", "volume"]
+OHLCV_FIELDS = frozenset(OHLCV_FIELDS_LIST)
 
-OHLCV_ADJ_FIELDS = frozenset(["open_adj", "high_adj", "low_adj", "close_adj", "volume_adj"])
 OHLCV_ADJ_FIELDS_LIST = ["open_adj", "high_adj", "low_adj", "close_adj", "volume_adj"]
+OHLCV_ADJ_FIELDS = frozenset(OHLCV_ADJ_FIELDS_LIST)
 
-OHLCVP_FIELDS = frozenset(["open", "high", "low", "close", "volume", "price"])
+OHLCVP_FIELDS_LIST = ["open", "high", "low", "close", "volume", "price"]
+OHLCVP_FIELDS = frozenset(OHLCVP_FIELDS_LIST)
 
 PRICE_MAPPING = {'price':'close',
                  'open_price':'open',
@@ -449,7 +452,7 @@ class DataPortal(object):
         try:
             return self._augmented_sources_map[field][asset].loc[day, field]
         except KeyError:
-            return np.NaN
+            return np.nan
 
     def _get_single_asset_value(self, session_label, asset, field, dt, data_frequency):
         if self._is_extra_source(asset, field, self._augmented_sources_map):
@@ -468,7 +471,7 @@ class DataPortal(object):
             elif field == "contract":
                 return None
             elif field != "last_traded":
-                return np.NaN
+                return np.nan
 
         if data_frequency == "daily":
             if field == "contract":
@@ -1112,7 +1115,7 @@ class DataPortal(object):
         if field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array
             return_array = return_array.astype(float64)
-            return_array[:] = np.NAN
+            return_array[:] = np.nan
 
         if bar_count != 0:
             data = self._history_loader.history(
@@ -1320,214 +1323,208 @@ class DataPortal(object):
 ##############
 # get_bundle #
 ##############
-def get_bundle_price(start_dt,
-                     end_dt,
-                     fields = '*',
-                     bundle_name = 'tquant',
-                     calendar_name = 'TEJ_XTAI',
-                     frequency = '1d',
-                     data_frequency = 'daily',
-                     assets = None,
-                     transform = False):
+def get_bundle_price(
+        start_dt: pd.Timestamp | str,
+        end_dt: pd.Timestamp | str,
+        fields: str | List[str] = None,
+        bundle_name: str = 'tquant',
+        calendar_name: str = 'TEJ_XTAI',
+        frequency: str = '1d',
+        data_frequency: str = 'daily',
+        assets: list = None,
+        transform: bool = False
+    ) -> pd.DataFrame:
     """
-    Export the bundle's price and volume data (pre-adjustment + post-adjustment)
-    into a DataFrame.
-    (20230516、20231103)
+    Export the bundle’s price and volume data (both pre- and post-adjustment) to a DataFrame.
+
+    The post-adjustment price is backward-adjusted using `end_dt` as the reference date, so the
+    final adjustment price may differ depending on the selected `end_dt`.
+
+    See `zipline.protocol.BarData` or `DataPortal.get_history_window` for more details.
 
     Parameters
     ----------
-    bundle_name : str, optional
-        The name of the bundle.
-    calendar_name : str, optional
-        The name of a calendar used to align bundle data.
-    fields: string or list[string], optional
-        The specific field to return. If you want to retrieve all fields, then enter '*'.
-        See `OHLCV_ADJ_FIELDS` and `OHLCV_FIELDS`.
-    start_dt: pandas.Timestamp
+    start_dt: pandas.Timestamp | str
         The start of the desired window of data.
-    end_dt: pandas.Timestamp
+    end_dt: pandas.Timestamp | str
         The end session of the desired window of data.
+    fields: string or list[string], optional
+        The specific field to return. If set to `None`, all fields will be returned.
+        See `OHLCV_ADJ_FIELDS` and `OHLCV_FIELDS` for more details.
+    bundle_name : str, optional
+        The name of the bundle. Default is 'tquant'.
+    calendar_name : str, optional
+       The name of a calendar used to align bundle data. Default is 'TEJ_XTAI'.
     frequency: string, optional
-        "1d"
+        The frequency of the data to query; i.e. '1d'. Default is '1d'.
     data_frequency: string, optional
-        The frequency of the data to query; i.e. 'daily' or 'minute'
+        The frequency of the data to query; i.e. 'daily'. Default is 'daily'.
     assets : list of `zipline.data.Asset objects`, optional
         The assets whose data is desired.
     transform : bool, optional
-        For alphalens. If True then transform data format into a DataFrame with MultiIndex
+        If True then transform data format into a DataFrame with MultiIndex
         columns, where level 0 is `fields` and level 1 is `Asset` objects, and the
-        index is a 'DatetimeIndex'.
+        index is a 'DatetimeIndex'. (`For alphalens`)
 
     Returns
     -------
     df : pd.DataFrame
+        A DataFrame containing the bundle's price and volume data.
+
+    Raises
+    ------
+    IndexError
+        Raised if the requested date range exceeds the available trading day coverage,
+        or if the required `bar_count` surpasses the actual data length.
+
+        For instance, this can occur when `start_dt` is earlier than the earliest available
+        trading day or `end_dt` is beyond the available range.
+
+        Please adjust `start_dt` (or choose a valid date range) to avoid this issue.
     """
-    bundle = bundles.load(bundle_name)
+    def _get_history(adj, fields, N_tradate, transform=False):
 
-    if assets is None:
-        sids = bundle.asset_finder.equities_sids
-        assets = bundle.asset_finder.retrieve_all(sids)
+        adjustment_reader = bundle.adjustment_reader if adj else None
 
-    # fields
-    if isinstance(fields, str):
-        fields = [fields]
+        portal = DataPortal(
+            asset_finder=bundle.asset_finder,
+            trading_calendar=get_calendar(calendar_name),
+            first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
+            # equity_minute_reader=bundle.equity_minute_bar_reader,
+            equity_daily_reader=bundle.equity_daily_bar_reader,
+            adjustment_reader=adjustment_reader
+            )
 
-    # The reason for using `OHLCV_FIELDS_LIST`` instead of `OHLCV_FIELDS``
-    # is to ensure the consistency of the field order.
-    if '*' in fields:
-        fields = OHLCV_FIELDS_LIST + OHLCV_ADJ_FIELDS_LIST
-
-    # chk
-    expect_element(fields = list(OHLCV_ADJ_FIELDS) + list(OHLCV_FIELDS))
-
-    # Split the fields into two lists according to whether they are adjusted 
-    # or not.
-    non_adj_field = [i for i in fields if not i.endswith('_adj')]
-    # Removes the last 4 characters '_adj'
-    adj_field = [i[:-4] for i in fields if i.endswith('_adj')]
-    if bundle_name == 'tquant_minutes' :
-        frequency = '1m'
-        data_frequency = 'minute'
-    # 避免get_bundle出來的日期與start_dt及end_dt不一致 (#215 20240202)
-    
-    if not get_calendar(calendar_name).is_session(end_dt):
-        end_dt = get_calendar(calendar_name).previous_close(end_dt).normalize()
-    
-    def get_history(bundle , end_dt , adj, fields, frequency  , data_frequency , N_tradate , transform=False ):
-
-        if adj:
-            adjustment_reader=bundle.adjustment_reader
-        else:
-            adjustment_reader=None
-        if data_frequency == 'daily' :
-            Portal = DataPortal(asset_finder=bundle.asset_finder,
-                                trading_calendar=get_calendar(calendar_name),
-                                first_trading_day=bundle.equity_daily_bar_reader.first_trading_day,
-                                # equity_minute_reader=bundle.equity_minute_bar_reader,
-                                equity_daily_reader=bundle.equity_daily_bar_reader,
-                                adjustment_reader=adjustment_reader
-                                )
-        elif data_frequency == 'minute' :
-            Portal = DataPortal(asset_finder=bundle.asset_finder,
-                                trading_calendar=get_calendar(calendar_name),
-                                first_trading_day=bundle.equity_minute_bar_reader.first_trading_day,
-                                equity_minute_reader=bundle.equity_minute_bar_reader,
-                                # equity_daily_reader=bundle.equity_daily_bar_reader,
-                                adjustment_reader=adjustment_reader
-                                )
         if not transform:
-            Bar = BarData(data_portal=Portal,
-                         simulation_dt_func=lambda: end_dt,
-                         data_frequency=data_frequency,
-                         trading_calendar=get_calendar(calendar_name),
-                         restrictions=NoRestrictions()
-                         )
+            Bar = BarData(
+                data_portal=portal,
+                simulation_dt_func=lambda: end_dt,
+                data_frequency=data_frequency,
+                trading_calendar=get_calendar(calendar_name),
+                restrictions=NoRestrictions()
+            )
+            df = Bar.history(assets=assets, fields=fields, bar_count=N_tradate, frequency=frequency)
+            df.index.names = ['date','asset']
 
-            df = Bar.history(assets=assets,
-                             fields=fields,
-                             bar_count=N_tradate,
-                             frequency=frequency
-                             )
-
-            # add：symbol and sid
-            df.index.set_names(['date','asset'],inplace=True)
-            df = df.reset_index()
-
-            df.insert(1,'symbol',df['asset'].apply(lambda x: x.symbol))
-            df.insert(1,'sid',df['asset'].apply(lambda x: x.sid))
-
-            df.columns.name = None
             # Add the suffix '_adj' to the column names in adj_field.
-            df.columns = [f'{col}_adj' if (col not in ['date','sid','symbol','asset']) \
-                          & (adj==True)
-                          else col for col in df.columns]
+            if adj:
+                df.columns = [f'{col}_adj' for col in df.columns]
             return df
 
         else:
             dict = {}
             for i in fields:
-                df = Portal.get_history_window(assets = assets,
-                                               end_dt = end_dt,
-                                               bar_count = N_tradate,
-                                               frequency =frequency,
-                                               field = i,
-                                               data_frequency =data_frequency)
-                if not adj:
-                    dict[i] = df
-                else:
-                    # Add the suffix '_adj' to the column names.
-                    dict[i+'_adj'] = df
+                df = portal.get_history_window(
+                    assets=assets,
+                    end_dt=end_dt,
+                    bar_count=N_tradate,
+                    frequency=frequency,
+                    field=i,
+                    data_frequency=data_frequency
+                )
 
+                name = i if not adj else i+'_adj'
+                dict[name] = df
             return dict
 
+    bundle = bundles.load(bundle_name)
+
+    # assets
+    all_sids = bundle.asset_finder.equities_sids
+    all_assets = bundle.asset_finder.retrieve_all(all_sids)
+    if assets is None:
+        assets = all_assets.copy()
+
+    # Convert start_dt and end_dt to UTC if they are pandas Timestamps
+    if isinstance(start_dt, pd.Timestamp):
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.tz_localize('UTC')
+        else:
+            start_dt = start_dt.tz_convert('UTC')
+
+    if isinstance(end_dt, pd.Timestamp):
+        if end_dt.tzinfo is None:
+            end_dt = end_dt.tz_localize('UTC')
+        else:
+            end_dt = end_dt.tz_convert('UTC')
+
+    # Convert start_dt and end_dt to pandas Timestamps if they are strings
+    if isinstance(start_dt, str):
+        start_dt = pd.Timestamp(start_dt, tz='UTC')
+    if isinstance(end_dt, str):
+        end_dt = pd.Timestamp(end_dt, tz='UTC')
+
+    # 避免get_bundle出來的日期與start_dt及end_dt不一致
+    if not get_calendar(calendar_name).is_session(end_dt):
+        end_dt = get_calendar(calendar_name).previous_close(end_dt).normalize()
+
+    max_data_end = max([asset.end_date for asset in all_assets])
+    if end_dt > max_data_end:
+        log.info('`End_dt` is later than the latest end date of the assets. Adjusting end_dt to the latest end date.')
+        end_dt = max_data_end
+
+    min_start = min([asset.start_date for asset in all_assets])
+    if start_dt < min_start:
+        log.info('`Start_dt` is earlier than the earliest start date of the assets. Adjusting start_dt to the earliest start date.')
+        start_dt = min_start
+
+    # fields
+    if isinstance(fields, str):
+        fields = [fields]
+
+    if not fields:
+        fields = OHLCVP_FIELDS_LIST + OHLCV_ADJ_FIELDS_LIST
+
+    expect_element(fields = OHLCVP_FIELDS_LIST + OHLCV_ADJ_FIELDS_LIST)
+
+    non_adj_field = [i for i in fields if i in OHLCVP_FIELDS_LIST]
+    adj_field = [re.sub(r'_adj$', '', i) for i in fields if i in OHLCV_ADJ_FIELDS_LIST] # 結尾的adj要刪除
+
     # N_tradate： number of trading days
-    if data_frequency == 'daily' :
-        dt = get_calendar(calendar_name).sessions_in_range(start_dt,end_dt)
-    elif data_frequency == 'minute' :
-        dt = get_calendar(calendar_name).minutes_for_sessions_in_range(start_dt,end_dt)
+    dt = get_calendar(calendar_name).sessions_in_range(start_dt, end_dt)
     N_tradate = len(dt)
 
-    # post-adjustment
+    bundle_price_adj = pd.DataFrame()
     if adj_field:
-        bundle_price_adj = get_history(bundle ,end_dt , True, adj_field , frequency , data_frequency , N_tradate , transform)
-    else:
-        bundle_price_adj = None
+        bundle_price_adj = _get_history(True, adj_field, N_tradate, transform)
 
-    # pre-adjustment
+    bundle_price = pd.DataFrame()
     if non_adj_field:
-        bundle_price = get_history(bundle ,end_dt , False, non_adj_field , frequency ,data_frequency , N_tradate , transform)
-    else:
-        bundle_price = None
+        bundle_price = _get_history(False, non_adj_field, N_tradate, transform)
 
     # merge
     if not transform:
-        # only OHLCV_FIELDS
-        if bundle_price_adj is None:
-            return bundle_price
-        # only OHLCV_ADJ_FIELDS
-        elif bundle_price is None:
-            return bundle_price_adj
-        # both OHLCV_FIELDS and OHLCV_ADJ_FIELDS
-        else:
-            df = pd.merge(bundle_price,
-                          bundle_price_adj.drop(columns=['asset','symbol']),
-                          on=['date','sid'],
-                          suffixes=[None,'_adj'])
+        df = pd.concat([bundle_price, bundle_price_adj], axis=1, join='outer').reset_index()
+        # add：symbol and sid
+        df.insert(2, 'symbol', df['asset'].apply(lambda x: x.symbol))
+        df.insert(2, 'sid', df['asset'].apply(lambda x: x.sid))
+
     else:
-        # Initialize merged_dict as an empty dictionary
-        merged_dict = {}
-
-        # Add to merged_dict only if the dictionary is not None
-        if bundle_price is not None:
-            merged_dict.update(bundle_price)
-
-        if bundle_price_adj is not None:
-            merged_dict.update(bundle_price_adj)
-
-        # Concatenate the DataFrames with multi-level columns from dict
+        merged_dict = {**bundle_price, **bundle_price_adj}
         df = pd.concat(merged_dict.values(), axis=1, keys=merged_dict.keys())
-    
-    # prevent from PermissionError: [WinError 32]
-    bundle.adjustment_reader.close() 
 
+    # prevent from PermissionError: [WinError 32]
+    bundle.adjustment_reader.close()
 
     return df
 
 
-def get_bundle_adj(bundle_name = 'tquant'):
+def get_bundle_adj(bundle_name: str = 'tquant') -> pd.DataFrame:
 
     """
-    Loads the adjustments from a SQLite database into a DataFrame.(20230516)。
+    Loads the adjustments from data bundle into a DataFrame.
+
+    See `unpack_db_to_component_dfs` for more details.
 
     Parameters
     ----------
     bundle_name : str, optional
-        The name of the bundle.
+        The name of the bundle. Default is 'tquant'.
 
     Returns
     -------
-    df_adj : pd.DataFrame
-        adjustments
+    df : pd.DataFrame
+        Returns a DataFrame containing all adjustments data for the bundle.
     """
 
     bundle = bundles.load(bundle_name) 
@@ -1536,97 +1533,105 @@ def get_bundle_adj(bundle_name = 'tquant'):
     df_adjustment = bundle.adjustment_reader.unpack_db_to_component_dfs(convert_dates=True)
 
     # dividend_payouts
-    df_dividend_payouts = df_adjustment['dividend_payouts'].rename(columns={'ex_date':'effective_date',
-                                                                            'pay_date':'dividend_payouts.pay_date',
-                                                                            'record_date':'dividend_payouts.record_date',
-                                                                            'declared_date':'dividend_payouts.declared_date',
-                                                                             'amount':'dividend_payouts.amount',
-                                                                            #'cash_back':'dividend_payouts.cash_back',   
-                                                                            'div_percent':'dividend_payouts.div_percent',
-                                                                              }).set_index(['effective_date','sid'])
+    df_dividend_payouts = df_adjustment['dividend_payouts'].rename(
+        columns={'ex_date':'effective_date',
+                'pay_date':'dividend_payouts.pay_date',
+                'record_date':'dividend_payouts.record_date',
+                'declared_date':'dividend_payouts.declared_date',
+                'amount':'dividend_payouts.amount',
+                #'cash_back':'dividend_payouts.cash_back',
+                'div_percent':'dividend_payouts.div_percent'}
+        ).set_index(['effective_date','sid'])
+
     # stock_dividend_payouts
-    df_stock_dividend_payouts = df_adjustment['stock_dividend_payouts'].rename(columns={'ex_date':'effective_date',
-                                                                            'pay_date':'stock_dividend_payouts.pay_date',
-                                                                            'record_date':'stock_dividend_payouts.record_date',
-                                                                            'declared_date':'stock_dividend_payouts.declared_date',
-                                                                             'amount':'stock_dividend_payouts.amount'
-                                                                              }).set_index(['effective_date','sid'])
+    df_stock_dividend_payouts = df_adjustment['stock_dividend_payouts'].rename(
+        columns={'ex_date':'effective_date',
+                 'pay_date':'stock_dividend_payouts.pay_date',
+                 'record_date':'stock_dividend_payouts.record_date',
+                 'declared_date':'stock_dividend_payouts.declared_date',
+                 'amount':'stock_dividend_payouts.amount'
+        }).set_index(['effective_date','sid'])
 
     # splits
-    df_splits = df_adjustment['splits'].rename(columns={'ratio':'splits.ratio'}).\
-                                                set_index(['effective_date','sid'])
+    df_splits = df_adjustment['splits'].rename(columns={'ratio':'splits.ratio'}).set_index(['effective_date','sid'])
     # mergers
-    df_mergers = df_adjustment['mergers'].rename(columns={'ratio':'mergers.ratio'}).\
-                                         set_index(['effective_date','sid'])
+    df_mergers = df_adjustment['mergers'].rename(columns={'ratio':'mergers.ratio'}).set_index(['effective_date','sid'])
     # dividends
-    df_dividends = df_adjustment['dividends'].rename(columns={'ratio':'dividends.ratio'}).\
-                                              set_index(['effective_date','sid'])
+    df_dividends = df_adjustment['dividends'].rename(columns={'ratio':'dividends.ratio'}).set_index(['effective_date','sid'])
 
+    df = pd.concat([df_dividend_payouts, df_dividends, df_splits, df_mergers],axis=1,join='outer')
 
-    df_adj = df_dividend_payouts.merge(df_dividends,how='outer',left_index=True, right_index=True)
-    df_adj = df_adj.merge(df_splits,how='outer',left_index=True, right_index=True)
-    df_adj = df_adj.merge(df_mergers,how='outer',left_index=True, right_index=True)
+    df.index.names = ['date','sid']
+    df = df.sort_index().reset_index()
 
-    df_adj.index.set_names(['date','sid'],inplace=True)
-    df_adj.reset_index(inplace=True)
-
-    df_adj.insert(2,'asset',df_adj['sid'].apply(lambda x: bundle.asset_finder.retrieve_asset(x)))
-    df_adj.insert(2,'symbol',df_adj['asset'].apply(lambda x: x.symbol))
+    df.insert(2,'asset',df['sid'].apply(lambda x: bundle.asset_finder.retrieve_asset(x)))
+    df.insert(2,'symbol',df['asset'].apply(lambda x: x.symbol))
 
     # prevent from PermissionError: [WinError 32]
     bundle.adjustment_reader.close() 
 
+    return df
 
-    return df_adj
 
-def get_bundle(start_dt,
-               end_dt,
-               bundle_name = 'tquant',
-               calendar_name = 'TEJ_XTAI',
-               frequency = '1d',
-               data_frequency = 'daily',
-               assets = None):
+def get_bundle(
+        start_dt: pd.Timestamp | str,
+        end_dt: pd.Timestamp | str,
+        bundle_name: str = 'tquant',
+        calendar_name: str = 'TEJ_XTAI',
+        frequency: str = '1d',
+        data_frequency: str = 'daily',
+        assets: list = None
+    ) -> pd.DataFrame:
     """
-    Loads the price and volume data (both pre-adjustment and post-adjustment),
-    as well as adjustments, and transforms them into a DataFrame.
-    (20230516、20231103)
+    Loads both pre- and post-adjustment price and volume data, along with any adjustments,
+    and converts them into a DataFrame.
 
     Parameters
     ----------
-    bundle_name : str
-        The name of the bundle.
-    calendar_name : str, optional
-        The name of a calendar used to align bundle data.
-    start_dt: pandas.Timestamp
+    start_dt: pandas.Timestamp | str
         The start of the desired window of data.
-    end_dt: pandas.Timestamp
+    end_dt: pandas.Timestamp | str
         The end session of the desired window of data.
+    bundle_name : str, optional
+        The name of the bundle. Default is 'tquant'.
+    calendar_name : str, optional
+       The name of a calendar used to align bundle data. Default is 'TEJ_XTAI'.
     frequency: string, optional
-        "1d"
+        The frequency of the data to query; i.e. '1d'. Default is '1d'.
     data_frequency: string, optional
-        The frequency of the data to query; i.e. 'daily'
-    assets : list of zipline.data.Asset objects, optional
+        The frequency of the data to query; i.e. 'daily'. Default is 'daily'.
+    assets : list of `zipline.data.Asset objects`, optional
         The assets whose data is desired.
 
     Returns
     -------
     df : pd.DataFrame
-        bundle的價格資料(調整前+調整後)及調整資料
-    """
-    df_bundle_price = get_bundle_price(bundle_name=bundle_name,
-                                       calendar_name=calendar_name,
-                                       start_dt=start_dt,
-                                       end_dt=end_dt,
-                                       fields='*',
-                                       assets=assets,
-                                       frequency=frequency,
-                                       data_frequency=data_frequency)
-                                 
-    df_bundle_adj = get_bundle_adj(bundle_name)
+        Contains the bundle's price data (both pre- and post-adjustment) and
+        the corresponding adjustment information.
 
-    df = df_bundle_price.merge(df_bundle_adj.drop(columns=['asset','symbol']),
-                                                  on=['date','sid'],
-                                                  how='left')
+    Raises
+    ------
+    IndexError
+        Raised if the requested date range exceeds the available trading day coverage,
+        or if the required `bar_count` surpasses the actual data length.
+
+        For instance, this can occur when `start_dt` is earlier than the earliest available
+        trading day or `end_dt` is beyond the available range.
+
+        Please adjust `start_dt` (or choose a valid date range) to avoid this issue.
+    """
+    df_bundle_price = get_bundle_price(
+        bundle_name=bundle_name,
+        calendar_name=calendar_name,
+        start_dt=start_dt,
+        end_dt=end_dt,
+        assets=assets,
+        frequency=frequency,
+        data_frequency=data_frequency).set_index(['date','sid'])
+
+    df_bundle_adj = get_bundle_adj(bundle_name).set_index(['date','sid']).drop(columns=['asset','symbol'])
+
+    df = df_bundle_price.join(df_bundle_adj, how='left').reset_index()
 
     return df
 
@@ -1820,21 +1825,21 @@ class TQAltDataLoader(TQDataLoader):
         pass
 
     def create_index(self, connection, table_name = 'factor_table'):
-        check_index = f'''
+        check_index = f"""
         SELECT name, sql
         FROM sqlite_master
         WHERE type = 'index'
         AND tbl_name = '{table_name}';
-        '''
+        """
         # Use a context manager for the database connection
         # with sqlite3.connect(fundamentals_path) as conn:
         index_data = pd.read_sql(check_index, connection)
         # 建立 cursor
         cursor = connection.cursor()
         if len(index_data) == 0:
-            c_index_scripts = f'''
+            c_index_scripts = f"""
                 CREATE INDEX fin_index ON {table_name} (symbol, date);
-            '''
+            """
             cursor.execute(c_index_scripts)
             # conn.close()
 
@@ -1849,10 +1854,11 @@ class TQAltDataLoader(TQDataLoader):
 
     def get_sqlite_script(self, fields=None, peroid_offset = 0):
 
-        scripts = f'''SELECT {self.fields}
-                    FROM factor_table a
-                    where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
-                '''
+        scripts = f"""
+                SELECT {self.fields}
+                FROM factor_table a
+                where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
+                """
         return scripts
     
     
@@ -1893,7 +1899,7 @@ class TQAltDataLoader(TQDataLoader):
         #     filled_columns.update(['fin_date', 'lag_fin_date'])
         #     filled_columns =  list(filled_columns)
         
-        data = data.groupby('symbol', group_keys=False).apply(dask_api.fillna_multicolumns)
+        data = data.groupby('symbol', group_keys=False).apply(lambda x : x.ffill())
 
 
         if self.dataframeloaders:
@@ -1953,13 +1959,14 @@ class TQFDataLoader(TQDataLoader):
     def get_sqlite_script(self, frequency = 'Daily' ,peroid_offset = 0):
         if peroid_offset != 0:
             if frequency == 'Daily':
-                scripts = f'''SELECT {self.fields}, a.fin_date,
+                scripts = f"""
+                SELECT {self.fields}, a.fin_date,
                 ROW_NUMBER() OVER (PARTITION BY a.symbol, a.fin_date ORDER BY a.date) AS fin_order,
                     datetime(a.date, '{peroid_offset} days') as lag_fin_date 
                     FROM factor_table a
                     left join factor_table b on a.symbol = b.symbol and datetime(a.date, '{peroid_offset} days') = b.fin_date
-                    where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
-                '''
+                    where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
+               """
 
             elif frequency == 'MRA':
                 fields = set(self.fields.split(', ')) - set(['a.symbol', 'a.date', 'a.fin_order', 'a.lag_fin_date'])
@@ -1968,7 +1975,7 @@ class TQFDataLoader(TQDataLoader):
                 if fields:
                     fields = ','+fields
                 others = fields.replace('b.','a.')
-                scripts = f'''
+                scripts = f"""
                 with first_announce as (
                 select symbol, date, fin_date, fin_order, datetime(fin_date, '{peroid_offset} years') as lag_fin_date
                     from (
@@ -1995,7 +2002,7 @@ class TQFDataLoader(TQDataLoader):
                 from factor_table a
                 left join year_fin_data b on a.symbol = b.symbol and a.date = b.date
                 where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
-                '''
+                """
                 
 
             else: 
@@ -2005,7 +2012,7 @@ class TQFDataLoader(TQDataLoader):
                 if fields:
                     fields = ','+fields
                 others = fields.replace('b.','a.')
-                scripts = f'''
+                scripts = f"""
                 with first_announce as (
                 select symbol, date, fin_date, fin_order, datetime(fin_date, '{peroid_offset*3} months') as lag_fin_date
                     from (
@@ -2032,34 +2039,35 @@ class TQFDataLoader(TQDataLoader):
                 from  factor_table a
                 left join month_fin_data b on a.symbol = b.symbol and a.date = b.date
                 where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
-                '''
+                """
         else:
             # if frequency == 'Daily':
-            scripts = f'''SELECT {self.fields}, a.fin_date,
+            scripts = f"""
+            SELECT {self.fields}, a.fin_date,
             ROW_NUMBER() OVER (PARTITION BY a.symbol, a.fin_date ORDER BY a.date) AS fin_order,
                 datetime(a.date, '{peroid_offset} days') as lag_fin_date 
                 FROM factor_table a
-                where a.date >= "{self.start_dt}" and strftime('%Y-%m-%d',a.date) <= "{self.end_dt}"
-            '''
+                where a.date >= '{self.start_dt}' and strftime('%Y-%m-%d',a.date) <= '{self.end_dt}'
+            """
         return scripts
 
 
     def create_index(self, connection, table_name = 'factor_table'):
-        check_index = f'''
+        check_index = f"""
         SELECT name, sql
         FROM sqlite_master
         WHERE type = 'index'
         AND tbl_name = '{table_name}';
-        '''
+        """
         # Use a context manager for the database connection
         # with sqlite3.connect(fundamentals_path) as conn:
         index_data = pd.read_sql(check_index, connection)
         # 建立 cursor
         cursor = connection.cursor()
         if len(index_data) == 0:
-            c_index_scripts = f'''
+            c_index_scripts = f"""
                 CREATE INDEX fin_index ON {table_name} (symbol, date);
-            '''
+            """
             cursor.execute(c_index_scripts)
             # conn.close()
 
@@ -2101,7 +2109,7 @@ class TQFDataLoader(TQDataLoader):
             filled_columns.update(['fin_date', 'lag_fin_date'])
             filled_columns =  list(filled_columns)
         
-        data = data.groupby('symbol', group_keys=False).apply(dask_api.fillna_multicolumns)
+        data = data.groupby('symbol', group_keys=False).apply(lambda x: x.ffill())
 
 
         if self.dataframeloaders:
@@ -2147,16 +2155,16 @@ def get_fundamentals(bundle_name = 'fundamentals',
     bundle_path = most_recent_data(bundle_name, timestamp)
     db_path = f'{bundle_path}/factor_table.db'
     if not fields:
-        scripts =  f'''
+        scripts =  f"""
         select * from factor_table
         where date >= '{start_dt}' and  strftime('%Y-%m-%d', date) <= '{end_dt}'
-        '''
+        """
     else:
         processed_fields = process_fields(fields)
-        scripts =  f'''
+        scripts =  f"""
         select symbol, date, {processed_fields} from factor_table
         where date >= '{start_dt}' and  strftime('%Y-%m-%d', date) <= '{end_dt}'
-        '''
+        """
     
     with sqlite3.connect(db_path) as conn:
         # Create index for the table
@@ -2164,3 +2172,4 @@ def get_fundamentals(bundle_name = 'fundamentals',
 
     conn.close()
     return data
+

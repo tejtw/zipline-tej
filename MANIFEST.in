@@ -8,3 +8,4 @@ recursive-exclude * *.py[co]
 recursive-exclude * *.pyc
 global-exclude *.c
 global-exclude *.html
+exclude src/zipline/_version.py

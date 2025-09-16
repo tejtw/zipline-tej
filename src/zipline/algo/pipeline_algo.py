@@ -645,7 +645,7 @@ class TargetPercentPipeAlgo(PipeAlgo):
                 `get_datetime` accordingly.
                 """
                 dt = (self.get_datetime(). # 2024-01-02 00:00:00+0
-                      tz_convert(self.rebalance_date_rule.cal.tz.zone). # 2024-01-02 08:00:00+8
+                      tz_convert(str(self.rebalance_date_rule.cal.tz)). # 2024-01-02 08:00:00+8
                       replace(hour=self.open_hour, minute=self.open_minute, second=0). # 2024-01-02 09:01:00+8
                       tz_convert('utc'). # 2024-01-02 01:01:00+8
                       tz_localize(None) # 2024-01-02 01:01:00+0

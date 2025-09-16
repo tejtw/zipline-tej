@@ -1636,7 +1636,7 @@ def random_tick_prices(
     seed : int, optional
         Seed to use for random number generation.
     """
-    out = np.full(count, starting_price, dtype=float)
+    out = np.full(count, starting_price, dtype=np.float64)
     rng = np.random.RandomState(seed)
     diff = rng.randint(tick_range[0], tick_range[1], size=len(out) - 1)
     ticks = starting_price + diff.cumsum() * tick_size

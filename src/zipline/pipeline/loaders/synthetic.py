@@ -399,7 +399,7 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
             {
                 "sid": array([], dtype=uint32),
                 "effective_date": array([], dtype=uint32),
-                "ratio": array([], dtype=float),
+                "ratio": array([], dtype=float64),
             }
         )
         empty_dividends = DataFrame(

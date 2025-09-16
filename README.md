@@ -2,7 +2,7 @@
 
 ## Used packages and environment
 * Main package: Zipline
-* Python 3.8 or above (currently support up to 3.11)
+* Python 3.8 or above (currently support up to 3.12)
 * Microsoft Windows OS or macOS or Linux
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars, etc.
 

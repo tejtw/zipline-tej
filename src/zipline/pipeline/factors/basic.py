@@ -9,9 +9,9 @@ from numpy import (
     exp,
     fmax,
     full,
+    inf,
     isnan,
     log,
-    NINF,
     sqrt,
     sum as np_sum,
     unique,
@@ -185,7 +185,7 @@ class MaxDrawdown(SingleInputMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         drawdowns = fmax.accumulate(data, axis=0) - data
-        drawdowns[isnan(drawdowns)] = NINF
+        drawdowns[isnan(drawdowns)] = -inf
         drawdown_ends = nanargmax(drawdowns, axis=0)
 
         # TODO: Accelerate this loop in Cython or Numba.

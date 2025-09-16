@@ -217,7 +217,7 @@ class PandasCSV(object, metaclass=ABCMeta):
             format_str = None
 
         tz_str = str(tz)
-        if tz_str == pytz.utc.zone:
+        if tz_str == str(pytz.utc):
             parsed = pd.to_datetime(
                 date_str_series.values,
                 format=format_str,

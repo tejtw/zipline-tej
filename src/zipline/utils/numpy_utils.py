@@ -3,7 +3,7 @@ Utilities for working with numpy arrays.
 """
 from collections import OrderedDict
 from datetime import datetime
-from distutils.version import StrictVersion
+from packaging.version import Version
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -28,7 +28,7 @@ from numpy import (
 from numpy.lib.stride_tricks import as_strided
 from toolz import flip
 
-numpy_version = StrictVersion(np.__version__)
+numpy_version = Version(np.__version__)
 
 uint8_dtype = dtype("uint8")
 bool_dtype = dtype("bool")
@@ -388,7 +388,7 @@ def busday_count_mask_NaT(begindates, enddates, out=None):
     np.busday_count
     """
     if out is None:
-        out = empty(broadcast(begindates, enddates).shape, dtype=float)
+        out = empty(broadcast(begindates, enddates).shape, dtype=np.float64)
 
     beginmask = isnat(begindates)
     endmask = isnat(enddates)

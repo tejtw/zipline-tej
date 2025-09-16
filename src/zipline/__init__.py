@@ -1,5 +1,22 @@
 #
 # Copyright 2015 Quantopian, Inc.
+import os
+if os.getenv('TEJAPI_BASE') is None :
+    os.environ['TEJAPI_BASE'] = 'https://api.tej.com.tw'
+import numpy as np
+
+# This is *not* a place to dump arbitrary classes/modules for convenience,
+# it is a place to expose the public interfaces.
+from zipline.utils.calendar_utils import get_calendar
+
+from . import data
+from . import finance
+from . import gens
+from . import utils
+from .utils.numpy_utils import numpy_version
+from .utils.pandas_utils import new_pandas
+from zipline.utils.run_algo import run_algorithm
+from packaging.version import Version
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +29,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import StrictVersion
+from packaging.version import Version as StrictVersion
 import os
 if os.getenv('TEJAPI_BASE') is None :
     os.environ['TEJAPI_BASE'] = 'https://api.tej.com.tw'
@@ -104,9 +121,9 @@ def setup(
 ):
     """Lives in zipline.__init__ for doctests."""
 
-    if numpy_version >= StrictVersion("1.14"):
+    if numpy_version >= StrictVersion("2.0"):
         self.old_opts = np.get_printoptions()
-        np.set_printoptions(legacy="1.13")
+        # No need for legacy mode in numpy 2.0+
     else:
         self.old_opts = None
 

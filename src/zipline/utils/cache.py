@@ -6,12 +6,11 @@ import errno
 from functools import partial
 import os
 import pickle
-from distutils import dir_util
-from shutil import rmtree, move
+from shutil import rmtree, move, copytree
 from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
-
+import warnings
 from .context_tricks import nop_context
 from .paths import ensure_directory
 from .sentinel import sentinel
@@ -190,7 +189,8 @@ class dataframe_cache(MutableMapping):
         Should the directory be cleaned up if an exception is raised in the
         context manager.
     serialize : {'msgpack', 'pickle:<n>'}, optional
-        How should the data be serialized. If ``'pickle'`` is passed, an
+        How should the data be serialized. Note: 'msgpack' is deprecated and
+        will use pickle instead. If ``'pickle'`` is passed, an
         optional pickle protocol can be passed like: ``'pickle:3'`` which says
         to use pickle protocol 3.
 
@@ -210,9 +210,15 @@ class dataframe_cache(MutableMapping):
         self.clean_on_failure = clean_on_failure
 
         if serialization == "msgpack":
-            self.serialize = pd.DataFrame.to_msgpack
-            self.deserialize = pd.read_msgpack
+            # msgpack support has been removed from pandas 2.x, use pickle instead
+            warnings.warn(
+                "msgpack serialization is no longer supported in pandas 2.x. "
+                "Using pickle instead.",
+                UserWarning
+            )
             self._protocol = None
+            self.serialize = self._serialize_pickle
+            self.deserialize = partial(pickle.load, encoding="latin-1")
         else:
             s = serialization.split(":", 1)
             if s[0] != "pickle":
@@ -342,8 +348,8 @@ class working_dir(object):
     Notes
     -----
     The file is moved on __exit__ if there are no exceptions.
-    ``working_dir`` uses :func:`dir_util.copy_tree` to move the actual files,
-    meaning it has as strong of guarantees as :func:`dir_util.copy_tree`.
+    ``working_dir`` uses :func:`shutil.copytree` to move the actual files,
+    meaning it has as strong of guarantees as :func:`shutil.copytree`.
     """
 
     def __init__(self, final_path, *args, **kwargs):
@@ -374,7 +380,7 @@ class working_dir(object):
 
     def _commit(self):
         """Sync the temporary directory to the final path."""
-        dir_util.copy_tree(self.path, self._final_path)
+        copytree(self.path, self._final_path, dirs_exist_ok=True)
 
     def __enter__(self):
         return self

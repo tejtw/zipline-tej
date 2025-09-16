@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import pandas as pd
 
 from .assets import Asset
@@ -179,7 +180,7 @@ class Portfolio(object):
                 )
                 for asset, position in self.positions.items()
             },
-            dtype=float,
+            dtype=np.float64,
         )
         return position_values / self.portfolio_value
 

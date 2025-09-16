@@ -972,7 +972,7 @@ class TradingAlgorithm(object):
         date_column='mdate',
         country_code=None,
         date_format=None,
-        timezone=pytz.utc.zone,
+        timezone=str(pytz.utc),
         pre_func=None,
         post_func=None,
         **kwargs,
@@ -1061,7 +1061,7 @@ class TradingAlgorithm(object):
         post_func=None,
         date_column="date",
         date_format=None,
-        timezone=pytz.utc.zone,
+        timezone=str(pytz.utc),
         symbol=None,
         mask=True,
         symbol_column=None,
@@ -1810,7 +1810,7 @@ class TradingAlgorithm(object):
             The current simulation datetime converted to ``tz``.
         """
         dt = self.datetime
-        assert dt.tzname() == pytz.utc.zone, "Algorithm should have a utc datetime"
+        assert dt.tzname() == str(pytz.utc), "Algorithm should have a utc datetime"
         if tz is not None:
             dt = dt.astimezone(tz)
         return dt

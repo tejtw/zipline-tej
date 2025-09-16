@@ -165,7 +165,7 @@ dependencies:
   - zstd=1.5.7
   - pip:
       - alembic==1.16.5
-      - alphalens-tej==2.0.2
+      - alphalens-tej==2.0.3
       - bcolz-zipline==1.13.0
       - bottleneck==1.5.0
       - click==8.2.1
@@ -199,7 +199,7 @@ dependencies:
       - multipledispatch==1.0.0
       - networkx==3.5
       - numexpr==2.11.0
-      - numpy==1.23.5
+      - numpy==2.1.0
       - openpyxl==3.1.5
       - pandas==2.3.2
       - partd==1.4.2
@@ -207,7 +207,7 @@ dependencies:
       - peewee==3.17.3
       - pillow==11.3.0
       - pyarrow==21.0.0
-      - pyfolio-tej==2.0.2
+      - pyfolio-tej==2.0.4
       - pyluach==2.2.0
       - pyparsing==3.2.3
       - python-interface==1.6.1
@@ -218,8 +218,8 @@ dependencies:
       - sqlalchemy==1.4.54
       - statsmodels==0.14.5
       - tblib==3.1.0
-      - tej-exchange-calendars==1.0.0
-      - tej-tool-api==1.2.5
+      - tej-exchange-calendars==1.0.1
+      - tej-tool-api==1.2.9
       - tejapi==0.1.31
       - threadpoolctl==3.6.0
       - toolz==1.0.0
@@ -227,5 +227,5 @@ dependencies:
       - tzdata==2025.2
       - xlrd==2.0.2
       - zict==3.0.0
-      - zipline-tej==2.2.0
+      - zipline-tej==2.2.1
 

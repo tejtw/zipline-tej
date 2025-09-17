@@ -493,8 +493,7 @@ class TQData(DataSetFamily):
         cls,
         frequency: Literal['MRQ','MRA', 'Daily'],
         period_offset: int = 0
-
-    )->'TQData':
+    ) :
 
 
         return super().slice(frequency=frequency, period_offset=period_offset)

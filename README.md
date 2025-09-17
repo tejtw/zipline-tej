@@ -2,13 +2,21 @@
 
 ## Used packages and environment
 * Main package: Zipline
-* Python 3.8 or above (currently support up to 3.11)
+* Python 3.9 or above (currently support up to 3.12)
 * Microsoft Windows OS or macOS or Linux
 * Other Python dependency packages: Pandas, Numpy, Logbook, Exchange-calendars, etc.
 
 ## How to install Zipline Reloaded modified by TEJ
 
 * We're going to illustrate under anaconda environment, so we suggest using [Anaconda](https://www.anaconda.com/data-science-platform) as development environment.
+
+### Simple install 
+
+* In Anaconda CLI, we can use **pip install zipline-tej** to install.
+
+* In Jupyter Notebook, we can use **!pip install zipline-tej** to install. 
+
+### Full environment install
 
 * Download dependency packages.
 
@@ -45,7 +53,7 @@ Also, if you are familiar with Python enough, you can create a virtual environme
 
 ```
 # create virtual env
-$ conda create -n <env_name> python=3.10
+$ conda create -n <env_name> python=3.11
 
 # activate virtual env
 $ conda activate <env_name>

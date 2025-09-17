@@ -3,7 +3,7 @@ Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
 from io import BytesIO
 import os
-
+import TejToolAPI
 from click import progressbar
 import logging
 import pandas as pd
@@ -45,8 +45,6 @@ def fetch_data_table(api_key, show_progress,  coid, mdate, columns, **kwargs):
     else:
         self_acc = 'N'
 
-    import TejToolAPI
-
 
     try :
         data = TejToolAPI.get_history_data(ticker = coid, 
@@ -57,7 +55,6 @@ def fetch_data_table(api_key, show_progress,  coid, mdate, columns, **kwargs):
                                            require_annd = True,
                                            show_progress = False
                                            )
-        # print(data.columns)
 
         if data.size == 0:
             raise ValueError("Did not fetch any fundamental data. Please check the correctness of your ticker, mdate and fields.")
@@ -108,8 +105,8 @@ def gen_asset_metadata(data, show_progress):
 
     data = data.groupby(by="symbol").agg({"date": [np.min, np.max]})
     data.reset_index(inplace=True)
-    data["start_date"] = data.date.amin
-    data["end_date"] = data.date.amax
+    data["start_date"] = data[("date","min")]
+    data["end_date"] = data[("date","max")]
     del data["date"]
     data.columns = data.columns.get_level_values(0)
 
@@ -324,9 +321,9 @@ fundamental_schema = sa.Table(
     metadata,  # 元資料
     sa.Column("symbol", sa.String, primary_key=True, nullable=False),  # 公司 ID，字串，主鍵
     sa.Column("date", sa.DateTime, primary_key=True, nullable=False),  # 年/月，日期時間，主鍵
-    sa.Column("fin_date", sa.DateTime),  # 年/月，日期時間，主鍵
-    sa.Column("share_date", sa.DateTime),  # 年/月，日期時間，主鍵
-    sa.Column("mon_sales_date", sa.DateTime),  # 年/月，日期時間，主鍵
+    sa.Column("fin_date", sa.DateTime),  # 年/月，日期時間
+    sa.Column("share_date", sa.DateTime),  # 年/月，日期時間
+    sa.Column("mon_sales_date", sa.DateTime),  # 年/月，日期時間
     sa.Column("High_Low_Diff", sa.Float),  # High_Low_Diff，浮點數
     sa.Column("Transaction", sa.Float),  # Transaction，浮點數
     sa.Column("Turnover", sa.Float),  # Turnover，浮點數

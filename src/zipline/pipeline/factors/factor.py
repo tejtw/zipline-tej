@@ -6,6 +6,7 @@ from numbers import Number
 from math import ceil
 from textwrap import dedent
 
+import numpy as np
 from numpy import empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
 
@@ -1403,7 +1404,7 @@ class BooleanFactor(SingleInputMixin, Factor):
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        return (data & mask).astype(float)
+        return (data & mask).astype(np.float64)
 
 
 class CategoricalFactor(SingleInputMixin, Factor):
@@ -1438,7 +1439,7 @@ class CategoricalFactor(SingleInputMixin, Factor):
 
         data = arrays[0]
         result = where(data >= 0, data, nan)
-        return result.astype(float)
+        return result.astype(np.float64)
 
 
 class GroupedRowTransform(Factor):

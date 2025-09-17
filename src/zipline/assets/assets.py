@@ -1432,8 +1432,10 @@ class AssetFinder(object):
         sid = np.array(sids, dtype="i8")
         start = np.array(starts, dtype="f8")
         end = np.array(ends, dtype="f8")
+            
         start[np.isnan(start)] = 0  # convert missing starts to 0
         end[np.isnan(end)] = np.iinfo(int).max  # convert missing end to INTMAX
+        
         return Lifetimes(sid, start.astype("i8"), end.astype("i8"))
 
     def lifetimes(self, dates, include_start_date, country_codes):

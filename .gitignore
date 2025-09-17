@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# C code
+*.c
+
+# Virtual environments
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+

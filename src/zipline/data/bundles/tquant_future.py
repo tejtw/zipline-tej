@@ -507,9 +507,9 @@ def tej_bundle(
     data = data.drop_duplicates(subset = ["date" , "symbol"])
 
     data.fillna({"ex_dividend" : 0 , "split_ratio" : 1 , "div_percent" : 0} , inplace = True)
-    data['ex_dividend'] = data['ex_dividend'].astype(float)
-    data['split_ratio'] = data['split_ratio'].astype(float)
-    data['div_percent'] = data['div_percent'].astype(float)
+    data['ex_dividend'] = data['ex_dividend'].astype('float64')
+    data['split_ratio'] = data['split_ratio'].astype('float64')
+    data['div_percent'] = data['div_percent'].astype('float64')
 
     data.set_index(["date", "symbol"], inplace=True)
 

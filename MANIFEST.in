@@ -3,4 +3,9 @@ include LICENSE README.md pyproject.toml setup.py
 
 graft src
 graft tests
-global-exclude __pycache__ *.py[cod] .* *.yml
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.pyc
+global-exclude *.c
+global-exclude *.html
+exclude src/zipline/_version.py

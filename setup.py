@@ -14,10 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy
+import numpy as np
 from Cython.Build import cythonize
 from setuptools import Extension, setup  # noqa: E402
 
+# Common extension options
+NUMPY_INCLUDE = np.get_include()
+COMMON_MACROS = [("NPY_NO_DEPRECATED_API", "NPY_1_20_API_VERSION")]
 
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
@@ -25,7 +28,8 @@ def window_specialization(typename):
         name=f"zipline.lib._{typename}window",
         sources=[f"src/zipline/lib/_{typename}window.pyx"],
         depends=["src/zipline/lib/_windowtemplate.pxi"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     )
 
 
@@ -37,22 +41,26 @@ ext_modules = [
     Extension(
         name="zipline.assets._assets",
         sources=["src/zipline/assets/_assets.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.assets.continuous_futures",
         sources=["src/zipline/assets/continuous_futures.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.lib.adjustment",
         sources=["src/zipline/lib/adjustment.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.lib._factorize",
         sources=["src/zipline/lib/_factorize.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     window_specialization("float64"),
     window_specialization("int64"),
@@ -62,42 +70,50 @@ ext_modules = [
     Extension(
         name="zipline.lib.rank",
         sources=["src/zipline/lib/rank.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.data._equities",
         sources=["src/zipline/data/_equities.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.data._adjustments",
         sources=["src/zipline/data/_adjustments.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline._protocol",
         sources=["src/zipline/_protocol.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.finance._finance_ext",
         sources=["src/zipline/finance/_finance_ext.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.gens.sim_engine",
         sources=["src/zipline/gens/sim_engine.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.data._minute_bar_internal",
         sources=["src/zipline/data/_minute_bar_internal.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
     Extension(
         name="zipline.data._resample",
         sources=["src/zipline/data/_resample.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        include_dirs=[NUMPY_INCLUDE],
+        define_macros=COMMON_MACROS,
     ),
 ]
 # for ext_module in ext_modules:
@@ -113,5 +129,5 @@ def myversion():
 setup(
     use_scm_version=myversion,
     ext_modules=cythonize(ext_modules, **ext_options),
-    include_dirs=[numpy.get_include()],
+    zip_safe=False,
 )

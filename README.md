@@ -10,6 +10,14 @@
 
 * We're going to illustrate under anaconda environment, so we suggest using [Anaconda](https://www.anaconda.com/data-science-platform) as development environment.
 
+### Simple install 
+
+* In Anaconda CLI, we can use **pip install zipline-tej** to install.
+
+* In Jupyter Notebook, we can use **!pip install zipline-tej** to install. 
+
+### Full environment install
+
 * Download dependency packages.
 
 1. Windows [(zipline-tej.yml)](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/tejtw/zipline-tej/blob/main/zipline-tej.yml)

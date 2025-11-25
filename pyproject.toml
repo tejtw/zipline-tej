@@ -1,5 +1,5 @@
 [project]
-name = 'zipline-tej'
+name = 'zipline_tej'
 description = 'A Pythonic backtester for trading algorithms'
 readme = 'README.md'
 dynamic = ["version"]

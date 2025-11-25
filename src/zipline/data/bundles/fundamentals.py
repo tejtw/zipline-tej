@@ -523,277 +523,718 @@ fundamental_schema = sa.Table(
     sa.Column("Net_Income_Attributable_to_Parent_TTM", sa.Float),  # Net_Income_Attributable_to_Parent_TTM，浮點數
     sa.Column("Net_Income_Growth_Rate_A", sa.Float),  # Net_Income_Growth_Rate_A，浮點數
     sa.Column("Net_Income_Growth_Rate_Q", sa.Float),  # Net_Income_Growth_Rate_Q，浮點數
+    sa.Column("Net_Income_Growth_Rate_TTM", sa.Float),  # Net_Income_Growth_Rate_TTM，浮點數
+    sa.Column("Basic_Earnings_Per_Share_A", sa.Float),  # Basic_Earnings_Per_Share_A，浮點數
+    sa.Column("Basic_Earnings_Per_Share_Q", sa.Float),  # Basic_Earnings_Per_Share_Q，浮點數
+    sa.Column("Basic_Earnings_Per_Share_TTM", sa.Float),  # Basic_Earnings_Per_Share_TTM，浮點數
+    sa.Column("Current_Ratio_A", sa.Float),  # Current_Ratio_A，浮點數
+    sa.Column("Current_Ratio_Q", sa.Float),  # Current_Ratio_Q，浮點數
+    sa.Column("Current_Ratio_TTM", sa.Float),  # Current_Ratio_TTM，浮點數
+    sa.Column("Total_Operating_Expenses_A", sa.Float),  # Total_Operating_Expenses_A，浮點數
+    sa.Column("Total_Operating_Expenses_Q", sa.Float),  # Total_Operating_Expenses_Q，浮點數
+    sa.Column("Total_Operating_Expenses_TTM", sa.Float),  # Total_Operating_Expenses_TTM，浮點數
+    sa.Column("Cash_Flow_from_Investing_Activities_A", sa.Float),  # Cash_Flow_from_Investing_Activities_A，浮點數
+    sa.Column("Cash_Flow_from_Investing_Activities_Q", sa.Float),  # Cash_Flow_from_Investing_Activities_Q，浮點數
+    sa.Column("Cash_Flow_from_Investing_Activities_TTM", sa.Float),  # Cash_Flow_from_Investing_Activities_TTM，浮點數
+    sa.Column("Total_Non_current_Liabilities_A", sa.Float),  # Total_Non_current_Liabilities_A，浮點數
+    sa.Column("Total_Non_current_Liabilities_Q", sa.Float),  # Total_Non_current_Liabilities_Q，浮點數
+    sa.Column("Total_Non_current_Liabilities_TTM", sa.Float),  # Total_Non_current_Liabilities_TTM，浮點數
+    sa.Column("Return_on_Total_Assets_A_percent_A", sa.Float),  # Return_on_Total_Assets_A_percent_A，浮點數
+    sa.Column("Return_on_Total_Assets_A_percent_Q", sa.Float),  # Return_on_Total_Assets_A_percent_Q，浮點數
+    sa.Column("Return_on_Total_Assets_A_percent_TTM", sa.Float),  # Return_on_Total_Assets_A_percent_TTM，浮點數
+    sa.Column("Preferred_Stocks_A", sa.Float),  # Preferred_Stocks_A，浮點數
+    sa.Column("Preferred_Stocks_Q", sa.Float),  # Preferred_Stocks_Q，浮點數
+    sa.Column("Preferred_Stocks_TTM", sa.Float),  # Preferred_Stocks_TTM，浮點數
+    sa.Column("Total_Liabilities_A", sa.Float),  # Total_Liabilities_A，浮點數
+    sa.Column("Total_Liabilities_Q", sa.Float),  # Total_Liabilities_Q，浮點數
+    sa.Column("Total_Liabilities_TTM", sa.Float),  # Total_Liabilities_TTM，浮點數
+    sa.Column("Borrowings_A", sa.Float),  # Borrowings_A，浮點數
+    sa.Column("Borrowings_Q", sa.Float),  # Borrowings_Q，浮點數
+    sa.Column("Borrowings_TTM", sa.Float),  # Borrowings_TTM，浮點數
+    sa.Column("Interest_Expense_Rate_percent_A", sa.Float),  # Interest_Expense_Rate_percent_A，浮點數
+    sa.Column("Interest_Expense_Rate_percent_Q", sa.Float),  # Interest_Expense_Rate_percent_Q，浮點數
+    sa.Column("Interest_Expense_Rate_percent_TTM", sa.Float),  # Interest_Expense_Rate_percent_TTM，浮點數
+    sa.Column("Depreciation_and_Amortisation_A", sa.Float),  # Depreciation_and_Amortisation_A，浮點數
+    sa.Column("Depreciation_and_Amortisation_Q", sa.Float),  # Depreciation_and_Amortisation_Q，浮點數
+    sa.Column("Depreciation_and_Amortisation_TTM", sa.Float),  # Depreciation_and_Amortisation_TTM，浮點數
+    sa.Column("Cash_and_Cash_Equivalent_A", sa.Float),  # Cash_and_Cash_Equivalent_A，浮點數
+    sa.Column("Cash_and_Cash_Equivalent_Q", sa.Float),  # Cash_and_Cash_Equivalent_Q，浮點數
+    sa.Column("Cash_and_Cash_Equivalent_TTM", sa.Float),  # Cash_and_Cash_Equivalent_TTM，浮點數
+    sa.Column("Accounts_Payable_A", sa.Float),  # Accounts_Payable_A，浮點數
+    sa.Column("Accounts_Payable_Q", sa.Float),  # Accounts_Payable_Q，浮點數
+    sa.Column("Accounts_Payable_TTM", sa.Float),  # Accounts_Payable_TTM，浮點數
+    sa.Column("Days_Receivables_Outstanding_A", sa.Float),  # Days_Receivables_Outstanding_A，浮點數
+    sa.Column("Days_Receivables_Outstanding_Q", sa.Float),  # Days_Receivables_Outstanding_Q，浮點數
+    sa.Column("Days_Receivables_Outstanding_TTM", sa.Float),  # Days_Receivables_Outstanding_TTM，浮點數
+    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_A，浮點數
+    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_Q，浮點數
+    sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_TTM，浮點數
+    sa.Column("Taxrate_A", sa.Float),  # Taxrate_A，浮點數
+    sa.Column("Taxrate_Q", sa.Float),  # Taxrate_Q，浮點數
+    sa.Column("Taxrate_TTM", sa.Float),  # Taxrate_TTM，浮點數
+    sa.Column("Earnings_Before_Interest_and_Tax_A", sa.Float),  # Earnings_Before_Interest_and_Tax_A，浮點數
+    sa.Column("Earnings_Before_Interest_and_Tax_Q", sa.Float),  # Earnings_Before_Interest_and_Tax_Q，浮點數
+    sa.Column("Earnings_Before_Interest_and_Tax_TTM", sa.Float),  # Earnings_Before_Interest_and_Tax_TTM，浮點數
+    sa.Column("Non_Operating_Income_A", sa.Float),  # Non_Operating_Income_A，浮點數
+    sa.Column("Non_Operating_Income_Q", sa.Float),  # Non_Operating_Income_Q，浮點數
+    sa.Column("Non_Operating_Income_TTM", sa.Float),  # Non_Operating_Income_TTM，浮點數
+    sa.Column("Interest_Expense_A", sa.Float),  # Interest_Expense_A，浮點數
+    sa.Column("Interest_Expense_Q", sa.Float),  # Interest_Expense_Q，浮點數
+    sa.Column("Interest_Expense_TTM", sa.Float),  # Interest_Expense_TTM，浮點數
+    sa.Column("Total_Current_Liabilities_A", sa.Float),  # Total_Current_Liabilities_A，浮點數
+    sa.Column("Total_Current_Liabilities_Q", sa.Float),  # Total_Current_Liabilities_Q，浮點數
+    sa.Column("Total_Current_Liabilities_TTM", sa.Float),  # Total_Current_Liabilities_TTM，浮點數
+    sa.Column("Net_Operating_Income_Loss_A", sa.Float),  # Net_Operating_Income_Loss_A，浮點數
+    sa.Column("Net_Operating_Income_Loss_Q", sa.Float),  # Net_Operating_Income_Loss_Q，浮點數
+    sa.Column("Net_Operating_Income_Loss_TTM", sa.Float),  # Net_Operating_Income_Loss_TTM，浮點數
+    sa.Column("Non_Controlling_Interest_A", sa.Float),  # Non_Controlling_Interest_A，浮點數
+    sa.Column("Non_Controlling_Interest_Q", sa.Float),  # Non_Controlling_Interest_Q，浮點數
+    sa.Column("Non_Controlling_Interest_TTM", sa.Float),  # Non_Controlling_Interest_TTM，浮點數
+    sa.Column("Total_Non_Current_Assets_A", sa.Float),  # Total_Non_Current_Assets_A，浮點數
+    sa.Column("Total_Non_Current_Assets_Q", sa.Float),  # Total_Non_Current_Assets_Q，浮點數
+    sa.Column("Total_Non_Current_Assets_TTM", sa.Float),  # Total_Non_Current_Assets_TTM，浮點數
+    sa.Column("Number_of_Employees_A", sa.Float),  # Number_of_Employees_A，浮點數
+    sa.Column("Number_of_Employees_Q", sa.Float),  # Number_of_Employees_Q，浮點數
+    sa.Column("Number_of_Employees_TTM", sa.Float),  # Number_of_Employees_TTM，浮點數
+    sa.Column("Total_Assets_Growth_Rate_A", sa.Float),  # Total_Assets_Growth_Rate_A，浮點數
+    sa.Column("Total_Assets_Growth_Rate_Q", sa.Float),  # Total_Assets_Growth_Rate_Q，浮點數
+    sa.Column("Total_Assets_Growth_Rate_TTM", sa.Float),  # Total_Assets_Growth_Rate_TTM，浮點數
+    sa.Column("Prepayments_A", sa.Float),  # Prepayments_A，浮點數
+    sa.Column("Prepayments_Q", sa.Float),  # Prepayments_Q，浮點數
+    sa.Column("Prepayments_TTM", sa.Float),  # Prepayments_TTM，浮點數
+    sa.Column("Times_Interest_Earned_A", sa.Float),  # Times_Interest_Earned_A，浮點數
+    sa.Column("Times_Interest_Earned_Q", sa.Float),  # Times_Interest_Earned_Q，浮點數
+    sa.Column("Times_Interest_Earned_TTM", sa.Float),  # Times_Interest_Earned_TTM，浮點數
+    sa.Column("Total_Assets_A", sa.Float),  # Total_Assets_A，浮點數
+    sa.Column("Total_Assets_Q", sa.Float),  # Total_Assets_Q，浮點數
+    sa.Column("Total_Assets_TTM", sa.Float),  # Total_Assets_TTM，浮點數
+    sa.Column("Total_Assets_Turnover_A", sa.Float),  # Total_Assets_Turnover_A，浮點數
+    sa.Column("Total_Assets_Turnover_Q", sa.Float),  # Total_Assets_Turnover_Q，浮點數
+    sa.Column("Total_Assets_Turnover_TTM", sa.Float),  # Total_Assets_Turnover_TTM，浮點數
+    sa.Column("Common_Stocks_A", sa.Float),  # Common_Stocks_A，浮點數
+    sa.Column("Common_Stocks_Q", sa.Float),  # Common_Stocks_Q，浮點數
+    sa.Column("Common_Stocks_TTM", sa.Float),  # Common_Stocks_TTM，浮點數
+    sa.Column("Cash_Flow_from_Operating_Ratio_A", sa.Float),  # Cash_Flow_from_Operating_Ratio_A，浮點數
+    sa.Column("Cash_Flow_from_Operating_Ratio_Q", sa.Float),  # Cash_Flow_from_Operating_Ratio_Q，浮點數
+    sa.Column("Cash_Flow_from_Operating_Ratio_TTM", sa.Float),  # Cash_Flow_from_Operating_Ratio_TTM，浮點數
+    sa.Column("Acid_Test_A", sa.Float),  # Acid_Test_A，浮點數
+    sa.Column("Acid_Test_Q", sa.Float),  # Acid_Test_Q，浮點數
+    sa.Column("Acid_Test_TTM", sa.Float),  # Acid_Test_TTM，浮點數
+    sa.Column("Net_Non_operating_Income_Ratio_A", sa.Float),  # Net_Non_operating_Income_Ratio_A，浮點數
+    sa.Column("Net_Non_operating_Income_Ratio_Q", sa.Float),  # Net_Non_operating_Income_Ratio_Q，浮點數
+    sa.Column("Net_Non_operating_Income_Ratio_TTM", sa.Float),  # Net_Non_operating_Income_Ratio_TTM，浮點數
+    sa.Column("Sales_Per_Employee_A", sa.Float),
+    sa.Column("Sales_Per_Employee_Q", sa.Float),
+    sa.Column("Sales_Per_Employee_TTM", sa.Float),
+    sa.Column("Accounts_Receivable_Turnover_A", sa.Float),
+    sa.Column("Accounts_Receivable_Turnover_Q", sa.Float),
+    sa.Column("Accounts_Receivable_Turnover_TTM", sa.Float),
+    sa.Column("Capital_Reserves_A", sa.Float),
+    sa.Column("Capital_Reserves_Q", sa.Float),
+    sa.Column("Capital_Reserves_TTM", sa.Float),
+    sa.Column("Days_Inventory_Outstanding_A", sa.Float),
+    sa.Column("Days_Inventory_Outstanding_Q", sa.Float),
+    sa.Column("Days_Inventory_Outstanding_TTM", sa.Float),
+    sa.Column("Non_Recurring_Net_Income_A", sa.Float),
+    sa.Column("Non_Recurring_Net_Income_Q", sa.Float),
+    sa.Column("Non_Recurring_Net_Income_TTM", sa.Float),
+    sa.Column("Accounts_Payable_Turnover_A", sa.Float),
+    sa.Column("Accounts_Payable_Turnover_Q", sa.Float),
+    sa.Column("Accounts_Payable_Turnover_TTM", sa.Float),
+    sa.Column("Total_Interest_Income_A", sa.Float),
+    sa.Column("Total_Interest_Income_Q", sa.Float),
+    sa.Column("Total_Interest_Income_TTM", sa.Float),
+    sa.Column("Quick_Assets_A", sa.Float),
+    sa.Column("Quick_Assets_Q", sa.Float),
+    sa.Column("Quick_Assets_TTM", sa.Float),
+    sa.Column("Preferred_Stock_Dividends_A", sa.Float),
+    sa.Column("Preferred_Stock_Dividends_Q", sa.Float),
+    sa.Column("Preferred_Stock_Dividends_TTM", sa.Float),
+    sa.Column("Total_Current_Assets_A", sa.Float),
+    sa.Column("Total_Current_Assets_Q", sa.Float),
+    sa.Column("Total_Current_Assets_TTM", sa.Float),
+    sa.Column("Intangible_Assets_A", sa.Float),
+    sa.Column("Intangible_Assets_Q", sa.Float),
+    sa.Column("Intangible_Assets_TTM", sa.Float),
+    sa.Column("Short_Term_Borrowings_Financial_Institutions_A", sa.Float),
+    sa.Column("Short_Term_Borrowings_Financial_Institutions_Q", sa.Float),
+    sa.Column("Short_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
+    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),
+    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),
+    sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),
+    sa.Column("Cash_Flow_from_Operating_Activities_A", sa.Float),
+    sa.Column("Cash_Flow_from_Operating_Activities_Q", sa.Float),
+    sa.Column("Cash_Flow_from_Operating_Activities_TTM", sa.Float),
+    sa.Column("Inventory_Turnover_A", sa.Float),
+    sa.Column("Inventory_Turnover_Q", sa.Float),
+    sa.Column("Inventory_Turnover_TTM", sa.Float),
+    sa.Column("Liabilities_Ratio_A", sa.Float),
+    sa.Column("Liabilities_Ratio_Q", sa.Float),
+    sa.Column("Liabilities_Ratio_TTM", sa.Float),
+    sa.Column("Total_Fixed_Assets_A", sa.Float),
+    sa.Column("Total_Fixed_Assets_Q", sa.Float),
+    sa.Column("Total_Fixed_Assets_TTM", sa.Float),
+    sa.Column("Fixed_Assets_A", sa.Float),
+    sa.Column("Fixed_Assets_Q", sa.Float),
+    sa.Column("Fixed_Assets_TTM", sa.Float),
+    sa.Column("Advances_Receipts_Non_Current_A", sa.Float),
+    sa.Column("Advances_Receipts_Non_Current_Q", sa.Float),
+    sa.Column("Advances_Receipts_Non_Current_TTM", sa.Float),
+    sa.Column("Fixed_Asset_Turnover_A", sa.Float),
+    sa.Column("Fixed_Asset_Turnover_Q", sa.Float),
+    sa.Column("Fixed_Asset_Turnover_TTM", sa.Float),
+    sa.Column("Total_Liabilities_and_Equity_A", sa.Float),
+    sa.Column("Total_Liabilities_and_Equity_Q", sa.Float),
+    sa.Column("Total_Liabilities_and_Equity_TTM", sa.Float),
+    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_A", sa.Float),
+    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_Q", sa.Float),
+    sa.Column("Weighted_Average_Outstanding_Shares_Thousand_TTM", sa.Float),
+    sa.Column("Long_Term_Borrowings_Financial_Institutions_A", sa.Float),
+    sa.Column("Long_Term_Borrowings_Financial_Institutions_Q", sa.Float),
+    sa.Column("Long_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
+    sa.Column("Inventories_A", sa.Float),
+    sa.Column("Inventories_Q", sa.Float),
+    sa.Column("Inventories_TTM", sa.Float),
+    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_A", sa.Float),
+    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_Q", sa.Float),
+    sa.Column("Depreciable_Fixed_Assets_Growth_Rate_TTM", sa.Float),
+    sa.Column("Equity_Turnover_A", sa.Float),
+    sa.Column("Equity_Turnover_Q", sa.Float),
+    sa.Column("Equity_Turnover_TTM", sa.Float),
+    sa.Column("Book_Value_Per_Share_A_A", sa.Float),
+    sa.Column("Book_Value_Per_Share_A_Q", sa.Float),
+    sa.Column("Book_Value_Per_Share_A_TTM", sa.Float),
+    sa.Column("Days_Payables_Outstanding_A", sa.Float),
+    sa.Column("Days_Payables_Outstanding_Q", sa.Float),
+    sa.Column("Days_Payables_Outstanding_TTM", sa.Float),
+    sa.Column("Other_Accounts_Payable_A", sa.Float),
+    sa.Column("Other_Accounts_Payable_Q", sa.Float),
+    sa.Column("Other_Accounts_Payable_TTM", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_A", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_Q", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_TTM", sa.Float),
+    sa.Column("Return_Rate_on_Equity_A_percent_A", sa.Float),
+    sa.Column("Return_Rate_on_Equity_A_percent_Q", sa.Float),
+    sa.Column("Return_Rate_on_Equity_A_percent_TTM", sa.Float),
+    sa.Column("Total_Other_Equity_Interest_A", sa.Float),
+    sa.Column("Total_Other_Equity_Interest_Q", sa.Float),
+    sa.Column("Total_Other_Equity_Interest_TTM", sa.Float),
+    sa.Column("Other_Receivables_A", sa.Float),
+    sa.Column("Other_Receivables_Q", sa.Float),
+    sa.Column("Other_Receivables_TTM", sa.Float),
+    sa.Column("Income_Tax_Expense_A", sa.Float),
+    sa.Column("Income_Tax_Expense_Q", sa.Float),
+    sa.Column("Income_Tax_Expense_TTM", sa.Float),
+    sa.Column("Total_Equity_A", sa.Float),
+    sa.Column("Total_Equity_Q", sa.Float),
+    sa.Column("Total_Equity_TTM", sa.Float),
+    sa.Column("Accounts_Receivable_Current_and_Non_Current_A", sa.Float),
+    sa.Column("Accounts_Receivable_Current_and_Non_Current_Q", sa.Float),
+    sa.Column("Accounts_Receivable_Current_and_Non_Current_TTM", sa.Float),
+    sa.Column("Sales_Per_Share_A", sa.Float),
+    sa.Column("Sales_Per_Share_Q", sa.Float),
+    sa.Column("Sales_Per_Share_TTM", sa.Float),
+    sa.Column("Cash_Flow_from_Financing_Activities_A", sa.Float),
+    sa.Column("Cash_Flow_from_Financing_Activities_Q", sa.Float),
+    sa.Column("Cash_Flow_from_Financing_Activities_TTM", sa.Float),
+    sa.Column("Debt_Equity_Ratio_A", sa.Float),
+    sa.Column("Debt_Equity_Ratio_Q", sa.Float),
+    sa.Column("Debt_Equity_Ratio_TTM", sa.Float),
+    sa.Column("Operating_Expenses_Ratio_A", sa.Float),
+    sa.Column("Operating_Expenses_Ratio_Q", sa.Float),
+    sa.Column("Operating_Expenses_Ratio_TTM", sa.Float),
+    sa.Column("Net_Income_Per_Share_A", sa.Float),
+    sa.Column("Net_Income_Per_Share_Q", sa.Float),
+    sa.Column("Net_Income_Per_Share_TTM", sa.Float),
+    sa.Column("Advances_Receipts_Current_A", sa.Float),
+    sa.Column("Advances_Receipts_Current_Q", sa.Float),
+    sa.Column("Advances_Receipts_Current_TTM", sa.Float),
+    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_A", sa.Float),
+    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_Q", sa.Float),
+    sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_TTM", sa.Float),
+    sa.Column("Long_Term_Accounts_Receivable_A", sa.Float),
+    sa.Column("Long_Term_Accounts_Receivable_Q", sa.Float),
+    sa.Column("Long_Term_Accounts_Receivable_TTM", sa.Float),
+    sa.Column("Total_Retained_Earnings_A", sa.Float),
+    sa.Column("Total_Retained_Earnings_Q", sa.Float),
+    sa.Column("Total_Retained_Earnings_TTM", sa.Float),
+    sa.Column("Recurring_Net_Income_A", sa.Float),
+    sa.Column("Recurring_Net_Income_Q", sa.Float),
+    sa.Column("Recurring_Net_Income_TTM", sa.Float),
+    sa.Column("Accounts_Receivable_A", sa.Float),
+    sa.Column("Accounts_Receivable_Q", sa.Float),
+    sa.Column("Accounts_Receivable_TTM", sa.Float),
+    sa.Column("Total_Operating_Cost_A", sa.Float),
+    sa.Column("Total_Operating_Cost_Q", sa.Float),
+    sa.Column("Total_Operating_Cost_TTM", sa.Float),
+    sa.Column("Operating_Income_Per_Share_A", sa.Float),
+    sa.Column("Operating_Income_Per_Share_Q", sa.Float),
+    sa.Column("Operating_Income_Per_Share_TTM", sa.Float),
+    sa.Column("Initial_REG_Listing_Date", sa.DateTime),
+    sa.Column("Initial_OTC_Listing_Date", sa.DateTime),
+    sa.Column("Security_Type", sa.String),  # You can adjust the length according to your data
+    sa.Column("Latest_Listing_Date", sa.DateTime),
+    sa.Column("Initial_TSE_Listing_Date", sa.DateTime),
+    sa.Column("TEJ_Industry_Code", sa.String),  # You can adjust the length according to your data
+    sa.Column("English_Full_Name", sa.String),  # You can adjust the length according to your data
+    sa.Column("TEJ_Industry_Name", sa.String),  # You can adjust the length according to your data
+    sa.Column("Exchange_Industry_Name", sa.String),  # You can adjust the length according to your data
+    sa.Column("Security_Name", sa.String),  # You can adjust the length according to your data
+    sa.Column("English_Abbreviation", sa.String),  # You can adjust the length according to your data
+    sa.Column("Exchange_Industry_Code", sa.String),  # You can adjust the length according to your data
+    sa.Column("Unified_Identification_Number", sa.String),  # You can adjust the length according to your data
+    sa.Column("Security_Full_Name", sa.String),  # You can adjust the length according to your data
+    sa.Column("Delisting_Date", sa.DateTime),
 
-sa.Column("Net_Income_Growth_Rate_TTM", sa.Float),  # Net_Income_Growth_Rate_TTM，浮點數
-sa.Column("Basic_Earnings_Per_Share_A", sa.Float),  # Basic_Earnings_Per_Share_A，浮點數
-sa.Column("Basic_Earnings_Per_Share_Q", sa.Float),  # Basic_Earnings_Per_Share_Q，浮點數
-sa.Column("Basic_Earnings_Per_Share_TTM", sa.Float),  # Basic_Earnings_Per_Share_TTM，浮點數
-sa.Column("Current_Ratio_A", sa.Float),  # Current_Ratio_A，浮點數
-sa.Column("Current_Ratio_Q", sa.Float),  # Current_Ratio_Q，浮點數
-sa.Column("Current_Ratio_TTM", sa.Float),  # Current_Ratio_TTM，浮點數
-sa.Column("Total_Operating_Expenses_A", sa.Float),  # Total_Operating_Expenses_A，浮點數
-sa.Column("Total_Operating_Expenses_Q", sa.Float),  # Total_Operating_Expenses_Q，浮點數
-sa.Column("Total_Operating_Expenses_TTM", sa.Float),  # Total_Operating_Expenses_TTM，浮點數
-sa.Column("Cash_Flow_from_Investing_Activities_A", sa.Float),  # Cash_Flow_from_Investing_Activities_A，浮點數
-sa.Column("Cash_Flow_from_Investing_Activities_Q", sa.Float),  # Cash_Flow_from_Investing_Activities_Q，浮點數
-sa.Column("Cash_Flow_from_Investing_Activities_TTM", sa.Float),  # Cash_Flow_from_Investing_Activities_TTM，浮點數
-sa.Column("Total_Non_current_Liabilities_A", sa.Float),  # Total_Non_current_Liabilities_A，浮點數
-sa.Column("Total_Non_current_Liabilities_Q", sa.Float),  # Total_Non_current_Liabilities_Q，浮點數
-sa.Column("Total_Non_current_Liabilities_TTM", sa.Float),  # Total_Non_current_Liabilities_TTM，浮點數
-sa.Column("Return_on_Total_Assets_A_percent_A", sa.Float),  # Return_on_Total_Assets_A_percent_A，浮點數
-sa.Column("Return_on_Total_Assets_A_percent_Q", sa.Float),  # Return_on_Total_Assets_A_percent_Q，浮點數
-sa.Column("Return_on_Total_Assets_A_percent_TTM", sa.Float),  # Return_on_Total_Assets_A_percent_TTM，浮點數
-sa.Column("Preferred_Stocks_A", sa.Float),  # Preferred_Stocks_A，浮點數
-sa.Column("Preferred_Stocks_Q", sa.Float),  # Preferred_Stocks_Q，浮點數
-sa.Column("Preferred_Stocks_TTM", sa.Float),  # Preferred_Stocks_TTM，浮點數
-sa.Column("Total_Liabilities_A", sa.Float),  # Total_Liabilities_A，浮點數
-sa.Column("Total_Liabilities_Q", sa.Float),  # Total_Liabilities_Q，浮點數
-sa.Column("Total_Liabilities_TTM", sa.Float),  # Total_Liabilities_TTM，浮點數
-sa.Column("Borrowings_A", sa.Float),  # Borrowings_A，浮點數
-sa.Column("Borrowings_Q", sa.Float),  # Borrowings_Q，浮點數
-sa.Column("Borrowings_TTM", sa.Float),  # Borrowings_TTM，浮點數
-sa.Column("Interest_Expense_Rate_percent_A", sa.Float),  # Interest_Expense_Rate_percent_A，浮點數
-sa.Column("Interest_Expense_Rate_percent_Q", sa.Float),  # Interest_Expense_Rate_percent_Q，浮點數
-sa.Column("Interest_Expense_Rate_percent_TTM", sa.Float),  # Interest_Expense_Rate_percent_TTM，浮點數
-sa.Column("Depreciation_and_Amortisation_A", sa.Float),  # Depreciation_and_Amortisation_A，浮點數
-sa.Column("Depreciation_and_Amortisation_Q", sa.Float),  # Depreciation_and_Amortisation_Q，浮點數
-sa.Column("Depreciation_and_Amortisation_TTM", sa.Float),  # Depreciation_and_Amortisation_TTM，浮點數
-sa.Column("Cash_and_Cash_Equivalent_A", sa.Float),  # Cash_and_Cash_Equivalent_A，浮點數
-sa.Column("Cash_and_Cash_Equivalent_Q", sa.Float),  # Cash_and_Cash_Equivalent_Q，浮點數
-sa.Column("Cash_and_Cash_Equivalent_TTM", sa.Float),  # Cash_and_Cash_Equivalent_TTM，浮點數
-sa.Column("Accounts_Payable_A", sa.Float),  # Accounts_Payable_A，浮點數
-sa.Column("Accounts_Payable_Q", sa.Float),  # Accounts_Payable_Q，浮點數
-sa.Column("Accounts_Payable_TTM", sa.Float),  # Accounts_Payable_TTM，浮點數
-sa.Column("Days_Receivables_Outstanding_A", sa.Float),  # Days_Receivables_Outstanding_A，浮點數
-sa.Column("Days_Receivables_Outstanding_Q", sa.Float),  # Days_Receivables_Outstanding_Q，浮點數
-sa.Column("Days_Receivables_Outstanding_TTM", sa.Float),  # Days_Receivables_Outstanding_TTM，浮點數
-sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_A，浮點數
-sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_Q，浮點數
-sa.Column("Long_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),  # Long_Term_Borrowings_Non_Financial_Institutions_TTM，浮點數
-sa.Column("Taxrate_A", sa.Float),  # Taxrate_A，浮點數
-sa.Column("Taxrate_Q", sa.Float),  # Taxrate_Q，浮點數
-sa.Column("Taxrate_TTM", sa.Float),  # Taxrate_TTM，浮點數
-sa.Column("Earnings_Before_Interest_and_Tax_A", sa.Float),  # Earnings_Before_Interest_and_Tax_A，浮點數
-sa.Column("Earnings_Before_Interest_and_Tax_Q", sa.Float),  # Earnings_Before_Interest_and_Tax_Q，浮點數
-sa.Column("Earnings_Before_Interest_and_Tax_TTM", sa.Float),  # Earnings_Before_Interest_and_Tax_TTM，浮點數
-sa.Column("Non_Operating_Income_A", sa.Float),  # Non_Operating_Income_A，浮點數
-sa.Column("Non_Operating_Income_Q", sa.Float),  # Non_Operating_Income_Q，浮點數
-sa.Column("Non_Operating_Income_TTM", sa.Float),  # Non_Operating_Income_TTM，浮點數
-sa.Column("Interest_Expense_A", sa.Float),  # Interest_Expense_A，浮點數
-sa.Column("Interest_Expense_Q", sa.Float),  # Interest_Expense_Q，浮點數
-sa.Column("Interest_Expense_TTM", sa.Float),  # Interest_Expense_TTM，浮點數
-sa.Column("Total_Current_Liabilities_A", sa.Float),  # Total_Current_Liabilities_A，浮點數
-sa.Column("Total_Current_Liabilities_Q", sa.Float),  # Total_Current_Liabilities_Q，浮點數
-sa.Column("Total_Current_Liabilities_TTM", sa.Float),  # Total_Current_Liabilities_TTM，浮點數
-sa.Column("Net_Operating_Income_Loss_A", sa.Float),  # Net_Operating_Income_Loss_A，浮點數
-sa.Column("Net_Operating_Income_Loss_Q", sa.Float),  # Net_Operating_Income_Loss_Q，浮點數
-sa.Column("Net_Operating_Income_Loss_TTM", sa.Float),  # Net_Operating_Income_Loss_TTM，浮點數
-sa.Column("Non_Controlling_Interest_A", sa.Float),  # Non_Controlling_Interest_A，浮點數
-sa.Column("Non_Controlling_Interest_Q", sa.Float),  # Non_Controlling_Interest_Q，浮點數
-sa.Column("Non_Controlling_Interest_TTM", sa.Float),  # Non_Controlling_Interest_TTM，浮點數
-sa.Column("Total_Non_Current_Assets_A", sa.Float),  # Total_Non_Current_Assets_A，浮點數
-sa.Column("Total_Non_Current_Assets_Q", sa.Float),  # Total_Non_Current_Assets_Q，浮點數
-sa.Column("Total_Non_Current_Assets_TTM", sa.Float),  # Total_Non_Current_Assets_TTM，浮點數
-sa.Column("Number_of_Employees_A", sa.Float),  # Number_of_Employees_A，浮點數
-sa.Column("Number_of_Employees_Q", sa.Float),  # Number_of_Employees_Q，浮點數
-sa.Column("Number_of_Employees_TTM", sa.Float),  # Number_of_Employees_TTM，浮點數
-sa.Column("Total_Assets_Growth_Rate_A", sa.Float),  # Total_Assets_Growth_Rate_A，浮點數
-sa.Column("Total_Assets_Growth_Rate_Q", sa.Float),  # Total_Assets_Growth_Rate_Q，浮點數
-sa.Column("Total_Assets_Growth_Rate_TTM", sa.Float),  # Total_Assets_Growth_Rate_TTM，浮點數
-sa.Column("Prepayments_A", sa.Float),  # Prepayments_A，浮點數
-sa.Column("Prepayments_Q", sa.Float),  # Prepayments_Q，浮點數
-sa.Column("Prepayments_TTM", sa.Float),  # Prepayments_TTM，浮點數
-sa.Column("Times_Interest_Earned_A", sa.Float),  # Times_Interest_Earned_A，浮點數
-sa.Column("Times_Interest_Earned_Q", sa.Float),  # Times_Interest_Earned_Q，浮點數
-sa.Column("Times_Interest_Earned_TTM", sa.Float),  # Times_Interest_Earned_TTM，浮點數
-sa.Column("Total_Assets_A", sa.Float),  # Total_Assets_A，浮點數
-sa.Column("Total_Assets_Q", sa.Float),  # Total_Assets_Q，浮點數
-sa.Column("Total_Assets_TTM", sa.Float),  # Total_Assets_TTM，浮點數
-sa.Column("Total_Assets_Turnover_A", sa.Float),  # Total_Assets_Turnover_A，浮點數
-sa.Column("Total_Assets_Turnover_Q", sa.Float),  # Total_Assets_Turnover_Q，浮點數
-sa.Column("Total_Assets_Turnover_TTM", sa.Float),  # Total_Assets_Turnover_TTM，浮點數
-sa.Column("Common_Stocks_A", sa.Float),  # Common_Stocks_A，浮點數
-sa.Column("Common_Stocks_Q", sa.Float),  # Common_Stocks_Q，浮點數
-sa.Column("Common_Stocks_TTM", sa.Float),  # Common_Stocks_TTM，浮點數
-sa.Column("Cash_Flow_from_Operating_Ratio_A", sa.Float),  # Cash_Flow_from_Operating_Ratio_A，浮點數
-sa.Column("Cash_Flow_from_Operating_Ratio_Q", sa.Float),  # Cash_Flow_from_Operating_Ratio_Q，浮點數
-sa.Column("Cash_Flow_from_Operating_Ratio_TTM", sa.Float),  # Cash_Flow_from_Operating_Ratio_TTM，浮點數
-sa.Column("Acid_Test_A", sa.Float),  # Acid_Test_A，浮點數
-sa.Column("Acid_Test_Q", sa.Float),  # Acid_Test_Q，浮點數
-sa.Column("Acid_Test_TTM", sa.Float),  # Acid_Test_TTM，浮點數
-sa.Column("Net_Non_operating_Income_Ratio_A", sa.Float),  # Net_Non_operating_Income_Ratio_A，浮點數
-sa.Column("Net_Non_operating_Income_Ratio_Q", sa.Float),  # Net_Non_operating_Income_Ratio_Q，浮點數
-sa.Column("Net_Non_operating_Income_Ratio_TTM", sa.Float),  # Net_Non_operating_Income_Ratio_TTM，浮點數
-sa.Column("Sales_Per_Employee_A", sa.Float),
-sa.Column("Sales_Per_Employee_Q", sa.Float),
-sa.Column("Sales_Per_Employee_TTM", sa.Float),
-sa.Column("Accounts_Receivable_Turnover_A", sa.Float),
-sa.Column("Accounts_Receivable_Turnover_Q", sa.Float),
-sa.Column("Accounts_Receivable_Turnover_TTM", sa.Float),
-sa.Column("Capital_Reserves_A", sa.Float),
-sa.Column("Capital_Reserves_Q", sa.Float),
-sa.Column("Capital_Reserves_TTM", sa.Float),
-sa.Column("Days_Inventory_Outstanding_A", sa.Float),
-sa.Column("Days_Inventory_Outstanding_Q", sa.Float),
-sa.Column("Days_Inventory_Outstanding_TTM", sa.Float),
-sa.Column("Non_Recurring_Net_Income_A", sa.Float),
-sa.Column("Non_Recurring_Net_Income_Q", sa.Float),
-sa.Column("Non_Recurring_Net_Income_TTM", sa.Float),
-sa.Column("Accounts_Payable_Turnover_A", sa.Float),
-sa.Column("Accounts_Payable_Turnover_Q", sa.Float),
-sa.Column("Accounts_Payable_Turnover_TTM", sa.Float),
-sa.Column("Total_Interest_Income_A", sa.Float),
-sa.Column("Total_Interest_Income_Q", sa.Float),
-sa.Column("Total_Interest_Income_TTM", sa.Float),
-sa.Column("Quick_Assets_A", sa.Float),
-sa.Column("Quick_Assets_Q", sa.Float),
-sa.Column("Quick_Assets_TTM", sa.Float),
-sa.Column("Preferred_Stock_Dividends_A", sa.Float),
-sa.Column("Preferred_Stock_Dividends_Q", sa.Float),
-sa.Column("Preferred_Stock_Dividends_TTM", sa.Float),
-sa.Column("Total_Current_Assets_A", sa.Float),
-sa.Column("Total_Current_Assets_Q", sa.Float),
-sa.Column("Total_Current_Assets_TTM", sa.Float),
-sa.Column("Intangible_Assets_A", sa.Float),
-sa.Column("Intangible_Assets_Q", sa.Float),
-sa.Column("Intangible_Assets_TTM", sa.Float),
-sa.Column("Short_Term_Borrowings_Financial_Institutions_A", sa.Float),
-sa.Column("Short_Term_Borrowings_Financial_Institutions_Q", sa.Float),
-sa.Column("Short_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
-sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_A", sa.Float),
-sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_Q", sa.Float),
-sa.Column("Short_Term_Borrowings_Non_Financial_Institutions_TTM", sa.Float),
-sa.Column("Cash_Flow_from_Operating_Activities_A", sa.Float),
-sa.Column("Cash_Flow_from_Operating_Activities_Q", sa.Float),
-sa.Column("Cash_Flow_from_Operating_Activities_TTM", sa.Float),
-sa.Column("Inventory_Turnover_A", sa.Float),
-sa.Column("Inventory_Turnover_Q", sa.Float),
-sa.Column("Inventory_Turnover_TTM", sa.Float),
-sa.Column("Liabilities_Ratio_A", sa.Float),
-sa.Column("Liabilities_Ratio_Q", sa.Float),
-sa.Column("Liabilities_Ratio_TTM", sa.Float),
-sa.Column("Total_Fixed_Assets_A", sa.Float),
-sa.Column("Total_Fixed_Assets_Q", sa.Float),
-sa.Column("Total_Fixed_Assets_TTM", sa.Float),
-sa.Column("Fixed_Assets_A", sa.Float),
-sa.Column("Fixed_Assets_Q", sa.Float),
-sa.Column("Fixed_Assets_TTM", sa.Float),
-sa.Column("Advances_Receipts_Non_Current_A", sa.Float),
-sa.Column("Advances_Receipts_Non_Current_Q", sa.Float),
-sa.Column("Advances_Receipts_Non_Current_TTM", sa.Float),
-sa.Column("Fixed_Asset_Turnover_A", sa.Float),
-sa.Column("Fixed_Asset_Turnover_Q", sa.Float),
-sa.Column("Fixed_Asset_Turnover_TTM", sa.Float),
-sa.Column("Total_Liabilities_and_Equity_A", sa.Float),
-sa.Column("Total_Liabilities_and_Equity_Q", sa.Float),
-sa.Column("Total_Liabilities_and_Equity_TTM", sa.Float),
-sa.Column("Weighted_Average_Outstanding_Shares_Thousand_A", sa.Float),
-sa.Column("Weighted_Average_Outstanding_Shares_Thousand_Q", sa.Float),
-sa.Column("Weighted_Average_Outstanding_Shares_Thousand_TTM", sa.Float),
-sa.Column("Long_Term_Borrowings_Financial_Institutions_A", sa.Float),
-sa.Column("Long_Term_Borrowings_Financial_Institutions_Q", sa.Float),
-sa.Column("Long_Term_Borrowings_Financial_Institutions_TTM", sa.Float),
-sa.Column("Inventories_A", sa.Float),
-sa.Column("Inventories_Q", sa.Float),
-sa.Column("Inventories_TTM", sa.Float),
-sa.Column("Depreciable_Fixed_Assets_Growth_Rate_A", sa.Float),
-sa.Column("Depreciable_Fixed_Assets_Growth_Rate_Q", sa.Float),
-sa.Column("Depreciable_Fixed_Assets_Growth_Rate_TTM", sa.Float),
-sa.Column("Equity_Turnover_A", sa.Float),
-sa.Column("Equity_Turnover_Q", sa.Float),
-sa.Column("Equity_Turnover_TTM", sa.Float),
-sa.Column("Book_Value_Per_Share_A_A", sa.Float),
-sa.Column("Book_Value_Per_Share_A_Q", sa.Float),
-sa.Column("Book_Value_Per_Share_A_TTM", sa.Float),
-sa.Column("Days_Payables_Outstanding_A", sa.Float),
-sa.Column("Days_Payables_Outstanding_Q", sa.Float),
-sa.Column("Days_Payables_Outstanding_TTM", sa.Float),
-sa.Column("Other_Accounts_Payable_A", sa.Float),
-sa.Column("Other_Accounts_Payable_Q", sa.Float),
-sa.Column("Other_Accounts_Payable_TTM", sa.Float),
-sa.Column("Total_Equity_Growth_Rate_A", sa.Float),
-sa.Column("Total_Equity_Growth_Rate_Q", sa.Float),
-sa.Column("Total_Equity_Growth_Rate_TTM", sa.Float),
-sa.Column("Return_Rate_on_Equity_A_percent_A", sa.Float),
-sa.Column("Return_Rate_on_Equity_A_percent_Q", sa.Float),
-sa.Column("Return_Rate_on_Equity_A_percent_TTM", sa.Float),
-sa.Column("Total_Other_Equity_Interest_A", sa.Float),
-sa.Column("Total_Other_Equity_Interest_Q", sa.Float),
-sa.Column("Total_Other_Equity_Interest_TTM", sa.Float),
-sa.Column("Other_Receivables_A", sa.Float),
-sa.Column("Other_Receivables_Q", sa.Float),
-sa.Column("Other_Receivables_TTM", sa.Float),
-sa.Column("Income_Tax_Expense_A", sa.Float),
-sa.Column("Income_Tax_Expense_Q", sa.Float),
-sa.Column("Income_Tax_Expense_TTM", sa.Float),
-sa.Column("Total_Equity_A", sa.Float),
-sa.Column("Total_Equity_Q", sa.Float),
-sa.Column("Total_Equity_TTM", sa.Float),
-sa.Column("Accounts_Receivable_Current_and_Non_Current_A", sa.Float),
-sa.Column("Accounts_Receivable_Current_and_Non_Current_Q", sa.Float),
-sa.Column("Accounts_Receivable_Current_and_Non_Current_TTM", sa.Float),
-sa.Column("Sales_Per_Share_A", sa.Float),
-sa.Column("Sales_Per_Share_Q", sa.Float),
-sa.Column("Sales_Per_Share_TTM", sa.Float),
-sa.Column("Cash_Flow_from_Financing_Activities_A", sa.Float),
-sa.Column("Cash_Flow_from_Financing_Activities_Q", sa.Float),
-sa.Column("Cash_Flow_from_Financing_Activities_TTM", sa.Float),
-sa.Column("Debt_Equity_Ratio_A", sa.Float),
-sa.Column("Debt_Equity_Ratio_Q", sa.Float),
-sa.Column("Debt_Equity_Ratio_TTM", sa.Float),
-sa.Column("Operating_Expenses_Ratio_A", sa.Float),
-sa.Column("Operating_Expenses_Ratio_Q", sa.Float),
-sa.Column("Operating_Expenses_Ratio_TTM", sa.Float),
-sa.Column("Net_Income_Per_Share_A", sa.Float),
-sa.Column("Net_Income_Per_Share_Q", sa.Float),
-sa.Column("Net_Income_Per_Share_TTM", sa.Float),
-sa.Column("Advances_Receipts_Current_A", sa.Float),
-sa.Column("Advances_Receipts_Current_Q", sa.Float),
-sa.Column("Advances_Receipts_Current_TTM", sa.Float),
-sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_A", sa.Float),
-sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_Q", sa.Float),
-sa.Column("Common_Stock_Shares_Issued_Thousand_Shares_TTM", sa.Float),
-sa.Column("Long_Term_Accounts_Receivable_A", sa.Float),
-sa.Column("Long_Term_Accounts_Receivable_Q", sa.Float),
-sa.Column("Long_Term_Accounts_Receivable_TTM", sa.Float),
-sa.Column("Total_Retained_Earnings_A", sa.Float),
-sa.Column("Total_Retained_Earnings_Q", sa.Float),
-sa.Column("Total_Retained_Earnings_TTM", sa.Float),
-sa.Column("Recurring_Net_Income_A", sa.Float),
-sa.Column("Recurring_Net_Income_Q", sa.Float),
-sa.Column("Recurring_Net_Income_TTM", sa.Float),
-sa.Column("Accounts_Receivable_A", sa.Float),
-sa.Column("Accounts_Receivable_Q", sa.Float),
-sa.Column("Accounts_Receivable_TTM", sa.Float),
-sa.Column("Total_Operating_Cost_A", sa.Float),
-sa.Column("Total_Operating_Cost_Q", sa.Float),
-sa.Column("Total_Operating_Cost_TTM", sa.Float),
-sa.Column("Operating_Income_Per_Share_A", sa.Float),
-sa.Column("Operating_Income_Per_Share_Q", sa.Float),
-sa.Column("Operating_Income_Per_Share_TTM", sa.Float),
-sa.Column("Initial_REG_Listing_Date", sa.DateTime),
-sa.Column("Initial_OTC_Listing_Date", sa.DateTime),
-sa.Column("Security_Type", sa.String),  # You can adjust the length according to your data
-sa.Column("Latest_Listing_Date", sa.DateTime),
-sa.Column("Initial_TSE_Listing_Date", sa.DateTime),
-sa.Column("TEJ_Industry_Code", sa.String),  # You can adjust the length according to your data
-sa.Column("English_Full_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("TEJ_Industry_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("Exchange_Industry_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("Security_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("English_Abbreviation", sa.String),  # You can adjust the length according to your data
-sa.Column("Exchange_Industry_Code", sa.String),  # You can adjust the length according to your data
-sa.Column("Unified_Identification_Number", sa.String),  # You can adjust the length according to your data
-sa.Column("Security_Full_Name", sa.String),  # You can adjust the length according to your data
-sa.Column("Delisting_Date", sa.DateTime),
+    # 董監持股
+    sa.Column("Director_and_Supervisor_Holdings_Percentage", sa.Float),
+    sa.Column("Manager_Holdings_Percentage", sa.Float),
+    sa.Column("Major_Shareholder_Holdings_Percentage_TSE", sa.Float),
+    sa.Column("Total_Director_and_Supervisor_Holdings_Percentage", sa.Float),
+    sa.Column("Managers_Total_Holdings_Percentage", sa.Float),
+    sa.Column("Major_Shareholder_Total_Holdings_Percentage_TSE", sa.Float),
 
-# 董監持股
-sa.Column("Director_and_Supervisor_Holdings_Percentage", sa.Float),
-sa.Column("Manager_Holdings_Percentage", sa.Float),
-sa.Column("Major_Shareholder_Holdings_Percentage_TSE", sa.Float),
-sa.Column("Total_Director_and_Supervisor_Holdings_Percentage", sa.Float),
-sa.Column("Managers_Total_Holdings_Percentage", sa.Float),
-sa.Column("Major_Shareholder_Total_Holdings_Percentage_TSE", sa.Float)
+    # 新增欄位
+    sa.Column("Director_and_Supervisor_Holdings", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Operating_Activities_Q", sa.Float),
+    sa.Column("Buyback_Description_Chinese", sa.String),
+    sa.Column("Stock_Dividend_Listing_Date", sa.DateTime),
+    sa.Column("Difference_in_Top_10_Shareholder_Pledged_Shares_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Directors_Relatives_Total_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Specific_Rate_Percentage", sa.Float),
+    sa.Column("Net_Service_Fee_Charge_Income_Losses_Banking_And_Financial_Q", sa.Float),
+    sa.Column("Total_Stock_Capital_Thousand_TWD", sa.Float),
+    sa.Column("Discounts_And_Loans_Net_Banking_And_Financial_Q", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Financing_Activities_A", sa.Float),
+    sa.Column("Market", sa.String),
+    sa.Column("Short_Term_And_Long_Term_Liabilities_Q", sa.Float),
+    sa.Column("Warrant_Release_Date", sa.DateTime),
+    sa.Column("Preference_Share_Dividends_Q", sa.Float),
+    sa.Column("Difference_in_Managers_Pledged_Shares_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Rights_Issuance_Stock_Announcement_Date", sa.DateTime),
+    sa.Column("Major_Shareholder_Total_Pledged_Shares_1", sa.Float),
+    sa.Column("Securities_and_Futures_Bureau_Approval_Date", sa.DateTime),
+    sa.Column("Audit_Committee_Established", sa.String),
+    sa.Column("Dividend_Pay_Times", sa.Float),
+    sa.Column("Total_Director_and_Supervisor_Holdings", sa.Float),
+    sa.Column("Managers_Relatives_Total_Pledged_Shares_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Directors_and_Supervisors_Pledged_Shares", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Securities_TTM", sa.Float),
+    sa.Column("Total_Asset_Turnover_Q", sa.Float),
+    sa.Column("Profit_Loss_Attributable_To_Owners_Of_Parent_A", sa.Float),
+    sa.Column("Total_Shares_Thousand_Shares", sa.Float),
+    sa.Column("Total_Liabilities_And_Equity_Q", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Securities_A", sa.Float),
+    sa.Column("Capital_Reserves_Rights_Issuance_Rate_Percentage", sa.Float),
+    sa.Column("Profit_Loss_Attributable_To_Owners_Of_Parent_TTM", sa.Float),
+    sa.Column("Other_Thousand_Shares", sa.Float),
+    sa.Column("Basic_Earnings_Per_Share_MOPS_A", sa.Float),
+    sa.Column("Profit_Loss_Before_Tax_A", sa.Float),
+    sa.Column("Total_Operating_Revenue_Q", sa.Float),
+    sa.Column("Total_Expenditure_And_Expense_Securities_Q", sa.Float),
+    sa.Column("Managers_Pledged_Shares", sa.Float),
+    sa.Column("Executive_Directors_Count", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Total_Pledged_Shares_Percentage_Including_Rollover_from_Previous_Period", sa.Float),
+    sa.Column("Event_Type_English", sa.String),
+    sa.Column("Private_Placement_Flag_Fg", sa.String),
+    sa.Column("Capital_Reduction_Rate_Percentage", sa.Float),
+    sa.Column("Difference_Major_Shareholder_Total_Pledged_Shares_1", sa.Float),
+    sa.Column("Convertible_Bonds_Conversion_Price_Per_Unit", sa.Float),
+    sa.Column("Total_Treasury_Shares_TTM", sa.Float),
+    sa.Column("Position", sa.String),
+    sa.Column("Total_Equity_Attributable_To_Owners_Of_Parent_A", sa.Float),
+    sa.Column("Suspension_of_Sell_After_Day_Trading_Fg", sa.String),
+    sa.Column("Gross_Profit_Loss_From_Operations_A", sa.Float),
+    sa.Column("Major_Shareholder_Total_Holdings_TSE", sa.Float),
+    sa.Column("Managers_Total_Holdings_Percentage_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Stock_Dividend_Release_Date", sa.DateTime),
+    sa.Column("Top_10_Shareholder_Total_Pledge_Shares_Percentage_2", sa.Float),
+    sa.Column("Rights_Issuance_Flag_Fg", sa.String),
+    sa.Column("Difference_in_Top_10_Shareholder_Total_Holdings_Percentage_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Holdings_Percentage_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Manager_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Buyback_Number", sa.Float),
+    sa.Column("Total_CI_TTM", sa.Float),
+    sa.Column("Next_Election_Date", sa.DateTime),
+    sa.Column("Net_Cash_Flows_From_Used_In_Financing_Activities_TTM", sa.Float),
+    sa.Column("Foreign_Independent_Directors_Count", sa.Float),
+    sa.Column("General_Directors_Count", sa.Float),
+    sa.Column("Board_of_Directors_Decision_Cancellation_Date", sa.DateTime),
+    sa.Column("Difference_in_Supervisor_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Days_Sales_Outstanding_TTM", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Relatives_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Total_Treasury_Shares_Q", sa.Float),
+    sa.Column("Debt_To_Equity_Ratio_A", sa.Float),
+    sa.Column("BV_Per_Share_A_Reserve_For_Capital_Increase_And_Preference_Shares_Adjusted_A", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Holdings_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Suspension_Transfer_Start_Date", sa.DateTime),
+    sa.Column("Total_Revenue_Securities_A", sa.Float),
+    sa.Column("Finance_Costs_Net_TTM", sa.Float),
+    sa.Column("Managers_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Days_Payable_Outstanding_Q", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Operating_Activities_A", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Q", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Stock_Div_Earnings", sa.Float),
+    sa.Column("Net_Service_Fee_Charge_Income_Losses_Banking_And_Financial_A", sa.Float),
+    sa.Column("Suspension_Transfer_End_Date", sa.DateTime),
+    sa.Column("Original_Shareholder_Payment_End_Date", sa.DateTime),
+    sa.Column("Cumulative_Holding_Percentage", sa.Float),
+    sa.Column("Managers_Relatives_Total_Pledged_Shares", sa.Float),
+    sa.Column("Net_Profit_Margin_Before_Interest_Taxes_Depreciation_And_Amortization_A", sa.Float),
+    sa.Column("Merger_Thousand_Shares", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Insurance_A", sa.Float),
+    sa.Column("Total_Operating_Revenue_A", sa.Float),
+    sa.Column("Earnings_Before_Interest_Tax_Depreciation_And_Amortization_A", sa.Float),
+    sa.Column("Difference_in_Managers_Pledged_Shares_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Directors_and_Supervisors_Relatives_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Resignation_Date", sa.DateTime),
+    sa.Column("Major_Shareholder_Relatives_Total_Holdings_1_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("ROA_A_Income_From_Continuing_Operation_Before_Interest_A", sa.Float),
+    sa.Column("Total_Non_Current_Liabilities_TTM", sa.Float),
+    sa.Column("Meeting_Date", sa.DateTime),
+    sa.Column("Managers_Relatives_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Net_Income_Loss_Of_Interest_Banking_And_Financial__TTM", sa.Float),
+    sa.Column("Major_Shareholder_Total_Pledged_Shares_TSE", sa.Float),
+    sa.Column("Supervisors_Total_Pledged_Shares", sa.Float),
+    sa.Column("Directors_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Earnings_Before_Interest_And_Tax_Q", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Holdings_Percentage_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Outstanding_Shares_1000_Shares_Monthly_Frequency", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Insurance_Q", sa.Float),
+    sa.Column("Preferred_Stock_Shares_Q", sa.Float),
+    sa.Column("Difference_in_Manager_Holdings_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Event_Type_Chinese", sa.String),
+    sa.Column("Top_10_Shareholder_Total_Holdings_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Convertible_Bonds_Securities_Conversion_Thousand_Shares", sa.Float),
+    sa.Column("Days_Payable_Outstanding_A", sa.Float),
+    sa.Column("NCI_A", sa.Float),
+    sa.Column("Total_Assets_Growth_Rate_YOY_Q", sa.Float),
+    sa.Column("ROE_After_Tax_A", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Relatives_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Supervisors_Total_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Directors_Relatives_Total_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Market_Board_Eng", sa.String),
+    sa.Column("Difference_in_Directors_and_Supervisors_Relatives_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Profit_Loss_Before_Tax_TTM", sa.Float),
+    sa.Column("Transfer_Thousand_Shares", sa.Float),
+    sa.Column("Directors_and_Supervisors_Relatives_Holdings_Percentage", sa.Float),
+    sa.Column("Total_Expenditure_And_Expense_Securities_TTM", sa.Float),
+    sa.Column("Net_Profit_Margin_Before_Interest_Taxes_Depreciation_And_Amortization_Q", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Securities_Q", sa.Float),
+    sa.Column("Net_Income_Banking_And_Financial_Q", sa.Float),
+    sa.Column("Foreign_Independent_Supervisors_Count", sa.Float),
+    sa.Column("Total_Liabilities_And_Equity_TTM", sa.Float),
+    sa.Column("Total_Equity_Attributable_To_Owners_Of_Parent_Q", sa.Float),
+    sa.Column("Par_Value", sa.Float),
+    sa.Column("Managers_Total_Shares_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Total_Buyback_Price", sa.Float),
+    sa.Column("Preference_Share_Dividends_A", sa.Float),
+    sa.Column("Director_Holdings", sa.Float),
+    sa.Column("Currency", sa.String),
+    sa.Column("Total_Interest_Expenses_Banking_And_Financial__A", sa.Float),
+    sa.Column("Debt_To_Equity_Ratio_TTM", sa.Float),
+    sa.Column("Stock_Dividend_Pay_Date", sa.DateTime),
+    sa.Column("Election_Status", sa.String),
+    sa.Column("Short_Term_And_Long_Term_Liabilities_TTM", sa.Float),
+    sa.Column("Board_of_Directors_Decision_Date", sa.DateTime),
+    sa.Column("Debt_To_Equity_Ratio_Q", sa.Float),
+    sa.Column("Managers_Pledged_Shares_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Total_Interest_Expenses_Banking_And_Financial__Q", sa.Float),
+    sa.Column("Managers_Total_Pledged_Shares", sa.Float),
+    sa.Column("Rights_Issuance_Stock_Release_Date", sa.DateTime),
+    sa.Column("Stock_Div_Capital", sa.Float),
+    sa.Column("Difference_in_Total_Director_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("R&D_Expenses_Ratio_Q", sa.Float),
+    sa.Column("Total_Assets_Growth_Rate_YOY_TTM", sa.Float),
+    sa.Column("Supervisors_Relatives_Holdings_Percentage", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Total_Pledged_Shares_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Profit_Loss_Attributable_To_Owners_Of_Parent_Q", sa.Float),
+    sa.Column("Total_Operating_Costs_A", sa.Float),
+    sa.Column("Adjust_Factor_Exclude_CashDiv", sa.Float),
+    sa.Column("Difference_Top_10_Shareholder_Total_Pledge_Shares_Percentage_2", sa.Float),
+    sa.Column("Payout_Ratio", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Pledged_Shares_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Total_Operating_Costs_Q", sa.Float),
+    sa.Column("Total_Asset_Turnover_TTM", sa.Float),
+    sa.Column("Profit_Loss_From_Continuing_Operations_A", sa.Float),
+    sa.Column("Difference_in_Manager_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Supervisors_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Total_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Total_Pledged_Shares_Percentage_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Supervisors_Relatives_Total_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Basic_Earnings_Per_Share_MOPS_Q", sa.Float),
+    sa.Column("Cash_Back_Per_Share_After_Reduction", sa.Float),
+    sa.Column("Difference_in_Total_Supervisor_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Major_Shareholder_Relatives_Holdings_Percentage_1_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Name", sa.String),
+    sa.Column("Difference_in_Major_Shareholder_Total_Holdings_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Supervisors_Relatives_Total_Holdings", sa.Float),
+    sa.Column("Total_Expenditure_And_Expense_Securities_A", sa.Float),
+    sa.Column("Top_10_Shareholder_Relatives_Total_Holdings_2_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Weighted_Average_Number_Of_Ordinary_Shares_In_Thousands_Q", sa.Float),
+    sa.Column("Short_Term_And_Long_Term_Liabilities_A", sa.Float),
+    sa.Column("Difference_in_Supervisors_Relatives_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Issue_Shares_1000_Shares", sa.Float),
+    sa.Column("Original_Shareholder_Payment_Start_Date", sa.DateTime),
+    sa.Column("Supervisors_Relatives_Total_Pledged_Shares", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Warrant_Listing_Date", sa.DateTime),
+    sa.Column("Directors_Relatives_Total_Pledged_Shares", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Pledged_Shares_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Managers_Relatives_Total_Holdings_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Managers_Relatives_Holdings_Percentage_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Difference_in_Supervisors_Relatives_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Employee_Stock_Options_Thousand_Shares", sa.Float),
+    sa.Column("Margin_Trading_Suspension_Start_Date", sa.DateTime),
+    sa.Column("Discounts_And_Loans_Net_Banking_And_Financial_A", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Pledged_Shares_Percentage_TSE_from_Previous_Period", sa.Float),
+    sa.Column("NCI_Q", sa.Float),
+    sa.Column("Buyback_Period_End_Date", sa.DateTime),
+    sa.Column("Difference_in_Managers_Total_Shares_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Earnings_Capital_Increase_Thousand_Shares", sa.Float),
+    sa.Column("Preference_Share_Dividends_TTM", sa.Float),
+    sa.Column("Stock_Dividend_Announcement_Date", sa.DateTime),
+    sa.Column("Difference_in_Manager_Holdings_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Major_Shareholder_Holdings_TSE", sa.Float),
+    sa.Column("Earnings_Before_Interest_Tax_Depreciation_And_Amortization_TTM", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Gross_Profit_Loss_From_Operations_TTM", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Relatives_Holdings_Percentage_1_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Manager_Holdings_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Supervisors_Total_Holdings_Percentage", sa.Float),
+    sa.Column("Total_Asset_Turnover_A", sa.Float),
+    sa.Column("Difference_in_Directors_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Dividends_Type", sa.String),
+    sa.Column("Dividends_Distri_End", sa.DateTime),
+    sa.Column("Cash_Subscription_Rate_Percentage", sa.Float),
+    sa.Column("Difference_in_Total_Director_and_Supervisor_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Director_and_Supervisor_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Top_10_Shareholder_Holdings_Percentage_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Average_Buyback_Price", sa.Float),
+    sa.Column("Days_Sales_Outstanding_A", sa.Float),
+    sa.Column("Directors_and_Supervisors_Relatives_Total_Pledged_Shares", sa.Float),
+    sa.Column("Total_Interest_Expenses_Banking_And_Financial__TTM", sa.Float),
+    sa.Column("Treasury_Stock_Cancellation_Thousand_Shares", sa.Float),
+    sa.Column("Foreign_Directors_Count", sa.Float),
+    sa.Column("Difference_in_Managers_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Directors_Total_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Subtotal_Stock_Div", sa.Float),
+    sa.Column("Difference_in_Directors_Total_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Profit_Loss_From_Continuing_Operations_Q", sa.Float),
+    sa.Column("Directors_and_Supervisors_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Finance_Costs_Net_Q", sa.Float),
+    sa.Column("Payment_Certificate_Announcement_Date", sa.DateTime),
+    sa.Column("Total_Operating_Costs_Insurance_A", sa.Float),
+    sa.Column("ROE_After_Tax_TTM", sa.Float),
+    sa.Column("Restricted_Employee_Rights_New_Stock_Thousand_Shares", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Total_Pledged_Shares_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Warrant_Announcement_Date", sa.DateTime),
+    sa.Column("Difference_Major_Shareholder_Total_Pledge_Shares_Percentage_1", sa.Float),
+    sa.Column("Employee_Bonus_Capital_Increase_Stock_Announcement_Date", sa.DateTime),
+    sa.Column("Top_10_Shareholder_Pledged_Shares_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Independent_Directors_Count", sa.Float),
+    sa.Column("Difference_in_Supervisors_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Announcement_Date", sa.DateTime),
+    sa.Column("R&D_Expenses_Ratio_A", sa.Float),
+    sa.Column("Cash_Dividend_Pay_Date", sa.DateTime),
+    sa.Column("Net_Income_Banking_And_Financial_A", sa.Float),
+    sa.Column("Major_Shareholder_Pledged_Shares_Percentage_TSE", sa.Float),
+    sa.Column("Equivalent_Shares_Of_Stock_Dividend_To_Be_Distributed_TTM", sa.Float),
+    sa.Column("Buyback_Price_Range_Upper_Limit", sa.Float),
+    sa.Column("Total_Operating_Costs_Insurance_TTM", sa.Float),
+    sa.Column("Supervisors_Pledged_Shares", sa.Float),
+    sa.Column("Days_Inventory_On_Hand_A", sa.Float),
+    sa.Column("Directors_Total_Pledged_Shares", sa.Float),
+    sa.Column("Acid_Test_Ratio_TTM", sa.Float),
+    sa.Column("Private_Placement_Pricing_Date", sa.DateTime),
+    sa.Column("Weighted_Average_Number_Of_Ordinary_Shares_In_Thousands_TTM", sa.Float),
+    sa.Column("Total_Supervisors_Count", sa.Float),
+    sa.Column("Ex_Date_Cash_Div", sa.DateTime),
+    sa.Column("Capital_Increase_Failure_Reason", sa.String),
+    sa.Column("Net_Cash_Flows_From_Used_In_Financing_Activities_Q", sa.Float),
+    sa.Column("Total_Operating_Costs_Insurance_Q", sa.Float),
+    sa.Column("Previous_Day_Closing_Price_Per_Unit", sa.Float),
+    sa.Column("Difference_in_Managers_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Director_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Total_Directors_Count", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Relatives_Total_Holdings_2_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Capital_Reduction_Thousand_Shares", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_A", sa.Float),
+    sa.Column("Employee_Rights_Issuance_Rate_Percentage", sa.Float),
+    sa.Column("Directors_and_Supervisors_Relatives_Total_Holdings", sa.Float),
+    sa.Column("Short_Selling_Suspension_Start_Date", sa.DateTime),
+    sa.Column("Net_Profit_Margin_Before_Interest_Taxes_Depreciation_And_Amortization_TTM", sa.Float),
+    sa.Column("Supervisor_Holdings", sa.Float),
+    sa.Column("Cumulative_Holding_Shares", sa.Float),
+    sa.Column("ROE_After_Tax_Q", sa.Float),
+    sa.Column("Days_Inventory_On_Hand_TTM", sa.Float),
+    sa.Column("Convertible_Shares_Thousand_Shares", sa.Float),
+    sa.Column("Difference_in_Director_and_Supervisor_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Supervisors_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Investing_Activities_Q", sa.Float),
+    sa.Column("Common_Stock_Shares_TTM", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Pledged_Shares_Percentage_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("IPO_Flag_Fg", sa.String),
+    sa.Column("Revenue_Remark", sa.String),
+    sa.Column("Equivalent_Shares_Of_Stock_Dividend_To_Be_Distributed_Q", sa.Float),
+    sa.Column("Total_Revenue_Securities_TTM", sa.Float),
+    sa.Column("Managers_Relatives_Total_Holdings", sa.Float),
+    sa.Column("Acid_Test_Ratio_A", sa.Float),
+    sa.Column("Managers_Total_Shares", sa.Float),
+    sa.Column("Discounts_And_Loans_Net_Banking_And_Financial_TTM", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Investing_Activities_TTM", sa.Float),
+    sa.Column("Total_Assets_Growth_Rate_YOY_A", sa.Float),
+    sa.Column("Cash_Subscription_Price_Per_Unit", sa.Float),
+    sa.Column("Directors_Relatives_Total_Holdings", sa.Float),
+    sa.Column("Total_Deposits_And_Remittances_Banking_And_Financial_TTM", sa.Float),
+    sa.Column("Total_Deposits_And_Remittances_Banking_And_Financial_Q", sa.Float),
+    sa.Column("ROA_A_Income_From_Continuing_Operation_Before_Interest_TTM", sa.Float),
+    sa.Column("Difference_in_Directors_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Total_Supervisor_Holdings", sa.Float),
+    sa.Column("Buyback_Short", sa.String),
+    sa.Column("Rights_Issuance_Accelerated_Payment_Start_Date", sa.DateTime),
+    sa.Column("Cash_Flow_Ratio_Q", sa.Float),
+    sa.Column("Net_Income_Banking_And_Financial_TTM", sa.Float),
+    sa.Column("Insufficient_Director_Shares", sa.Float),
+    sa.Column("Payment_Certificate_Listing_Date", sa.DateTime),
+    sa.Column("Chairman_Count", sa.Float),
+    sa.Column("Difference_in_Total_Director_and_Supervisor_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Executive_Supervisors_Count", sa.Float),
+    sa.Column("Directors_Relatives_Holdings_Percentage", sa.Float),
+    sa.Column("Managers_Relatives_Pledged_Shares_Percentage_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Difference_Top_10_Shareholder_Total_Pledge_Shares_2", sa.Float),
+    sa.Column("Total_Deposits_And_Remittances_Banking_And_Financial_A", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Capital_Reserves_Capital_Increase_Thousand_Shares", sa.Float),
+    sa.Column("Managers_Total_Pledged_Shares_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Shareholders_Meeting_Decision_Date", sa.DateTime),
+    sa.Column("Profit_Loss_Before_Tax_Q", sa.Float),
+    sa.Column("Total_Equity_Attributable_To_Owners_Of_Parent_TTM", sa.Float),
+    sa.Column("BV_Per_Share_A_Reserve_For_Capital_Increase_And_Preference_Shares_Adjusted_Q", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Holdings_Percentage_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Profit_Loss_From_Continuing_Operations_TTM", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Pledged_Shares_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Total_Holdings_Including_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Earnings_Rights_Issuance_Rate_Percentage", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Total_Holdings_Percentage_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Director_Meeting_Date", sa.DateTime),
+    sa.Column("Directors_and_Supervisors_Total_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Holdings_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Rights_Issuance_Stock_Listing_Date", sa.DateTime),
+    sa.Column("Employee_Subscription_Rate_Percentage", sa.Float),
+    sa.Column("Preferred_Stock_Shares_TTM", sa.Float),
+    sa.Column("Sub_Industry_Eng", sa.String),
+    sa.Column("Difference_in_Major_Shareholder_Relatives_Total_Holdings_1_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Total_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Total_CI_A", sa.Float),
+    sa.Column("Independent_Supervisors_Count", sa.Float),
+    sa.Column("Days_In_Position", sa.Float),
+    sa.Column("Top_10_Shareholder_Relatives_Holdings_Percentage_1_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Convertible_Shares_Total_Thousand_Shares", sa.Float),
+    sa.Column("Difference_in_Directors_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Directors_Pledged_Shares", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Directors_Relatives_Total_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Total_Shares", sa.Float),
+    sa.Column("Rights_Issuance_Accelerated_Payment_End_Date", sa.DateTime),
+    sa.Column("Days_Sales_Outstanding_Q", sa.Float),
+    sa.Column("Margin_Trading_Suspension_End_Date", sa.DateTime),
+    sa.Column("Difference_in_Directors_Relatives_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Director_Holdings_Percentage", sa.Float),
+    sa.Column("Manager_Holdings", sa.Float),
+    sa.Column("Managers_Pledged_Shares_Percentage_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Purchase_Rate_Percentage", sa.Float),
+    sa.Column("Capital_Use", sa.String),
+    sa.Column("ROA_A_Income_From_Continuing_Operation_Before_Interest_Q", sa.Float),
+    sa.Column("Vice_Chairman_Count", sa.Float),
+    sa.Column("Dividends_Distri_Year", sa.Float),
+    sa.Column("Finance_Costs_Net_A", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Total_Pledged_Shares_Including_Rollover_from_Previous_Period", sa.Float),
+    sa.Column("NCI_TTM", sa.Float),
+    sa.Column("Cash_Dividend", sa.Float),
+    sa.Column("Top_10_Shareholder_Total_Pledge_Shares_2", sa.Float),
+    sa.Column("Manager_Holdings_Percentage_Including_Directors_and_Supervisors", sa.Float),
+    sa.Column("Net_Service_Fee_Charge_Income_Losses_Banking_And_Financial_TTM", sa.Float),
+    sa.Column("Total_Revenue_Securities_Q", sa.Float),
+    sa.Column("Top_10_Shareholder_Holdings_Excluding_Directors_and_Supervisors", sa.Float),
+    sa.Column("Difference_in_Supervisors_Relatives_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Total_Non_Current_Liabilities_A", sa.Float),
+    sa.Column("Difference_in_Major_Shareholder_Pledged_Shares_TSE_from_Previous_Period", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_YOY_TTM", sa.Float),
+    sa.Column("Cash_Capital_Increase_Failure_Flag", sa.String),
+    sa.Column("Difference_in_Top_10_Shareholder_Total_Holdings_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Common_Stock_Shares_Q", sa.Float),
+    sa.Column("Recent_Election_Date", sa.DateTime),
+    sa.Column("Supervisors_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Major_Shareholder_Pledged_Shares_TSE", sa.Float),
+    sa.Column("Managers_Total_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Major_Shareholder_Total_Pledged_Shares_Percentage_1", sa.Float),
+    sa.Column("Last_Transfer_Date", sa.DateTime),
+    sa.Column("Employee_Bonus_Capital_Increase_Stock_Listing_Date", sa.DateTime),
+    sa.Column("Buyback_Period_Start_Date", sa.DateTime),
+    sa.Column("Total_Non_Current_Liabilities_Q", sa.Float),
+    sa.Column("Other_Description", sa.String),
+    sa.Column("Preferred_Stock_Shares_A", sa.Float),
+    sa.Column("Total_Director_Holdings_Percentage", sa.Float),
+    sa.Column("General_Supervisors_Count", sa.Float),
+    sa.Column("Capital_Increase_Announcement_Date", sa.DateTime),
+    sa.Column("Difference_in_Director_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Top_10_Shareholder_Total_Pledged_Including_Rollover", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_YOY_Q", sa.Float),
+    sa.Column("Employee_Bonus_Thousand_Shares", sa.Float),
+    sa.Column("Cash_Flow_Ratio_A", sa.Float),
+    sa.Column("GDR_Rate_Percentage", sa.Float),
+    sa.Column("Difference_in_Total_Director_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Relatives_Holdings_Percentage_2_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Ex_Date_Stock", sa.DateTime),
+    sa.Column("Preferred_Shares_Securities_Conversion_Thousand_Shares", sa.Float),
+    sa.Column("Net_Income_Loss_Of_Interest_Banking_And_Financial__Q", sa.Float),
+    sa.Column("R&D_Expenses_Ratio_TTM", sa.Float),
+    sa.Column("Difference_in_Managers_Relatives_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Top_10_Shareholder_Total_Pledged_Shares_Percentage_Including_Rollover", sa.Float),
+    sa.Column("Days_Inventory_On_Hand_Q", sa.Float),
+    sa.Column("Restricted_Employee_Rights_New_Stock_Cancellation_Thousand_Shares", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Directors_Relatives_Total_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Pledged_Shares_from_Previous_Period", sa.Float),
+    sa.Column("Net_Cash_Flows_From_Used_In_Operating_Activities_TTM", sa.Float),
+    sa.Column("Total_Director_Holdings", sa.Float),
+    sa.Column("Acid_Test_Ratio_Q", sa.Float),
+    sa.Column("Margin_Trading_Last_Return_Date", sa.DateTime),
+    sa.Column("Total_CI_Q", sa.Float),
+    sa.Column("Difference_in_Managers_Total_Pledged_Shares_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Top_10_Shareholder_Holdings_Excluding_Directors_and_Supervisors_from_Previous_Period", sa.Float),
+    sa.Column("Foreign_Supervisors_Count", sa.Float),
+    sa.Column("Basic_Earnings_Per_Share_MOPS_TTM", sa.Float),
+    sa.Column("Insufficient_Supervisor_Shares", sa.Float),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_Insurance_TTM", sa.Float),
+    sa.Column("Employee_Bonus_Capital_Increase_Stock_Release_Date", sa.DateTime),
+    sa.Column("Buyback_Price_Range_Lower_Limit", sa.Float),
+    sa.Column("Ex_Rights_Reference_Price_Per_Unit", sa.Float),
+    sa.Column("Total_Treasury_Shares_A", sa.Float),
+    sa.Column("Difference_in_Supervisors_Total_Holdings_Percentage_from_Previous_Period", sa.Float),
+    sa.Column("Difference_in_Supervisor_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Buyback_Description_English", sa.String),
+    sa.Column("BV_Per_Share_A_Reserve_For_Capital_Increase_And_Preference_Shares_Adjusted_TTM", sa.Float),
+    sa.Column("Total_Operating_Revenue_TTM", sa.Float),
+    sa.Column("Payment_Certificate_Release_Date", sa.DateTime),
+    sa.Column("Public_Underwriting_Rate_Percentage", sa.Float),
+    sa.Column("Dividends_Distri_Begin", sa.DateTime),
+    sa.Column("Total_Non_Operating_Income_And_Expenses_TTM", sa.Float),
+    sa.Column("Common_Stock_Shares_A", sa.Float),
+    sa.Column("Supervisor_Holdings_Percentage", sa.Float),
+    sa.Column("Supervisors_Total_Pledged_Shares_Percentage", sa.Float),
+    sa.Column("Equivalent_Shares_Of_Stock_Dividend_To_Be_Distributed_A", sa.Float),
+    sa.Column("buyback_no", sa.Float),
+    sa.Column("Cash_Flow_Ratio_TTM", sa.Float),
+    sa.Column("Difference_in_Directors_and_Supervisors_Relatives_Total_Holdings_from_Previous_Period", sa.Float),
+    sa.Column("Sub_Industry", sa.String),
+    sa.Column("Weighted_Average_Number_Of_Ordinary_Shares_In_Thousands_A", sa.Float),
+    sa.Column("Total_Equity_Growth_Rate_YOY_A", sa.Float),
+    sa.Column("Total_Operating_Costs_TTM", sa.Float),
+    sa.Column("Supervisors_Relatives_Pledged_Shares_Percentage_Percentage", sa.Float)
 
 )
 

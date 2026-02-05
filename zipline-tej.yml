@@ -186,12 +186,12 @@ dependencies:
     - referencing==0.32.0
     - rpds-py==0.13.2
     - scikit-learn==1.5.0
-    - scipy==1.11.4
+    - scipy==1.13.1
     - seaborn==0.13.0
     - sniffio==1.3.0
     - sortedcontainers==2.4.0
     - sqlalchemy==1.4.50
-    - statsmodels==0.14.0
+    - statsmodels==0.14.2
     - tej-exchange-calendars==1.0.1
     - tej-tool-api==1.3.0
     - tejapi==0.1.31

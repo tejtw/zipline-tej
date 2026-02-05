@@ -82,7 +82,7 @@ dependencies:
       - click==8.1.7
       - cloudpickle==3.0.0
       - comm==0.2.2
-      - contourpy==1.2.0
+      - contourpy==1.2.1
       - cramjam==2.8.2
       - cycler==0.12.1
       - dask==2023.12.0

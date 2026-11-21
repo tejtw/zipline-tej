@@ -174,6 +174,10 @@ def gen_asset_metadata(data, show_progress):
     if show_progress:
         log.info("Generating asset metadata.")
 
+    if data["stk_name"].isna().any():
+        known_names = data.groupby("symbol")["stk_name"].transform("first")
+        names = data["stk_name"].fillna(known_names).fillna(data["symbol"])
+        data = data.assign(stk_name=names)
     data = data.groupby(by=["symbol","stk_name"]).agg({"date": [np.min, np.max]})
     data.reset_index(inplace=True)
     data["asset_name"] = data["stk_name"]
